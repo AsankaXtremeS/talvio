@@ -8,6 +8,25 @@ import {
 
 
 
+// REGISTER STUDENT / PROFESSIONAL
+// Public endpoint for registering a new student or professional user.
+// Expects: { firstName, lastName, email, password, confirmPassword, role }
+// Only allows role: STUDENT or PROFESSIONAL
+// Returns: { accessToken, refreshToken } on success
+
+export const registerUser = async (req: Request, res: Response) => {
+  try {
+    validateRegisterUser(req.body);
+    const result = await authService.registerUser(req.body);
+    res.status(201).json(result);
+  } catch (err: any) {
+    console.error("registerUser error:", err);
+    res.status(400).json({ message: "Registration failed. Please try again." });
+  }
+};
+
+
+
 // REGISTER EMPLOYER (WITH PDF UPLOAD)
 // Public endpoint for registering a new employer user.
 // Expects: { email, password, confirmPassword, companyName } and PDF file (registrationFile)

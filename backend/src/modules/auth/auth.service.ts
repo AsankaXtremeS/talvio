@@ -31,6 +31,26 @@ const generateRefreshToken = async (userId: string) => {
 };
 
 export const authService = {
+  async registerUser(data: any) {
+    const existing = await authRepository.findUserByEmail(data.email);
+    if (existing) throw new Error("User already exists");
+
+    // Only allow STUDENT or PROFESSIONAL roles
+    const allowedRoles = ["STUDENT", "PROFESSIONAL"];
+    const requestedRole = (data.role || "").toUpperCase();
+    if (!allowedRoles.includes(requestedRole)) {
+      throw new Error("Invalid role. Only STUDENT or PROFESSIONAL registration allowed.");
+    }
+
+    const hashed = await bcrypt.hash(data.password, 10);
+
+    const user = await authRepository.createUser({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      password: hashed,
+      role: requestedRole,
+    });
   
 
     const accessToken = generateAccessToken(user.id, user.role);

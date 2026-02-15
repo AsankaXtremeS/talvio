@@ -19,3 +19,7 @@ export interface RegisterEmployerInput {
   registrationFileName: string;
 }
 
+export interface LoginInput {
+  email: string;
+  password: string;
+}

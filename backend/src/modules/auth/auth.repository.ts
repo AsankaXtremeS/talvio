@@ -9,6 +9,9 @@ export const authRepository = {
     });
   },
 
+  createUser(data: any) {
+    return prisma.user.create({ data });
+  },
 
 
   createEmployerProfile(data: any) {
