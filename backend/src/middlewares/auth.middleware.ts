@@ -1,3 +1,4 @@
+// Middleware to authenticate requests using Bearer JWT access tokens.
 import { Request, Response, NextFunction } from "express"
 import { verifyAccessToken } from "../utils/jwt"
 
@@ -6,17 +7,22 @@ export const authenticate = (
   res: Response,
   next: NextFunction
 ) => {
-  const header = req.headers.authorization
+  const header = req.headers.authorization;
 
-  if (!header) return res.status(401).json({ message: "Unauthorized" })
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-  const token = header.split(" ")[1]
+  const token = header.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
   try {
-    const decoded = verifyAccessToken(token)
-    req.user = decoded
-    next()
+    const decoded = verifyAccessToken(token);
+    req.user = decoded;
+    next();
   } catch {
-    res.status(401).json({ message: "Invalid token" })
+    return res.status(401).json({ message: "Invalid token" });
   }
-}
+};
