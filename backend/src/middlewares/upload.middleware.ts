@@ -1,3 +1,4 @@
+// Multer middleware for handling PDF file uploads for employer registration.
 import multer from "multer";
 import path from "path";
 import fs from "fs";
