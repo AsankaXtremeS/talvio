@@ -25,6 +25,8 @@ import { requireRole } from "../../middlewares/role.middleware";
 const router = Router();
 
 router.post("/register", sensitiveLimiter, registerUser);
+
+
 router.post(
   "/register-employer",
   upload.single("registrationFile"),
@@ -32,6 +34,7 @@ router.post(
 );
 
 router.post("/login", sensitiveLimiter, login);
+
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.post("/forgot-password", sensitiveLimiter, forgotPassword);

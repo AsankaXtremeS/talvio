@@ -51,6 +51,7 @@ export const authService = {
       password: hashed,
       role: requestedRole,
     });
+  
 
     const accessToken = generateAccessToken(user.id, user.role);
     const refreshToken = await generateRefreshToken(user.id);

@@ -13,6 +13,7 @@ export const authRepository = {
     return prisma.user.create({ data });
   },
 
+
   createEmployerProfile(data: any) {
     return prisma.employerProfile.create({ data });
   },
