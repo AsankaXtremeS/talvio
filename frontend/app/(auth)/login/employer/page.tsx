@@ -5,14 +5,14 @@ import LoginForm from "./LoginForm"
 export default function CompanyLoginPage() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6"
+      className="flex items-center justify-center min-h-screen p-6"
       style={{ backgroundColor: "#E9F3FD" }}
     >
-      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-xl overflow-hidden flex" style={{ height: '620px' }}>
+      <div className="w-full max-w-6xl h-[620px] bg-white rounded-2xl shadow-xl overflow-hidden flex">
 
         {/* Left Panel */}
         <div
-          className="w-1/2 p-12 flex flex-col justify-between"
+          className="flex flex-col justify-between w-1/2 p-12"
           style={{
             background: `
               linear-gradient(
@@ -25,20 +25,20 @@ export default function CompanyLoginPage() {
           }}
         >
           <div>
-            <h1 className="text-3xl font-bold text-violet-700 tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-violet-700">
               Talvio
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="mt-1 text-sm text-slate-600">
               Employer & Hiring Platform
             </p>
           </div>
 
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="mb-4 text-2xl font-semibold text-slate-900">
               Hire with confidence.
             </h2>
 
-            <p className="text-sm text-slate-700 mb-8 leading-relaxed max-w-md">
+            <p className="max-w-md mb-8 text-sm leading-relaxed text-slate-700">
               Connect with talented students and professionals, manage applications,
               and streamline your hiring process through Talvio.
             </p>
@@ -56,28 +56,29 @@ export default function CompanyLoginPage() {
         </div>
 
         {/* Right Panel */}
-        <div className="w-1/2 p-10 relative bg-white">
-
-          <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+        <div className="relative w-1/2 p-10 bg-white">
+          <Link href="/login"> 
+          <button className="absolute text-gray-400 top-6 right-6 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
+          </Link>
 
           <div className="max-w-md mx-auto mt-6">
-            <h2 className="text-2xl font-semibold text-slate-900 mb-1">
+            <h2 className="mb-1 text-2xl font-semibold text-slate-900">
               Company Login
             </h2>
 
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="mb-6 text-sm text-slate-500">
               Access your hiring dashboard
             </p>
 
             <LoginForm />
 
-            <p className="text-center text-sm text-gray-600 mt-8">
+            <p className="mt-8 text-sm text-center text-gray-600">
               Don&apos;t have a company account?{" "}
               <Link
                 href="/register/employer"
-                className="text-indigo-600 font-medium hover:text-indigo-700"
+                className="font-medium text-indigo-600 hover:text-indigo-700"
               >
                 Sign up
               </Link>
@@ -92,7 +93,7 @@ export default function CompanyLoginPage() {
 function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-9 h-9 bg-white border rounded-lg flex items-center justify-center shadow-sm">
+      <div className="flex items-center justify-center bg-white border rounded-lg shadow-sm w-9 h-9">
         {icon}
       </div>
       <span className="text-sm text-slate-800">{text}</span>
