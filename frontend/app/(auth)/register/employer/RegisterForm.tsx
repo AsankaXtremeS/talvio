@@ -28,6 +28,7 @@ type FormData = z.infer<typeof schema>
 export default function EmployerSignupForm() {
   const [fileName, setFileName] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isDragActive, setIsDragActive] = useState(false)
 
   const {
     register,
@@ -80,12 +81,36 @@ export default function EmployerSignupForm() {
     }
   }
 
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    setIsDragActive(false)
+    const files = e.dataTransfer.files
+    if (files && files[0]) {
+      setFileName(files[0].name)
+      // Set file to input
+      const input = document.getElementById("fileUpload") as HTMLInputElement
+      if (input) {
+        const dataTransfer = new DataTransfer()
+        dataTransfer.items.add(files[0])
+        input.files = dataTransfer.files
+      }
+    }
+  }
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    setIsDragActive(true)
+  }
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    setIsDragActive(false)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
 
       {/* Company Name */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+        <label className="block mb-2 text-sm font-medium text-slate-700">
           Company name
         </label>
         <input
@@ -94,7 +119,7 @@ export default function EmployerSignupForm() {
           className="w-full px-4 py-2.5 text-sm text-slate-900 placeholder-gray-400 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {errors.companyName && (
-          <p className="text-red-500 text-xs mt-1">
+          <p className="mt-1 text-xs text-red-500">
             {errors.companyName.message}
           </p>
         )}
@@ -102,7 +127,7 @@ export default function EmployerSignupForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+        <label className="block mb-2 text-sm font-medium text-slate-700">
           Email
         </label>
         <input
@@ -112,7 +137,7 @@ export default function EmployerSignupForm() {
           className="w-full px-4 py-2.5 text-sm text-slate-900 placeholder-gray-400 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {errors.email && (
-          <p className="text-red-500 text-xs mt-1">
+          <p className="mt-1 text-xs text-red-500">
             {errors.email.message}
           </p>
         )}
@@ -120,7 +145,7 @@ export default function EmployerSignupForm() {
 
       {/* Password */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+        <label className="block mb-2 text-sm font-medium text-slate-700">
           Password
         </label>
         <input
@@ -130,7 +155,7 @@ export default function EmployerSignupForm() {
           className="w-full px-4 py-2.5 text-sm text-slate-900 placeholder-gray-400 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {errors.password && (
-          <p className="text-red-500 text-xs mt-1">
+          <p className="mt-1 text-xs text-red-500">
             {errors.password.message}
           </p>
         )}
@@ -138,7 +163,7 @@ export default function EmployerSignupForm() {
 
       {/* Confirm Password */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+        <label className="block mb-2 text-sm font-medium text-slate-700">
           Confirm password
         </label>
         <input
@@ -148,7 +173,7 @@ export default function EmployerSignupForm() {
           className="w-full px-4 py-2.5 text-sm text-slate-900 placeholder-gray-400 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {errors.confirmPassword && (
-          <p className="text-red-500 text-xs mt-1">
+          <p className="mt-1 text-xs text-red-500">
             {errors.confirmPassword.message}
           </p>
         )}
@@ -156,7 +181,7 @@ export default function EmployerSignupForm() {
 
       {/* Business Registration Info */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="block mb-1 text-sm font-medium text-slate-700">
           Business registration info
         </label>
         <div className="relative">
@@ -170,11 +195,30 @@ export default function EmployerSignupForm() {
           />
           <label
             htmlFor="fileUpload"
-            className="w-full h-24 border-2 border-dashed border-blue-400 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 transition-colors bg-white"
+            className={`w-full h-24 border-2 border-dashed border-blue-400 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-white ${isDragActive ? 'bg-blue-50 border-blue-600' : ''}`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
           >
-            <Upload className="w-6 h-6 text-gray-400 mb-1" />
+            <Upload className="w-6 h-6 mb-1 text-gray-400" />
             <span className="text-sm text-blue-600">
-              {fileName ? fileName : (
+              {fileName ? (
+                <>
+                  {fileName}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFileName("");
+                      // Clear the file input value
+                      const input = document.getElementById("fileUpload") as HTMLInputElement;
+                      if (input) input.value = "";
+                    }}
+                    className="ml-2 px-2 py-0.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
                 <>
                   Drag <span className="underline">here</span> or <span className="underline">browse</span>
                 </>
@@ -206,7 +250,7 @@ export default function EmployerSignupForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3 text-white font-semibold rounded-full text-base disabled:opacity-50 disabled:cursor-not-allowed "
+        className="w-full py-3 text-base font-semibold text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed "
         style={{
           background: "linear-gradient(90deg, #5F33E2 0%, #4F46E5 50%, #2563EB 100%)",
         }}
