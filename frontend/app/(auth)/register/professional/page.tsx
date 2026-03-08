@@ -52,7 +52,7 @@ export default function UndergraduateSignupPage() {
 
           <div className="max-w-md mx-auto">
             <h2 className="mb-6 text-2xl font-bold text-slate-900">
-              Sign Up
+             Sign Up as  Professional 
             </h2>
 
             <SignupForm />
