@@ -10,6 +10,8 @@ import {
   forgotPassword,
   resetPassword,
   approveEmployer,
+  rejectEmployer,
+  getPendingEmployers,
 } from "./auth.controller";
 import { upload } from "../../middlewares/upload.middleware";
 import rateLimit from "express-rate-limit";
@@ -25,8 +27,6 @@ import { requireRole } from "../../middlewares/role.middleware";
 const router = Router();
 
 router.post("/register", sensitiveLimiter, registerUser);
-
-
 router.post(
   "/register-employer",
   upload.single("registrationFile"),
@@ -34,11 +34,12 @@ router.post(
 );
 
 router.post("/login", sensitiveLimiter, login);
-
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.post("/forgot-password", sensitiveLimiter, forgotPassword);
 router.post("/reset-password", sensitiveLimiter, resetPassword);
 router.post("/approve-employer", authenticate, requireRole("ADMIN"), approveEmployer);
+router.post("/reject-employer", authenticate, requireRole("ADMIN"), rejectEmployer);
+router.get("/pending-employers", authenticate, requireRole("ADMIN"), getPendingEmployers);
 
 export default router;

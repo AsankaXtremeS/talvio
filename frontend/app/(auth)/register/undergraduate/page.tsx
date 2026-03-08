@@ -1,3 +1,4 @@
+// app/(auth)/register/undergraduate/page.tsx
 
 import Link from "next/link"
 import { Sparkles, Target, ShieldCheck, X } from "lucide-react"

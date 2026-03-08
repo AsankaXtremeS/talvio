@@ -59,3 +59,13 @@ export const validateLogin = (data: any) => {
     throw new Error("Invalid email format");
   }
 };
+
+export const validateResetPassword = (newPassword: string) => {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    throw new Error("Password must contain at least one uppercase letter and one number");
+  }
+};
