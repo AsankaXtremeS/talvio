@@ -91,7 +91,7 @@ export default function JobPostForm({
   };
 
   return (
-    <div className="h-full overflow-y-auto rounded-[28px] bg-white px-12 py-10 shadow-sm">
+    <div className="h-full overflow-y-auto rounded-2xl bg-white px-12 py-10 shadow-sm">
       <div className="mb-6">
         <h2 className="text-[22px] font-bold text-black">
           Create a job / internship opening
