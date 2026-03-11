@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
 import { createJobPost, updateJobPost } from "@/lib/employer/jobPosts.service";
 
 interface JobPostFormProps {
   initialData?: Partial<JobPostFormData>;
-  postId?: string;       // if provided → edit mode
+  postId?: string;
   onSuccess?: () => void;
 }
 
@@ -27,9 +28,12 @@ const EMPTY: JobPostFormData = {
 };
 
 const inputCls =
-  "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white";
+  "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] text-gray-700 outline-none focus:border-indigo-500";
 
-const labelCls = "block text-sm font-medium text-gray-700 mb-1.5";
+const textareaCls =
+  "w-full resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] text-gray-700 outline-none focus:border-indigo-500";
+
+const labelCls = "mb-2 block text-[15px] font-semibold text-gray-800";
 
 export default function JobPostForm({
   initialData,
@@ -37,32 +41,46 @@ export default function JobPostForm({
   onSuccess,
 }: JobPostFormProps) {
   const router = useRouter();
+
   const [form, setForm] = useState<JobPostFormData>({
     ...EMPTY,
     ...initialData,
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const isEdit = Boolean(postId);
 
-  const set = (key: keyof JobPostFormData, val: string) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+  const setField = (key: keyof JobPostFormData, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
-  const handleSubmit = async (status: "Draft" | "Active") => {
+  const handleSubmit = async () => {
     setError("");
-    if (!form.title || !form.department || !form.closedDate) {
-      setError("Please fill in Title, Department, and Closing Date.");
+
+    if (!form.title || !form.location || !form.description) {
+      setError("Please fill in the required fields before posting.");
       return;
     }
+
     setLoading(true);
+
     try {
-      const payload = { ...form, status };
+      const payload: JobPostFormData = {
+        ...form,
+        status: "Active",
+      };
+
       if (isEdit && postId) {
         await updateJobPost(postId, payload);
       } else {
         await createJobPost(payload);
       }
+
       onSuccess?.();
       router.push("/users/employer/job-posts");
     } catch {
@@ -73,176 +91,147 @@ export default function JobPostForm({
   };
 
   return (
-    <div className="max-w-3xl p-8 bg-white border border-gray-100 rounded-2xl">
-      <h2 className="mb-6 text-xl font-bold text-gray-800">
-        {isEdit ? "Edit Job Post" : "Create New Job Post"}
-      </h2>
-
-      {error && (
-        <p className="mb-4 text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
-          {error}
+    <div className="h-full overflow-y-auto rounded-[28px] bg-white px-12 py-10 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-[22px] font-bold text-black">
+          Create a job / internship opening
+        </h2>
+        <p className="mt-1 text-[14px] text-blue-600">
+          Fill in the information below to publish a new opportunity.
         </p>
-      )}
-
-      <div className="grid grid-cols-2 gap-5">
-        {/* Job Title */}
-        <div className="col-span-2">
-          <label className={labelCls}>Job Title *</label>
-          <input
-            className={inputCls}
-            placeholder="e.g. Frontend Developer"
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-          />
-        </div>
-
-        {/* Department */}
-        <div>
-          <label className={labelCls}>Department *</label>
-          <select
-            className={inputCls}
-            value={form.department}
-            onChange={(e) => set("department", e.target.value)}
-          >
-            <option value="">Select department</option>
-            {["Engineering", "Design", "Marketing", "Management", "Sales", "HR"].map(
-              (d) => <option key={d}>{d}</option>
-            )}
-          </select>
-        </div>
-
-        {/* Type */}
-        <div>
-          <label className={labelCls}>Type *</label>
-          <select
-            className={inputCls}
-            value={form.type}
-            onChange={(e) => set("type", e.target.value as JobPostFormData["type"])}
-          >
-            <option>Job</option>
-            <option>Internship</option>
-          </select>
-        </div>
-
-        {/* Employment Type */}
-        <div>
-          <label className={labelCls}>Employment Type</label>
-          <select
-            className={inputCls}
-            value={form.employmentType}
-            onChange={(e) =>
-              set("employmentType", e.target.value as JobPostFormData["employmentType"])
-            }
-          >
-            <option>Full-time</option>
-            <option>Part-time</option>
-            <option>Contract</option>
-          </select>
-        </div>
-
-        {/* Work Mode */}
-        <div>
-          <label className={labelCls}>Work Mode</label>
-          <select
-            className={inputCls}
-            value={form.workMode}
-            onChange={(e) =>
-              set("workMode", e.target.value as JobPostFormData["workMode"])
-            }
-          >
-            <option>On site</option>
-            <option>Remote</option>
-            <option>Hybrid</option>
-          </select>
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className={labelCls}>Location</label>
-          <input
-            className={inputCls}
-            placeholder="e.g. Colombo, Sri Lanka"
-            value={form.location}
-            onChange={(e) => set("location", e.target.value)}
-          />
-        </div>
-
-        {/* Closing Date */}
-        <div>
-          <label className={labelCls}>Closing Date *</label>
-          <input
-            type="date"
-            className={inputCls}
-            value={form.closedDate}
-            onChange={(e) => set("closedDate", e.target.value)}
-          />
-        </div>
-
-        {/* Salary */}
-        <div>
-          <label className={labelCls}>Salary Min ($)</label>
-          <input
-            className={inputCls}
-            placeholder="e.g. 1000"
-            value={form.salaryMin}
-            onChange={(e) => set("salaryMin", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Salary Max ($)</label>
-          <input
-            className={inputCls}
-            placeholder="e.g. 2000"
-            value={form.salaryMax}
-            onChange={(e) => set("salaryMax", e.target.value)}
-          />
-        </div>
-
-        {/* Description */}
-        <div className="col-span-2">
-          <label className={labelCls}>Job Description</label>
-          <textarea
-            className={`${inputCls} min-h-[120px] resize-y`}
-            placeholder="Describe the role and responsibilities..."
-            value={form.description}
-            onChange={(e) => set("description", e.target.value)}
-          />
-        </div>
-
-        {/* Requirements */}
-        <div className="col-span-2">
-          <label className={labelCls}>Requirements & Skills</label>
-          <textarea
-            className={`${inputCls} min-h-[100px] resize-y`}
-            placeholder="List required skills and qualifications..."
-            value={form.requirements}
-            onChange={(e) => set("requirements", e.target.value)}
-          />
-        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3 mt-8">
-        <button
-          disabled={loading}
-          onClick={() => handleSubmit("Active")}
-          className="flex-1 py-3 text-sm font-semibold text-white transition-colors bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {loading ? "Saving..." : isEdit ? "Update & Publish" : "Publish Job"}
-        </button>
-        <button
-          disabled={loading}
-          onClick={() => handleSubmit("Draft")}
-          className="flex-1 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-60"
-        >
-          Save as Draft
-        </button>
-        <button
-          onClick={() => router.back()}
-          className="px-6 py-3 text-sm font-semibold text-gray-500 transition-colors border border-gray-200 rounded-xl hover:bg-gray-50"
-        >
-          Cancel
-        </button>
+      {error && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-5 pb-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+          <div className="md:col-span-8">
+            <label className={labelCls}>Job Title</label>
+            <input
+              className={inputCls}
+              placeholder="Software Engineer"
+              value={form.title}
+              onChange={(e) => setField("title", e.target.value)}
+            />
+          </div>
+
+          <div className="md:col-span-4">
+            <label className="mb-2 block text-[15px] font-semibold text-transparent">
+              Type
+            </label>
+            <select
+              className={inputCls}
+              value={form.type}
+              onChange={(e) =>
+                setField("type", e.target.value as JobPostFormData["type"])
+              }
+            >
+              <option value="Job">Job</option>
+              <option value="Internship">Internship</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+          <div className="md:col-span-4">
+            <label className={labelCls}>Workplace Type</label>
+            <select
+              className={inputCls}
+              value={form.workMode}
+              onChange={(e) =>
+                setField("workMode", e.target.value as JobPostFormData["workMode"])
+              }
+            >
+              <option value="On site">On site</option>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-8">
+            <label className={labelCls}>Location</label>
+            <input
+              className={inputCls}
+              placeholder="Moratuwa, Sri Lanka"
+              value={form.location}
+              onChange={(e) => setField("location", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>Job Description</label>
+          <textarea
+            className={`${textareaCls} min-h-[120px]`}
+            placeholder="Describe the role, team and what the candidate will be doing..."
+            value={form.description}
+            onChange={(e) => setField("description", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>Responsibilities</label>
+          <textarea
+            className={`${textareaCls} min-h-[100px]`}
+            placeholder="List the main responsibilities..."
+            value={form.department}
+            onChange={(e) => setField("department", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>Qualifications</label>
+          <textarea
+            className={`${textareaCls} min-h-[100px]`}
+            placeholder="List required experience and education..."
+            value={form.requirements}
+            onChange={(e) => setField("requirements", e.target.value)}
+          />
+        </div>
+
+        <div className="max-w-md">
+          <label className={labelCls}>Skills</label>
+          <input
+            className={inputCls}
+            placeholder="Add skills (e.g. React, Python)"
+            value={form.employmentType}
+            onChange={(e) => setField("employmentType", e.target.value)}
+          />
+        </div>
+
+        <div className="max-w-md">
+          <label className={labelCls}>Salary Range</label>
+          <input
+            className={inputCls}
+            placeholder="Minimum - Maximum"
+            value={
+              form.salaryMin || form.salaryMax
+                ? `${form.salaryMin}${form.salaryMin || form.salaryMax ? " - " : ""}${form.salaryMax}`
+                : ""
+            }
+            onChange={(e) => {
+              const parts = e.target.value.split("-");
+              setField("salaryMin", parts[0]?.trim() || "");
+              setField("salaryMax", parts[1]?.trim() || "");
+            }}
+          />
+        </div>
+
+        <div className="flex justify-end pt-3">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex min-w-[235px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {loading ? "Posting..." : "Post"}
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

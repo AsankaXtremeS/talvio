@@ -3,12 +3,15 @@ import JobPostForm from "@/components/employer/job-posts/JobPostForm";
 
 export default function NewJobPostPage() {
   return (
-    <div className="p-8 bg-[#F4F6FB] min-h-screen">
-      <div className="flex items-center gap-2.5 mb-6">
-        <Plus size={22} className="text-indigo-500" />
-        <h1 className="text-2xl font-bold text-indigo-600">Post New Job</h1>
+    <div className="flex h-full flex-col overflow-hidden bg-[#EEF4FB] p-8">
+      <div className="mb-6 flex flex-shrink-0 items-center gap-3">
+        <Plus size={30} className="text-indigo-600" />
+        <h1 className="text-3xl font-bold text-indigo-600">Post New Job</h1>
       </div>
-      <JobPostForm />
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <JobPostForm />
+      </div>
     </div>
   );
 }
