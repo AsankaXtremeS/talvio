@@ -4,22 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { authService } from '@/lib/auth.service';
+import type { PendingEmployer } from '@/lib/auth.service';
 import { CheckCircle, XCircle, Building2, FileText, LogOut, RefreshCw } from 'lucide-react';
-
-interface EmployerProfile {
-  companyName: string;
-  registrationFileUrl: string;
-  registrationFileName: string;
-  verificationStatus: string;
-  createdAt: string;
-}
-
-interface PendingEmployer {
-  id: string;
-  email: string;
-  createdAt: string;
-  employerProfile: EmployerProfile;
-}
 
 export default function AdminDashboard() {
   const { user, accessToken, logout } = useAuth();
