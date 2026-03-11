@@ -16,13 +16,6 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-const redirectMap: Record<string, string> = {
-  STUDENT:      '/users/undergraduate',
-  PROFESSIONAL: '/users/professional',
-  EMPLOYER:     '/users/employer',
-  ADMIN:        '/users/admin',
-};
-
 export default function LoginForm() {
   const {
     register,
