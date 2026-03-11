@@ -1,0 +1,2 @@
+// AdminCandidate type
+// No content

@@ -1,0 +1,2 @@
+// fetchCandidates(), removeCandidate()
+// No content
