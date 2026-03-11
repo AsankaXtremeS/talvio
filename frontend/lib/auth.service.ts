@@ -1,5 +1,20 @@
 import { apiClient } from './apiClient';
 
+export interface EmployerProfile {
+  companyName: string;
+  registrationFileUrl: string;
+  registrationFileName: string;
+  verificationStatus: string;
+  createdAt: string;
+}
+
+export interface PendingEmployer {
+  id: string;
+  email: string;
+  createdAt: string;
+  employerProfile: EmployerProfile;
+}
+
 export const authService = {
   register: (data: {
     firstName?: string;
@@ -47,7 +62,7 @@ export const authService = {
     }),
 
   getPendingEmployers: (accessToken: string) =>
-    apiClient<unknown[]>('/api/auth/pending-employers', {
+    apiClient<PendingEmployer[]>('/api/auth/pending-employers', {
       method: 'GET',
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
