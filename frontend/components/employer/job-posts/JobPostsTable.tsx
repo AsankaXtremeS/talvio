@@ -22,22 +22,15 @@ export default function JobPostsTable({ posts, onEdit }: JobPostsTableProps) {
   const router = useRouter();
 
   return (
-    <div className="overflow-hidden bg-white border border-gray-100 rounded-2xl">
+    <div className="overflow-hidden bg-white border border-gray-100 rounded-2xl ">
       {/* Table header row */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
-        <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          View
-        </button>
+
       </div>
 
       <table className="w-full">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
             <ColHeader label="Job Title" />
             <ColHeader label="Department" />

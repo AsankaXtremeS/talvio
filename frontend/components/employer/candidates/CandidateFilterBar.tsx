@@ -31,16 +31,16 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
 
 export default function CandidateFilterBar({ status, onStatusChange, query, onQueryChange }: Props) {
   return (
-    <div className="flex items-center gap-[10px] flex-wrap mb-6">
+    <div className="flex items-center gap-2.5 flex-wrap mb-6">
 
       {/* ── Search box ── */}
-      <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+      <div className="relative flex-1 min-w-45 max-w-70">
         <input
           type="text"
           placeholder="Search candidates"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="w-full py-[10px] pl-[15px] pr-[42px] border border-[#E4E6EE] rounded-[11px] text-[13px] text-[#444] bg-white outline-none placeholder:text-[#BCBCC6] focus:border-[#A5B4FC] focus:ring-2 focus:ring-[#A5B4FC]/20 transition-all"
+          className="w-full py-2.5 pl-3.75 pr-10.5 border border-[#E4E6EE] rounded-[11px] text-[13px] text-[#444] bg-white outline-none placeholder:text-[#BCBCC6] focus:border-[#A5B4FC] focus:ring-2 focus:ring-[#A5B4FC]/20 transition-all"
         />
         <Search
           size={15}

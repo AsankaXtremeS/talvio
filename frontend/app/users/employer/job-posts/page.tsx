@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Briefcase } from "lucide-react";
 import { JobPost } from "@/types/employer/jobPost.types";
-import { getJobPosts } from "@/lib/employer/jobPosts.service";
 import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
@@ -65,10 +64,10 @@ export default function JobPostsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full p-8 overflow-hidden">
+    <div className="flex flex-col h-full p-8 pt-2 overflow-hidden">
 
       {/* ── Fixed header section (filter + title + stats) ── */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {/* ── Filter bar (top) ── */}
         <FilterBar
           search={search}       onSearchChange={setSearch}
