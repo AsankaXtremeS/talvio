@@ -18,19 +18,32 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+/* Hide browser default calendar and clock icons for date/time inputs (all browsers) */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
+  pointer-events: none;
+  display: none;
+}
+input[type="date"]::-ms-input-placeholder,
+input[type="time"]::-ms-input-placeholder {
+  color: transparent !important;
+}
+input[type="date"]::-moz-placeholder,
+input[type="time"]::-moz-placeholder {
+  color: transparent !important;
+}
+input[type="date"]::-webkit-input-placeholder,
+input[type="time"]::-webkit-input-placeholder {
+  color: transparent !important;
+}
+input[type="date"]::-moz-focus-inner,
+input[type="time"]::-moz-focus-inner {
+  border: 0;
+}
+input[type="date"]::-ms-clear,
+input[type="time"]::-ms-clear {
+  display: none;
 }
 
-@layer utilities {
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-    will-change: transform;
-  }
-}
+
