@@ -25,25 +25,25 @@ export default function StatsRow({
       label: "Total Posts",
       value: totalPosts,
       icon: <FileText size={20} className="text-white opacity-80" />,
-      bg: "bg-[#7C6FCD]",
+      bg: "bg-indigo-500",
     },
     {
       label: "Active",
       value: active,
       icon: <ClipboardList size={20} className="text-white opacity-80" />,
-      bg: "bg-[#6B5FC0]",
+      bg: "bg-indigo-700",
     },
     {
       label: "Applications",
       value: applications,
       icon: <FileCheck size={20} className="text-white opacity-80" />,
-      bg: "bg-[#5A4FB3]",
+      bg: "bg-indigo-600",
     },
     {
       label: "Closed",
       value: closed,
       icon: <XSquare size={20} className="text-white opacity-80" />,
-      bg: "bg-[#4A3FA6]",
+      bg: "bg-indigo-800",
     },
   ];
 
