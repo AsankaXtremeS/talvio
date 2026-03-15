@@ -33,6 +33,15 @@ body.landing-no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
+/* Hide scrollbar in admin pages */
+.admin-scroll::-webkit-scrollbar {
+  display: none;
+}
+.admin-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Hide browser default calendar and clock icons for date/time inputs (all browsers) */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {

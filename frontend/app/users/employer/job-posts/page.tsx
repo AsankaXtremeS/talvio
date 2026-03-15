@@ -68,7 +68,7 @@ export default function JobPostsPage() {
     <div className="flex flex-col h-full p-8 overflow-hidden">
 
       {/* ── Fixed header section (filter + title + stats) ── */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {/* ── Filter bar (top) ── */}
         <FilterBar
           search={search}       onSearchChange={setSearch}

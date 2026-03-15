@@ -27,7 +27,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="group bg-white border border-[#E8EBF4] rounded-2xl p-5 flex flex-col gap-4 transition-all duration-200 hover:border-[#C7C4F4] hover:shadow-[0_8px_30px_rgba(79,70,229,0.10)] hover:-translate-y-[2px]">
+    <div className="group flex flex-col gap-4 rounded-2xl border border-[#E8EBF4] bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C7C4F4] hover:shadow-[0_8px_30px_rgba(79,70,229,0.10)]">
 
       {/* ══ TOP: avatar · name · match badge ══ */}
       <div className="flex items-start justify-between gap-3">
@@ -36,7 +36,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
         <div className="flex items-center min-w-0 gap-3">
           {imgError ? (
             <div
-              className="w-[52px] h-[52px] rounded-xl shrink-0 flex items-center justify-center text-[18px] font-black text-white shadow-sm"
+              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl text-[18px] font-black text-white shadow-sm"
               style={{ background: grad }}
             >
               {candidate.initial}
@@ -61,7 +61,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
             <p className="text-[15px] font-bold text-[#0F172A] leading-snug truncate">
               {candidate.name}
             </p>
-            <p className="text-[12px] font-medium text-[#4F46E5] mt-[2px] truncate">
+            <p className="mt-0.5 text-[12px] font-medium text-[#4F46E5] truncate">
               {candidate.role}
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
 
         {/* Match badge — score-driven color */}
         <div
-          className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full border text-[11px] font-bold whitespace-nowrap shrink-0"
+          className="flex items-center gap-1.25 rounded-full border px-2.5 py-1.25 text-[11px] font-bold whitespace-nowrap shrink-0"
           style={{ background: ms.bg, borderColor: ms.border, color: ms.text }}
         >
           <Check size={11} strokeWidth={3} />
@@ -90,11 +90,11 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
       </div>
 
       {/* ══ SKILLS — indigo tint tags ══ */}
-      <div className="flex flex-wrap gap-[6px]">
+      <div className="flex flex-wrap gap-1.5">
         {candidate.skills.map((skill) => (
           <span
             key={skill}
-            className="px-[10px] py-[4px] rounded-md bg-[#EEF2FF] text-[#4F46E5] text-[11px] font-medium border border-[#E0E7FF]"
+            className="rounded-md border border-[#E0E7FF] bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-medium text-[#4F46E5]"
           >
             {skill}
           </span>
@@ -105,12 +105,12 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
       <div className="h-px bg-[#F1F3F9]" />
 
       {/* ══ ACTIONS ══ */}
-      <div className="flex gap-[10px]">
+      <div className="flex gap-2.5">
 
         {/* Secondary — ghost style */}
         <button
           onClick={() => onViewProfile(candidate.id)}
-          className="flex-1 flex items-center justify-center gap-[7px] py-[9px] rounded-xl border border-[#E0E7FF] bg-[#F8FAFF] text-[#4F46E5] text-[12px] font-semibold hover:bg-[#EEF2FF] hover:border-[#C7D2FE] transition-colors duration-150"
+          className="flex-1 flex items-center justify-center gap-1.75 rounded-xl border border-[#E0E7FF] bg-[#F8FAFF] py-2.25 text-[12px] font-semibold text-[#4F46E5] transition-colors duration-150 hover:border-[#C7D2FE] hover:bg-[#EEF2FF]"
         >
           <UserRound size={13} strokeWidth={2} />
           View Profile
@@ -119,7 +119,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
         {/* Primary CTA — with shadow for visual importance */}
         <button
           onClick={() => onSchedule(candidate.id)}
-          className="flex-1 flex items-center justify-center gap-[7px] py-[9px] rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3] text-white text-[12px] font-semibold shadow-[0_2px_8px_rgba(79,70,229,0.30)] hover:shadow-[0_4px_14px_rgba(79,70,229,0.40)] transition-all duration-150"
+          className="flex-1 flex items-center justify-center gap-1.75 rounded-xl bg-[#4F46E5] py-2.25 text-[12px] font-semibold text-white shadow-[0_2px_8px_rgba(79,70,229,0.30)] transition-all duration-150 hover:bg-[#4338CA] hover:shadow-[0_4px_14px_rgba(79,70,229,0.40)] active:bg-[#3730A3]"
         >
           <CalendarPlus size={13} strokeWidth={2} />
           Schedule
