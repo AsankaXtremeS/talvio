@@ -15,7 +15,7 @@ export default function ScheduleInterviewPage() {
 
   return (
     <div className="flex-1 min-h-screen bg-[#F7F9FC] p-0 font-sans">
-      <div className="max-w-6xl px-4 py-8 mx-auto">
+      <div className="max-w-6xl px-4 py-8 mx-auto pt-2">
         {/* Header */}
         <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
