@@ -14,13 +14,13 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#F4F6FB] md:p-4 gap-0 md:gap-4 overflow-hidden">
+    <div className="admin-scrollbars-hidden flex h-dvh w-full overflow-x-hidden overflow-y-hidden bg-[#F4F6FB] md:gap-4 md:p-4">
       <AdminSidebar mobileOpen={sidebarOpen} setMobileOpen={setSidebarOpen} isMobile />
       <div className="hidden md:block">
         <AdminSidebar />
       </div>
 
-      <main className="relative flex flex-col flex-1 min-w-0 overflow-y-auto admin-scroll">
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto admin-scroll">
         <div className="z-20 flex items-center px-4 bg-white shadow-sm md:hidden h-14">
           <button
             onClick={() => setSidebarOpen(true)}

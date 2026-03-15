@@ -29,10 +29,10 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex h-full flex-col overflow-hidden">
       <AdminTopbar searchPlaceholder="Search here" rightControl={<DashboardPeriodDropdown />} />
 
-      <div className="px-6 pb-6 flex-1">
+      <div className="admin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-6">
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
