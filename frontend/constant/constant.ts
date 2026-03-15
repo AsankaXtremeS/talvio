@@ -1,23 +1,23 @@
 export const NAV_LINKS = [
   {
     id: 1,
-    url: "/",
+    url: "/#home",
     label: "Home"
   },
   {
     id: 2,
-    url: "/features",
+    url: "/#features",
     label: "Features"
   },
   {
     id: 3,
-    url: "/users",
+    url: "/#users",
     label: "Users"
   },
   
   {
     id: 4,
-    url: "/contact",
+    url: "/#contact",
     label: "Contact Us"
   },
 ];
