@@ -13,7 +13,7 @@ export default async function CandidatesPage() {
   ]);
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex h-full flex-col overflow-hidden">
       <AdminTopbar
         searchPlaceholder="Search candidates"
         rightControl={
@@ -24,7 +24,7 @@ export default async function CandidatesPage() {
         }
       />
 
-      <div className="px-6 pb-6 flex-1">
+      <div className="admin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-6">
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
           <Users size={24} className="text-indigo-600" />

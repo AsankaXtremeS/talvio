@@ -21,8 +21,8 @@ const MOCK_POSTS: JobPost[] = [
 export default function JobPostsPage() {
   const router = useRouter();
 
-  const [posts, setPosts]     = useState<JobPost[]>(MOCK_POSTS);
-  const [loading, setLoading] = useState(false);
+  const [posts]   = useState<JobPost[]>(MOCK_POSTS);
+  const [loading] = useState(false);
 
   // Filter state
   const [search,  setSearch]  = useState("");

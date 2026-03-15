@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Briefcase, Sparkles, Dock } from "lucide-react";
+import { CalendarDays, ClipboardList, Sparkles, Dock } from "lucide-react";
 
 interface StatCard {
 	label: string;

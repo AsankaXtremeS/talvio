@@ -1,7 +1,5 @@
 import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
 // ── Avatar gradients — all indigo family, matches design system ──
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#C7D2FE,#818CF8)",

@@ -17,6 +17,7 @@ const candidates: Candidate[] = [
 function Avatar() {
 	return (
 		<div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center shrink-0">
+			{/* eslint-disable-next-line @next/next/no-img-element */}
 			<img
 				src="https://api.dicebear.com/7.x/personas/svg?seed=JohnDeb"
 				alt="avatar"

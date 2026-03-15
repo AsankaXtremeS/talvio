@@ -3,12 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { ClipboardCheck } from "lucide-react";
 import PendingApprovalsTable from "@/components/admin/pending-approvals/PendingApprovalsTable";
-import {
-  fetchPendingApprovals,
-  approveCompany,
-  rejectCompany,
-  getBusinessRegistrationUrl,
-} from "@/lib/admin/approvals.service";
 import { PendingApproval } from "@/types/admin/approval.types";
 
 // -------------------------------------------------
@@ -83,7 +77,7 @@ export default function PendingApprovalsPage() {
         // const data = await fetchPendingApprovals();
         const data = MOCK_APPROVALS;
         setApprovals(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load pending approvals.");
       } finally {
         setLoading(false);
