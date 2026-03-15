@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react'
 
 const Nav = () => {
   const [navBg, setNavBg] = useState(false);
+  const [activeHash, setActiveHash] = useState('home');
   const pathname = usePathname();
 
   const isScrolled = navBg;
@@ -24,9 +25,21 @@ const Nav = () => {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
+  useEffect(() => {
+    const syncHash = () => {
+      const hash = window.location.hash.replace('#', '') || 'home';
+      setActiveHash(hash);
+    };
+
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, []);
+
   return (
     <div
-      className={`fixed z-[100] h-[8vh] w-full transition-all duration-300 ${
+      className={`fixed z-100 h-[8vh] w-full transition-all duration-300 ${
         isScrolled
           ? 'bg-stone-100 shadow-md backdrop-blur-sm text-gray-800'
           : 'bg-transparent text-gray-700'
@@ -40,12 +53,14 @@ const Nav = () => {
         {/*NAVLINKS*/}
         <div className='hidden lg:flex items-center space-x-10'>
           {NAV_LINKS.map((link) => {
-            const isActive = link.url === '/' ? pathname === '/' : pathname === link.url || pathname.startsWith(`${link.url}/`)
+            const sectionHash = link.url.split('#')[1] || 'home';
+            const isActive = pathname === '/' && activeHash === sectionHash;
 
             return(
               <Link
                 key={link.id}
                 href={link.url}
+                onClick={() => setActiveHash(sectionHash)}
                 className={`group relative text-[15px] font-medium transition-colors duration-300 ${
                   isActive
                     ? 'text-[#2563eb]'

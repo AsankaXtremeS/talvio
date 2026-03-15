@@ -69,7 +69,6 @@ const ContactForm = () => {
           </p>
 
           <form onSubmit={handleSubmit}>
-            {/* First + Last Name */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
               <input
                 name="firstName"
@@ -91,7 +90,6 @@ const ContactForm = () => {
               />
             </div>
 
-            {/* Email */}
             <div style={{ position: "relative", marginBottom: 14 }}>
               <span
                 style={{
@@ -121,7 +119,6 @@ const ContactForm = () => {
               />
             </div>
 
-            {/* Phone */}
             <div
               style={{
                 display: "flex",
@@ -134,7 +131,6 @@ const ContactForm = () => {
                 transition: "border-color 0.2s",
               }}
             >
-              {/* Country code dropdown */}
               <div style={{ position: "relative" }}>
                 <button
                   type="button"
@@ -224,7 +220,6 @@ const ContactForm = () => {
               />
             </div>
 
-            {/* Message textarea */}
             <div style={{ position: "relative", marginBottom: 18 }}>
               <textarea
                 name="message"
@@ -254,7 +249,6 @@ const ContactForm = () => {
               </span>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               className="submit-btn"
@@ -278,7 +272,6 @@ const ContactForm = () => {
               {submitted ? "✓ Message Sent!" : "Submit"}
             </button>
 
-            {/* Terms */}
             <p
               style={{
                 fontSize: 12.5,

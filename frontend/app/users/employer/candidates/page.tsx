@@ -51,7 +51,7 @@ export default function CandidatesPage() {
   };
 
   return (
-    <div className="min-h-screen  px-[34px] pt-[28px] pb-10">
+    <div className="min-h-screen px-8.5 pt-7 pb-10">
 
       {/* ── Filter bar (top) ── */}
       <CandidateFilterBar
@@ -62,8 +62,8 @@ export default function CandidatesPage() {
       />
 
       {/* ── Page heading ── */}
-      <div className="mb-[22px]">
-        <div className="flex items-center gap-[10px] mb-1">
+      <div className="mb-5.5">
+        <div className="mb-1 flex items-center gap-2.5">
           <Users size={26} strokeWidth={2.2} className="text-[#4F46E5]" />
           <h1 className="text-3xl font-bold tracking-tight text-indigo-500 ">
             Candidates
@@ -81,10 +81,10 @@ export default function CandidatesPage() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white border border-[#E3E5EF] rounded-[16px] p-[20px_22px] animate-pulse"
+              className="animate-pulse rounded-2xl border border-[#E3E5EF] bg-white p-[20px_22px]"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-[48px] h-[48px] rounded-full bg-[#E8EBF3] shrink-0" />
+                <div className="h-12 w-12 rounded-full bg-[#E8EBF3] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3.5 bg-[#E8EBF3] rounded-full w-3/4" />
                   <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />

@@ -1,154 +1,69 @@
-import type { Company, CompanyFilters, CompanyStats, JobPost } from '@/types/admin/company.types';
+import type { Company, CompanyStats, JobPost } from '@/types/admin/company.types';
 
 const stats: CompanyStats = {
-	internshipPosts: 352,
-	internshipCompanies: 41,
-	jobPosts: 631,
-	jobCompanies: 57,
+	internshipPosts: 84,
+	internshipCompanies: 29,
+	jobPosts: 214,
+	jobCompanies: 76,
 };
 
 const companies: Company[] = [
 	{
 		id: '1',
-		name: 'Tech Solutions',
-		email: 'JohnD2024@gmail.com',
-		postCount: 5,
-		joinedAt: 'Dec 26,2025 10:00AM',
-		category: 'Employee',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
+		name: 'Nova Labs',
+		email: 'contact@novalabs.com',
+		postCount: 12,
+		joinedAt: 'Mar 04 2026',
+		logoColor: '#4F46E5',
+		logoText: 'NL',
 	},
 	{
 		id: '2',
-		name: 'Tech Solutions',
-		email: 'SarahWilson@email.com',
-		postCount: 3,
-		joinedAt: 'Dec 26,2025 09:07AM',
-		category: 'Employee',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
+		name: 'Bright Stack',
+		email: 'team@brightstack.ai',
+		postCount: 8,
+		joinedAt: 'Feb 27 2026',
+		logoColor: '#0EA5E9',
+		logoText: 'BS',
 	},
 	{
 		id: '3',
-		name: 'Tech Solutions',
-		email: 'KimDavid@Email.com',
-		postCount: 2,
-		joinedAt: 'Dec 26,2025 09:01AM',
-		category: 'Student',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
-	},
-	{
-		id: '4',
-		name: 'Tech Solutions',
-		email: 'Rody123Em@gmail.com',
-		postCount: 4,
-		joinedAt: 'Dec 26,2025 07:50AM',
-		category: 'Employee',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
-	},
-	{
-		id: '5',
-		name: 'Tech Solutions',
-		email: 'Chen2020.Michel@gmail.com',
-		postCount: 6,
-		joinedAt: 'Dec 26,2025 07:06AM',
-		category: 'Employee',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
-	},
-	{
-		id: '6',
-		name: 'Tech Solutions',
-		email: 'LeeJess.12@gmail.com',
-		postCount: 1,
-		joinedAt: 'Dec 25,2025 11:32PM',
-		category: 'Student',
-		logoText: 'Tech',
-		logoColor: '#1e3a8a',
+		name: 'Pixel Forge',
+		email: 'hello@pixelforge.io',
+		postCount: 5,
+		joinedAt: 'Feb 21 2026',
+		logoColor: '#F97316',
+		logoText: 'PF',
 	},
 ];
 
-const posts: JobPost[] = [
+const jobPosts: JobPost[] = [
 	{
 		id: '1',
-		jobTitle: 'Frontend Developer',
+		companyName: 'Nova Labs',
+		companyEmail: 'contact@novalabs.com',
+		companyLogoColor: '#4F46E5',
+		companyLogoText: 'NL',
 		category: 'Engineering',
-		type: 'Job',
-		closedDate: 'Apr 26,2024',
-		isClosed: false,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
+		jobTitle: 'Frontend Developer',
 	},
 	{
 		id: '2',
-		jobTitle: 'UI/UX Designer',
+		companyName: 'Bright Stack',
+		companyEmail: 'team@brightstack.ai',
+		companyLogoColor: '#0EA5E9',
+		companyLogoText: 'BS',
 		category: 'Design',
-		type: 'Internship',
-		closedDate: 'Apr 26,2024',
-		isClosed: false,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
+		jobTitle: 'Product Designer',
 	},
 	{
 		id: '3',
-		jobTitle: 'Data Analyst',
-		category: 'Engineering',
-		type: 'Job',
-		closedDate: 'Apr 26,2024',
-		isClosed: false,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
-	},
-	{
-		id: '4',
-		jobTitle: 'Marketing Intern',
+		companyName: 'Pixel Forge',
+		companyEmail: 'hello@pixelforge.io',
+		companyLogoColor: '#F97316',
+		companyLogoText: 'PF',
 		category: 'Marketing',
-		type: 'Job',
-		closedDate: 'Apr 26,2024',
-		isClosed: true,
-		closedApplications: 210,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
-	},
-	{
-		id: '5',
-		jobTitle: 'QA Engineer',
-		category: 'Engineering',
-		type: 'Job',
-		closedDate: 'Apr 26,2024',
-		isClosed: false,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
-	},
-	{
-		id: '6',
-		jobTitle: 'Product Manager',
-		category: 'Management',
-		type: 'Job',
-		closedDate: 'Apr 26,2024',
-		isClosed: false,
-		companyId: '1',
-		companyName: 'Tech Solutions',
-		companyEmail: 'techSol@gmail.com',
-		companyLogoText: 'Tech',
-		companyLogoColor: '#1e3a8a',
+		jobTitle: 'Growth Specialist',
 	},
 ];
 
@@ -157,10 +72,15 @@ export const companiesService = {
 		return { ...stats };
 	},
 
+<<<<<<< HEAD
+=======
+	// Backward-compatible alias used by older pages/components.
+>>>>>>> feat/admin-frontend
 	async getJobPostStats(): Promise<CompanyStats> {
 		return { ...stats };
 	},
 
+<<<<<<< HEAD
 	async getCompanies(filters?: Partial<CompanyFilters>): Promise<Company[]> {
 		if (!filters?.search) {
 			return companies.map((company) => ({ ...company }));
@@ -190,5 +110,35 @@ export const companiesService = {
 				(post) => post.jobTitle.toLowerCase().includes(search) || post.companyName.toLowerCase().includes(search),
 			)
 			.map((post) => ({ ...post }));
+=======
+	async getCompanies(filters?: { search?: string }): Promise<Company[]> {
+		if (filters?.search) {
+			const search = filters.search.toLowerCase();
+			return companies
+				.filter(
+					(company) =>
+						company.name.toLowerCase().includes(search) ||
+						company.email.toLowerCase().includes(search),
+				)
+				.map((company) => ({ ...company }));
+		}
+
+		return companies.map((company) => ({ ...company }));
+	},
+
+	async getJobPosts(filters?: { search?: string }): Promise<JobPost[]> {
+		if (filters?.search) {
+			const search = filters.search.toLowerCase();
+			return jobPosts
+				.filter(
+					(post) =>
+						post.jobTitle.toLowerCase().includes(search) ||
+						post.companyName.toLowerCase().includes(search),
+				)
+				.map((post) => ({ ...post }));
+		}
+
+		return jobPosts.map((post) => ({ ...post }));
+>>>>>>> feat/admin-frontend
 	},
 };

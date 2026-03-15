@@ -1,18 +1,73 @@
-import FilterBar from "@/components/employer/candidates/FilterBar";
-import CandidateCard from "@/components/employer/candidates/CandidateCard";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
+import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
+import { getCandidates } from "@/lib/employer/candidates.service";
+import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
 
 interface Props {
   params: { postId: string };
 }
 
 export default function PostCandidatesPage({ params }: Props) {
+  const [status, setStatus] = useState<CandidateStatus>("Applied");
+  const [query, setQuery] = useState("");
+  const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getCandidates(status)
+      .then((data) => {
+        if (mounted) {
+          setCandidates(data);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setCandidates([]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [status]);
+
+  const filteredCandidates = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return candidates;
+    }
+
+    return candidates.filter((candidate) => {
+      return (
+        candidate.name.toLowerCase().includes(term) ||
+        candidate.role.toLowerCase().includes(term) ||
+        candidate.skills.some((skill) => skill.toLowerCase().includes(term))
+      );
+    });
+  }, [candidates, query]);
+
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Candidates for Post — {params.postId}</h1>
-      <FilterBar />
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* CandidateCard items rendered here */}
-      </div>
+      <CandidateFilterBar
+        status={status}
+        onStatusChange={setStatus}
+        query={query}
+        onQueryChange={setQuery}
+      />
+      <CandidatesGrid
+        candidates={filteredCandidates}
+        onViewProfile={(id) => {
+          console.log("View profile", id);
+        }}
+        onSchedule={(id) => {
+          console.log("Schedule interview", id);
+        }}
+      />
     </div>
   );
 }
