@@ -31,21 +31,21 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
 
 export default function CandidateFilterBar({ status, onStatusChange, query, onQueryChange }: Props) {
   return (
-    <div className="flex items-center gap-2.5 flex-wrap mb-6">
+    <div className="mb-6 flex flex-wrap items-center gap-2.5">
 
       {/* ── Search box ── */}
-      <div className="relative flex-1 min-w-45 max-w-70">
+      <div className="relative max-w-72 min-w-44 flex-1">
         <input
           type="text"
           placeholder="Search candidates"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="w-full py-2.5 pl-3.75 pr-10.5 border border-[#E4E6EE] rounded-[11px] text-[13px] text-[#444] bg-white outline-none placeholder:text-[#BCBCC6] focus:border-[#A5B4FC] focus:ring-2 focus:ring-[#A5B4FC]/20 transition-all"
+          className="w-full rounded-xl border border-[#E4E6EE] bg-white py-2.5 pl-4 pr-10 text-[13px] text-[#444] outline-none transition-all placeholder:text-[#BCBCC6] focus:border-[#A5B4FC] focus:ring-2 focus:ring-[#A5B4FC]/20"
         />
         <Search
           size={15}
           strokeWidth={2}
-          className="absolute right-[13px] top-1/2 -translate-y-1/2 text-[#C8CADB] pointer-events-none"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#C8CADB]"
         />
       </div>
 
@@ -56,7 +56,7 @@ export default function CandidateFilterBar({ status, onStatusChange, query, onQu
           <button
             key={label}
             onClick={() => onStatusChange(label)}
-            className={`flex items-center gap-[6px] px-[15px] py-[9px] rounded-[11px] border text-[12.5px] font-semibold whitespace-nowrap transition-all
+            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-all
               ${active
                 ? "border-[#4F46E5] bg-[#EEEEFF] text-[#4F46E5]"
                 : "border-[#E4E6EE] bg-white text-[#777] hover:border-[#A5B4FC] hover:text-[#4F46E5] hover:bg-[#FAFBFF]"

@@ -51,7 +51,8 @@ export default function CandidatesPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-40px)] px-8.5 pt-2 pb-0">
+    <div className="min-h-screen px-8.5 pt-7 pb-10">
+
       {/* ── Filter bar (top) ── */}
       <CandidateFilterBar
         status={status}
@@ -62,7 +63,7 @@ export default function CandidatesPage() {
 
       {/* ── Page heading ── */}
       <div className="mb-5.5">
-        <div className="flex items-center gap-2.5 mb-1">
+        <div className="mb-1 flex items-center gap-2.5">
           <Users size={26} strokeWidth={2.2} className="text-[#4F46E5]" />
           <h1 className="text-3xl font-bold tracking-tight text-indigo-500 ">
             Candidates
@@ -74,31 +75,19 @@ export default function CandidatesPage() {
       </div>
 
       {/* ── Candidates grid ── */}
-      <div className="flex-1 overflow-y-auto pr-2">
-        {loading ? (
-          /* Loading skeleton — 4 placeholder cards */
-          <div className="grid grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white border border-[#E3E5EF] rounded-2xl p-[20px_22px] animate-pulse"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-[#E8EBF3] shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 bg-[#E8EBF3] rounded-full w-3/4" />
-                    <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />
-                  </div>
-                </div>
-                <div className="h-2.5 bg-[#E8EBF3] rounded-full w-2/3 mb-3" />
-                <div className="flex gap-2 mb-4">
-                  <div className="h-6 bg-[#E8EBF3] rounded-full w-16" />
-                  <div className="h-6 bg-[#E8EBF3] rounded-full w-20" />
-                  <div className="h-6 bg-[#E8EBF3] rounded-full w-14" />
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 h-9 bg-[#E8EBF3] rounded-[10px]" />
-                  <div className="flex-1 h-9 bg-[#E8EBF3] rounded-[10px]" />
+      {loading ? (
+        /* Loading skeleton — 4 placeholder cards */
+        <div className="grid grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-[#E3E5EF] bg-white p-[20px_22px]"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-12 w-12 rounded-full bg-[#E8EBF3] shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-[#E8EBF3] rounded-full w-3/4" />
+                  <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />
                 </div>
               </div>
             ))}

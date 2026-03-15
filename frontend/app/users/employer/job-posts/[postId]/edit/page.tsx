@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { JobPost } from "@/types/employer/jobPost.types";
-import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import JobPostForm from "@/components/employer/job-posts/JobPostForm";
 
 // Mock data — remove when backend is ready
@@ -12,20 +12,20 @@ const MOCK_POSTS: Record<string, JobPost> = {
   "2": { id: "2", title: "UI/UX Designer",     department: "Design",      type: "Internship", closedDate: "2024-04-26", status: "Active" },
 };
 
-export default function EditJobPostPage({
-  params,
-}: {
-  params: { postId: string };
-}) {
-  const [post, setPost] = useState<JobPost | null>(null);
+export default function EditJobPostPage() {
+  const params = useParams<{ postId?: string | string[] }>();
+  const postId = useMemo(() => {
+    const raw = params?.postId;
+    return Array.isArray(raw) ? raw[0] : raw;
+  }, [params]);
 
-  useEffect(() => {
-    // Uncomment when backend is ready:
-    // getJobPostById(params.postId).then(setPost);
+  const post = useMemo<JobPost | null>(() => {
+    if (!postId) {
+      return null;
+    }
 
-    // Mock:
-    setPost(MOCK_POSTS[params.postId] ?? null);
-  }, [params.postId]);
+    return MOCK_POSTS[postId] ?? null;
+  }, [postId]);
 
   if (!post) {
     return (
