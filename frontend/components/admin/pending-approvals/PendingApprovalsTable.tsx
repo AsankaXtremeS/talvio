@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Building2, Rows3, ExternalLink, Check, X } from "lucide-react";
+import { Building2, ExternalLink, Check, X } from "lucide-react";
 import { PendingApproval } from "@/types/admin/approval.types";
 
 // -------------------------------------------------

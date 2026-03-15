@@ -1,4 +1,4 @@
-import type { Company, CompanyStats, JobPost } from '@/types/admin/company.types';
+import type { Company, CompanyFilters, CompanyStats, JobPost } from '@/types/admin/company.types';
 
 const stats: CompanyStats = {
 	internshipPosts: 84,
@@ -72,15 +72,11 @@ export const companiesService = {
 		return { ...stats };
 	},
 
-<<<<<<< HEAD
-=======
 	// Backward-compatible alias used by older pages/components.
->>>>>>> feat/admin-frontend
 	async getJobPostStats(): Promise<CompanyStats> {
 		return { ...stats };
 	},
 
-<<<<<<< HEAD
 	async getCompanies(filters?: Partial<CompanyFilters>): Promise<Company[]> {
 		if (!filters?.search) {
 			return companies.map((company) => ({ ...company }));
@@ -101,44 +97,14 @@ export const companiesService = {
 
 	async getJobPosts(filters?: Partial<CompanyFilters>): Promise<JobPost[]> {
 		if (!filters?.search) {
-			return posts.map((post) => ({ ...post }));
+			return jobPosts.map((post) => ({ ...post }));
 		}
 
 		const search = filters.search.toLowerCase();
-		return posts
+		return jobPosts
 			.filter(
 				(post) => post.jobTitle.toLowerCase().includes(search) || post.companyName.toLowerCase().includes(search),
 			)
 			.map((post) => ({ ...post }));
-=======
-	async getCompanies(filters?: { search?: string }): Promise<Company[]> {
-		if (filters?.search) {
-			const search = filters.search.toLowerCase();
-			return companies
-				.filter(
-					(company) =>
-						company.name.toLowerCase().includes(search) ||
-						company.email.toLowerCase().includes(search),
-				)
-				.map((company) => ({ ...company }));
-		}
-
-		return companies.map((company) => ({ ...company }));
-	},
-
-	async getJobPosts(filters?: { search?: string }): Promise<JobPost[]> {
-		if (filters?.search) {
-			const search = filters.search.toLowerCase();
-			return jobPosts
-				.filter(
-					(post) =>
-						post.jobTitle.toLowerCase().includes(search) ||
-						post.companyName.toLowerCase().includes(search),
-				)
-				.map((post) => ({ ...post }));
-		}
-
-		return jobPosts.map((post) => ({ ...post }));
->>>>>>> feat/admin-frontend
 	},
 };

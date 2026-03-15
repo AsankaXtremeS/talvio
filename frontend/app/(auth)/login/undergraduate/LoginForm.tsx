@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -16,13 +15,6 @@ const schema = z.object({
 })
 
 type LoginFormData = z.infer<typeof schema>
-
-const redirectMap: Record<string, string> = {
-  STUDENT:      '/users/undergraduate',
-  PROFESSIONAL: '/users/professional',
-  EMPLOYER:     '/users/employer',
-  ADMIN:        '/users/admin',
-};
 
 export default function LoginForm() {
   const {

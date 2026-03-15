@@ -90,6 +90,7 @@ export default function CandidatesPage() {
                   <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />
                 </div>
               </div>
+            </div>
             ))}
           </div>
         ) : (
@@ -99,7 +100,6 @@ export default function CandidatesPage() {
             onSchedule={handleSchedule}
           />
         )}
-      </div>
     </div>
   );
 }
