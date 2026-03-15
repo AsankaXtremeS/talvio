@@ -90,26 +90,16 @@ export default function CandidatesPage() {
                   <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />
                 </div>
               </div>
-              <div className="h-2.5 bg-[#E8EBF3] rounded-full w-2/3 mb-3" />
-              <div className="flex gap-2 mb-4">
-                <div className="h-6 bg-[#E8EBF3] rounded-full w-16" />
-                <div className="h-6 bg-[#E8EBF3] rounded-full w-20" />
-                <div className="h-6 bg-[#E8EBF3] rounded-full w-14" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 h-9 bg-[#E8EBF3] rounded-[10px]" />
-                <div className="flex-1 h-9 bg-[#E8EBF3] rounded-[10px]" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <CandidatesGrid
-          candidates={filtered}
-          onViewProfile={handleViewProfile}
-          onSchedule={handleSchedule}
-        />
-      )}
+            ))}
+          </div>
+        ) : (
+          <CandidatesGrid
+            candidates={filtered}
+            onViewProfile={handleViewProfile}
+            onSchedule={handleSchedule}
+          />
+        )}
+      </div>
     </div>
   );
 }
