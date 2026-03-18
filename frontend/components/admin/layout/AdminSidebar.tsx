@@ -48,19 +48,9 @@ export default function AdminSidebar({
     try {
       // Call logout API to clear refresh token on backend
       await authService.logout();
-      
-      // Clear local storage
-      localStorage.removeItem('accessToken');
-      
-      // Reset auth context
-      setUser(null);
-      setAccessToken(null);
-      
-      // Redirect to login
-      router.push('/login/admin');
     } catch (error) {
       console.error('Sign out failed:', error);
-      // Still clear local state and redirect even if API call fails
+    } finally {
       localStorage.removeItem('accessToken');
       setUser(null);
       setAccessToken(null);
@@ -159,7 +149,7 @@ export default function AdminSidebar({
   return (
     <aside
       className={`hidden h-full shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 md:flex md:flex-col ${
-        collapsed ? 'w-18' : 'w-60'
+        collapsed ? 'w-[72px]' : 'w-60'
       }`}
     >
       <div className="flex items-center justify-between px-5 pt-6 pb-4">
@@ -178,7 +168,7 @@ export default function AdminSidebar({
       </div>
 
       <div className={`flex items-center gap-3 px-4 pb-5 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-300 to-pink-400 flex items-center justify-center overflow-hidden fshrink-0">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-300 to-pink-400 flex items-center justify-center overflow-hidden shrink-0">
           <span className="text-white text-sm font-semibold">A</span>
         </div>
         {!collapsed && <span className="text-sm font-semibold text-gray-800">Admin101</span>}
