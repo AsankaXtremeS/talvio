@@ -13,6 +13,9 @@ import {
   rejectEmployer,
   getEmployersByStatus,
   getPendingEmployers,
+  // OAUTH endpoints
+  oauthStart,
+  oauthCallback,
 } from "./auth.controller";
 import { upload } from "../../middlewares/upload.middleware";
 import rateLimit from "express-rate-limit";
@@ -28,6 +31,9 @@ import { requireRole } from "../../middlewares/role.middleware";
 const router = Router();
 
 router.post("/register", sensitiveLimiter, registerUser);
+// OAUTH routes
+router.get("/oauth/:provider", oauthStart);
+router.get("/oauth/:provider/callback", oauthCallback);
 router.post(
   "/register-employer",
   upload.single("registrationFile"),

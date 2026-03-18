@@ -75,6 +75,13 @@ export const login = async (req: Request, res: Response) => {
     res.json({ accessToken });
   } catch (err: any) {
     console.error("login error:", err);
+    if (err?.message === "Account pending admin approval") {
+      return res.status(403).json({
+        code: "EMPLOYER_PENDING_APPROVAL",
+        message: "Your employer account is still pending admin approval.",
+      });
+    }
+
     res.status(401).json({ message: "Login failed. Please check your credentials." });
   }
 };
@@ -251,5 +258,61 @@ export const getPendingEmployers = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("getPendingEmployers error:", err);
     res.status(500).json({ message: "Failed to fetch pending employers." });
+  }
+};
+
+// OAUTH START
+// Public endpoint to initiate OAuth flow with Google or LinkedIn.
+// Expects: provider in URL params, role in query (STUDENT or PROFESSIONAL)
+// Redirects to provider's authorization URL
+export const oauthStart = async (req: Request, res: Response) => {
+  try {
+    const provider = String(req.params.provider || "").toLowerCase();
+    const role = String(req.query.role || "").toUpperCase();
+
+    if (provider !== "google" && provider !== "linkedin") {
+      return res.status(400).json({ message: "Unsupported OAuth provider" });
+    }
+
+    const authorizationUrl = authService.getOAuthAuthorizationUrl(provider, role);
+    return res.redirect(authorizationUrl);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "OAuth initialization failed";
+    console.error("oauthStart error:", err);
+    return res.status(400).json({ message });
+  }
+};
+
+export const oauthCallback = async (req: Request, res: Response) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  try {
+    const provider = String(req.params.provider || "").toLowerCase();
+    const code = String(req.query.code || "");
+    const state = String(req.query.state || "");
+
+    if (provider !== "google" && provider !== "linkedin") {
+      return res.redirect(`${frontendUrl}/login?error=Unsupported%20OAuth%20provider`);
+    }
+
+    const { accessToken, refreshToken, user } = await authService.handleOAuthCallback(provider, code, state);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const params = new URLSearchParams({
+      accessToken,
+      role: user.role,
+      email: user.email,
+    });
+
+    return res.redirect(`${frontendUrl}/oauth/callback?${params.toString()}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "OAuth callback failed";
+    console.error("oauthCallback error:", err);
+    return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
   }
 };

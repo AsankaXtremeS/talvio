@@ -218,6 +218,9 @@ export default function SignupForm() {
       {/* LinkedIn Button */}
       <button
         type="button"
+        onClick={() => {
+          window.location.href = authService.getOAuthSignupUrl("linkedin", "PROFESSIONAL")
+        }}
         className="flex items-center justify-center w-full gap-2 px-4 py-2 transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
       >
         <Image src="/images/linkedin.svg" alt="LinkedIn" width={16} height={16} />
@@ -227,6 +230,9 @@ export default function SignupForm() {
       {/* Google Button */}
       <button
         type="button"
+        onClick={() => {
+          window.location.href = authService.getOAuthSignupUrl("google", "PROFESSIONAL")
+        }}
         className="flex items-center justify-center w-full gap-2 px-4 py-2 transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
       >
         <Image src="/images/google.svg" alt="Google" width={16} height={16} />
