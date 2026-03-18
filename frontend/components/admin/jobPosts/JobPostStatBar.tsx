@@ -1,4 +1,4 @@
-import { ChevronDown, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 
 interface JobPostStatsBarProps {
   internshipPosts: number;
@@ -14,41 +14,45 @@ export default function JobPostStatBar({
   jobCompanies,
 }: JobPostStatsBarProps) {
   return (
-    <div className="mb-6 flex gap-4">
-      <div className="bg-[#7C6FCD] rounded-2xl p-5 flex-1 relative">
+    <div className="mb-6 flex flex-wrap gap-4">
+      {/* Internships Card */}
+      <div className="relative w-full rounded-2xl bg-[#7C6FCD] p-5 md:w-[420px] lg:w-[460px]">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-white">Internships</span>
-            <button className="flex items-center gap-1 text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">
-              This Month <ChevronDown size={11} />
-            </button>
-          </div>
+          <span className="text-sm font-semibold text-white">Internships</span>
           <button className="text-white/60 hover:text-white/90">
-            <MoreHorizontal size={18} />
+            <MoreHorizontal size={16} />
           </button>
         </div>
-        <p className="text-4xl font-bold text-white">{internshipPosts}</p>
-        <p className="text-sm text-white/70 mt-1">Posts</p>
-        <p className="text-3xl font-bold text-white mt-2">{internshipCompanies}</p>
-        <p className="text-sm text-white/70 mt-1">Companies posted</p>
+        <div className="flex gap-20">
+          <div>
+            <p className="text-3xl font-bold leading-none text-white">{internshipPosts}</p>
+            <p className="mt-1 text-xs text-white/70">Posts</p>
+          </div>
+          <div>
+            <p className="text-3xl font-bold leading-none text-white">{internshipCompanies}</p>
+            <p className="mt-1 text-xs text-white/70">Companies posted</p>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-[#4A3FA6] rounded-2xl p-5 flex-1 relative">
+      {/* Jobs Card */}
+      <div className="relative w-full rounded-2xl bg-[#4A3FA6] p-5 md:w-[420px] lg:w-[460px]">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-white">Jobs</span>
-            <button className="flex items-center gap-1 text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">
-              This Month <ChevronDown size={11} />
-            </button>
-          </div>
+          <span className="text-sm font-semibold text-white">Jobs</span>
           <button className="text-white/60 hover:text-white/90">
-            <MoreHorizontal size={18} />
+            <MoreHorizontal size={16} />
           </button>
         </div>
-        <p className="text-4xl font-bold text-white">{jobPosts}</p>
-        <p className="text-sm text-white/70 mt-1">Posts</p>
-        <p className="text-3xl font-bold text-white mt-2">{jobCompanies}</p>
-        <p className="text-sm text-white/70 mt-1">Companies posted</p>
+        <div className="flex gap-20">
+          <div>
+            <p className="text-3xl font-bold leading-none text-white">{jobPosts}</p>
+            <p className="mt-1 text-xs text-white/70">Posts</p>
+          </div>
+          <div>
+            <p className="text-3xl font-bold leading-none text-white">{jobCompanies}</p>
+            <p className="mt-1 text-xs text-white/70">Companies posted</p>
+          </div>
+        </div>
       </div>
     </div>
   );
