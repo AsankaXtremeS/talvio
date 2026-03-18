@@ -11,13 +11,13 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { ReviewsActivityDataPoint } from '@/types/admin/dashboard.types';
+import type { CandidatesCompaniesActivityDataPoint } from '@/types/admin/dashboard.types';
 
-interface ReviewsActivityChartProps {
-  data: ReviewsActivityDataPoint[];
+interface CandidatesCompaniesActivityChartProps {
+  data: CandidatesCompaniesActivityDataPoint[];
 }
 
-export default function ReviewsActivityChart({ data }: ReviewsActivityChartProps) {
+function CandidatesCompaniesActivityChart({ data }: CandidatesCompaniesActivityChartProps) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <ComposedChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -32,10 +32,13 @@ export default function ReviewsActivityChart({ data }: ReviewsActivityChartProps
           iconSize={8}
           wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
         />
-        <Bar dataKey="posts" name="Posts" fill="#93c5fd" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="reviews" name="Reviews" fill="#38bdf8" radius={[3, 3, 0, 0]} />
-        <Line type="monotone" dataKey="reviews" stroke="#6366f1" strokeWidth={2} dot={false} legendType="none" />
+        <Bar dataKey="candidates" name="Candidates" fill="#93c5fd" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="companies" name="Companies" fill="#38bdf8" radius={[3, 3, 0, 0]} />
+        <Line type="monotone" dataKey="companies" stroke="#6366f1" strokeWidth={2} dot={false} legendType="none" tooltipType="none" />
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
+
+export { CandidatesCompaniesActivityChart };
+export default CandidatesCompaniesActivityChart;

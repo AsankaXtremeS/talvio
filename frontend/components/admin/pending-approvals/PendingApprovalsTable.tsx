@@ -116,8 +116,8 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
 
       {/* Actions */}
       <td className="py-4 pr-2">
-        <div className="flex items-center justify-end gap-2">
-          {/* View BR */}
+        <div className="flex items-center justify-center gap-2">
+             {/* View BR */}
           <button
             onClick={() => onViewBR(item.id)}
             className="
@@ -268,7 +268,7 @@ export default function PendingApprovalsTable({
                 <th className="pb-3 text-xs font-medium tracking-wide text-left text-gray-400 uppercase">
                   Email
                 </th>
-                <th className="pb-3 pr-2 text-xs font-medium tracking-wide text-right text-gray-400 uppercase">
+                <th className="pb-3 pr-2 text-xs font-medium tracking-wide text-center text-gray-400 uppercase">
                   Actions
                 </th>
               </tr>

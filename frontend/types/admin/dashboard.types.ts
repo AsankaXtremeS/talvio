@@ -16,10 +16,10 @@ export interface CompanyRatingDistribution {
 	color: string;
 }
 
-export interface ReviewsActivityDataPoint {
+export interface CandidatesCompaniesActivityDataPoint {
 	month: string;
-	posts: number;
-	reviews: number;
+	candidates: number;
+	companies: number;
 }
 
 export interface RecentCandidate {
