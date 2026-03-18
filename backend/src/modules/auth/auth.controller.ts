@@ -204,9 +204,9 @@ export const approveEmployer = async (req: Request, res: Response) => {
 
 export const rejectEmployer = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body;
+    const { userId, reason } = req.body;
     if (!userId) throw new Error("User ID required");
-    const result = await authService.rejectEmployer(userId);
+    const result = await authService.rejectEmployer(userId, reason);
     res.json(result);
   } catch (err: any) {
     console.error("rejectEmployer error:", err);

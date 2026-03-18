@@ -6,6 +6,7 @@ export interface EmployerProfile {
   registrationFileName: string;
   verificationStatus: string;
   createdAt: string;
+  rejectionReason?: string | null;
 }
 
 export interface PendingEmployer {
@@ -80,10 +81,10 @@ export const authService = {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
-  rejectEmployer: (userId: string, accessToken: string) =>
+  rejectEmployer: (userId: string, accessToken: string, reason?: string) =>
     apiClient('/api/auth/reject-employer', {
       method: 'POST',
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, reason }),
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };

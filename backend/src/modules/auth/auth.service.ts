@@ -199,8 +199,8 @@ export const authService = {
     return { message: "Employer approved successfully" };
   },
 
-  async rejectEmployer(userId: string) {
-    await authRepository.rejectEmployer(userId);
+  async rejectEmployer(userId: string, reason?: string) {
+    await authRepository.rejectEmployer(userId, reason);
     return { message: "Employer rejected" };
   },
 
