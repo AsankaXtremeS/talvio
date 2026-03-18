@@ -1,4 +1,5 @@
 "use client"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -6,15 +7,18 @@ import { useRouter } from "next/navigation"
 import { authService } from "@/lib/auth.service"
 import { useAuth } from "@/context/AuthContext"
 import { jwtDecode } from "jwt-decode"
+import { FiEye, FiEyeOff } from "react-icons/fi"
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  password: z.string().min(1, "Password is required").min(6, "Password must be at least 6 characters"),
 })
 
 type FormData = z.infer<typeof schema>
 
 export default function AdminLoginForm() {
+  const [showPassword, setShowPassword] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -35,7 +39,7 @@ export default function AdminLoginForm() {
       }
       setUser({ id: decoded.userId, role: "ADMIN", email: data.email })
       setAccessToken(accessToken)
-      router.push("/users/admin")
+      router.push("/users/admin/dashboard")
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Login failed."
       setError("root", { type: "manual", message })
@@ -53,7 +57,7 @@ export default function AdminLoginForm() {
         <input
           {...register("email")}
           type="email"
-          placeholder="admin@talvio.com"
+          placeholder="adminemail@domain.com"
           className="w-full px-4 py-2.5 text-sm text-slate-900 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
         {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
@@ -61,12 +65,26 @@ export default function AdminLoginForm() {
 
       <div>
         <label className="block mb-1 text-sm font-medium text-slate-700">Password</label>
-        <input
-          {...register("password")}
-          type="password"
-          placeholder="••••••••"
-          className="w-full px-4 py-2.5 text-sm text-slate-900 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500"
-        />
+
+        <div className="relative">
+          <input
+            {...register("password")}
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            className="w-full px-4 pr-11 py-2.5 text-sm text-slate-900 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+          >
+            {showPassword ? <FiEyeOff className="h-4 w-3" /> : <FiEye className="h-4 w-3" />}
+          </button>
+
+        </div>
+
         {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
       </div>
 

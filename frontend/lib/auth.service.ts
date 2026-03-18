@@ -67,6 +67,12 @@ export const authService = {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
+  getEmployers: (status: 'pending' | 'approved' | 'rejected', accessToken: string) =>
+    apiClient<PendingEmployer[]>(`/api/auth/employers?status=${status}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
   approveEmployer: (userId: string, accessToken: string) =>
     apiClient('/api/auth/approve-employer', {
       method: 'POST',
