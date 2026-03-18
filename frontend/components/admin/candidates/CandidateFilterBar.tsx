@@ -70,17 +70,12 @@ function FilterDropdown({
 }
 
 export default function CandidateFilterBar() {
-  const [status, setStatus] = useState('Status');
   const [jobRole, setJobRole] = useState('Job Role');
   const [userType, setUserType] = useState('User Type');
 
   return (
     <div className="flex items-center gap-3">
-      <FilterDropdown
-        value={status}
-        onChange={setStatus}
-        options={['Status', 'Draft', 'Active', 'Closed']}
-      />
+    
       <FilterDropdown
         value={jobRole}
         onChange={setJobRole}

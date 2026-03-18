@@ -1,6 +1,6 @@
 'use client';
 
-import { SlidersHorizontal } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import type { JobPost } from '@/types/admin/company.types';
 
 interface JobPostsTableProps {
@@ -11,30 +11,44 @@ interface JobPostsTableProps {
 
 export default function JobPostsTable({ posts, onView, onEdit }: JobPostsTableProps) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <div className="flex h-full min-h-0 flex-col rounded-2xl border border-gray-100 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-        <h2 className="text-base font-semibold text-gray-900">Job Posts</h2>
-        <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-all hover:border-indigo-300">
-          <SlidersHorizontal size={14} />
-          View
-        </button>
+        <h2 className="text-base font-semibold text-gray-800">Job Posts</h2>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col className="w-[24%]" />
+            <col className="w-[16%]" />
+            <col className="w-[24%]" />
+            <col className="w-[20%]" />
+            <col className="w-[16%]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400">Job Title</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Department</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Company</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Action</th>
+              <th className="px-6 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Job Title</th>
+              <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Department</th>
+              <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Company</th>
+              <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Email</th>
+              <th className="px-4 py-3 text-center text-xs font-medium tracking-wide text-gray-400 uppercase">Actions</th>
             </tr>
           </thead>
+        </table>
+      </div>
 
+      <div className="admin-scroll min-h-0 flex-1 overflow-y-auto overflow-x-auto">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col className="w-[24%]" />
+            <col className="w-[16%]" />
+            <col className="w-[24%]" />
+            <col className="w-[20%]" />
+            <col className="w-[16%]" />
+          </colgroup>
           <tbody className="divide-y divide-gray-50">
             {posts.map((post) => (
-              <tr key={post.id} className="transition-colors hover:bg-gray-50/50">
+              <tr key={post.id} className="border-b border-gray-100 last:border-0 transition-colors hover:bg-gray-50/60">
                 <td className="px-6 py-4 text-sm font-semibold text-gray-900">{post.jobTitle}</td>
                 <td className="px-4 py-4 text-sm text-gray-500">{post.category}</td>
                 <td className="px-4 py-4">
@@ -50,18 +64,20 @@ export default function JobPostsTable({ posts, onView, onEdit }: JobPostsTablePr
                 </td>
                 <td className="px-4 py-4 text-sm text-gray-500">{post.companyEmail}</td>
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => onView?.(post)}
-                      className="rounded-lg border border-indigo-300 px-4 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-600 text-xs font-semibold hover:bg-indigo-50 transition-colors duration-150 whitespace-nowrap"
                     >
+                      <ExternalLink size={12} />
                       View
                     </button>
                     <button
                       onClick={() => onEdit?.(post)}
-                      className="rounded-lg border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors duration-150 whitespace-nowrap"
                     >
-                      Edit
+                      <X size={12} />
+                      Remove
                     </button>
                   </div>
                 </td>
