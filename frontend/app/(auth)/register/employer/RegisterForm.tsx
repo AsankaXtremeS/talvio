@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Upload, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { authService } from "@/lib/auth.service"
+import Popup from "@/components/admin/layout/Popup"
 
 const schema = z
   .object({
@@ -57,6 +58,7 @@ export default function EmployerSignupForm() {
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [pwValue, setPwValue] = useState("")
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({ open: false, message: "", success: false })
   const fileRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -72,7 +74,7 @@ export default function EmployerSignupForm() {
     try {
       const file = fileRef.current?.files?.[0]
       if (!file) {
-        alert("Please upload your business registration PDF.")
+        setPopup({ open: true, message: "Please upload your business registration PDF.", success: false })
         setIsLoading(false)
         return
       }
@@ -84,14 +86,13 @@ export default function EmployerSignupForm() {
       formData.append("registrationFile", file)
       const result = await authService.registerEmployer(formData)
       if (result?.userId) {
-        alert("Registration submitted! Awaiting admin approval.")
-        window.location.href = "/login/employer"
+        setPopup({ open: true, message: "Registration submitted! Awaiting admin approval.", success: true })
       } else {
-        alert(result?.message || "Registration failed. Please check your details and try again.")
+        setPopup({ open: true, message: result?.message || "Registration failed. Please check your details and try again.", success: false })
       }
     } catch (error: unknown) {
       console.error("Error:", error)
-      alert(error instanceof Error ? error.message : "An error occurred. Please try again.")
+      setPopup({ open: true, message: error instanceof Error ? error.message : "An error occurred. Please try again.", success: false })
     } finally {
       setIsLoading(false)
     }
@@ -131,7 +132,19 @@ export default function EmployerSignupForm() {
   const { label, color, text } = strengthMeta[strength]
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+    <>
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => {
+          setPopup({ ...popup, open: false })
+          if (popup.success) {
+            window.location.href = "/login/employer"
+          }
+        }}
+      />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
 
       {/* Company Name */}
       <div>
@@ -293,5 +306,6 @@ export default function EmployerSignupForm() {
       </button>
 
     </form>
+    </>
   )
 }
