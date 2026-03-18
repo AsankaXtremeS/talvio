@@ -204,6 +204,10 @@ export const authService = {
     return { message: "Employer rejected" };
   },
 
+  async getEmployersByStatus(status: "pending" | "approved" | "rejected") {
+    return authRepository.getEmployersByStatus(status);
+  },
+
   async getPendingEmployers() {
     return authRepository.getPendingEmployers();
   },
