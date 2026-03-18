@@ -221,6 +221,9 @@ export default function UndergraduateRegisterForm() {
       {/* LinkedIn Button */}
       <button
         type="button"
+        onClick={() => {
+          window.location.href = authService.getOAuthSignupUrl("linkedin", "STUDENT")
+        }}
         className="flex items-center justify-center w-full gap-2 px-4 py-2 transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
       >
         <Image src="/images/linkedin.svg" alt="LinkedIn" width={16} height={16} />
@@ -230,6 +233,9 @@ export default function UndergraduateRegisterForm() {
       {/* Google Button */}
       <button
         type="button"
+        onClick={() => {
+          window.location.href = authService.getOAuthSignupUrl("google", "STUDENT")
+        }}
         className="flex items-center justify-center w-full gap-2 px-4 py-2 transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
       >
         <Image src="/images/google.svg" alt="Google" width={16} height={16} />

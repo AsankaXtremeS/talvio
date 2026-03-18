@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import Popup from "@/components/admin/layout/Popup";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -28,6 +29,11 @@ export default function LoginForm() {
   const { setUser, setAccessToken } = useAuth();
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
+    open: false,
+    message: "",
+    success: false,
+  });
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -42,12 +48,29 @@ export default function LoginForm() {
       router.push('/users/employer');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Login failed. Check your credentials.';
+
+      if (message.toLowerCase().includes("pending admin approval")) {
+        setPopup({
+          open: true,
+          message: "Your employer account is still pending admin approval. Please wait until admin verification.",
+          success: false,
+        });
+        return;
+      }
+
       setError('root', { type: 'manual', message });
     }
   }
 
   return (
     <>
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
         {errors.root && (

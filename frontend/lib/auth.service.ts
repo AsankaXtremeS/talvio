@@ -41,6 +41,9 @@ export const authService = {
       return data;
     }),
 
+  getOAuthSignupUrl: (provider: 'google' | 'linkedin', role: 'STUDENT' | 'PROFESSIONAL') =>
+    `/api/auth/oauth/${provider}?role=${role}`,
+
   login: (data: { email: string; password: string }) =>
     apiClient<{ accessToken: string }>('/api/auth/login', {
       method: 'POST',

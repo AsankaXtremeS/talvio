@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { X, Briefcase, TrendingUp, ShieldCheck } from "lucide-react"
-import LoginForm from "../undergraduate/LoginForm"
+import LoginForm from "./LoginForm"
 
 export default function ProfessionalLoginPage() {
   return (
@@ -111,17 +111,20 @@ export default function ProfessionalLoginPage() {
                 </span>
               </button>
 
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+              <a
+                href="/api/auth/oauth/google?role=PROFESSIONAL"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+                >
                 <Image
-                  src="/images/google.svg"
-                  alt="Google"
-                  width={18}
-                  height={18}
+                src="/images/google.svg"
+                alt="Google"
+                width={18}
+                height={18}
                 />
                 <span className="text-sm font-medium text-gray-700">
                   Google
                 </span>
-              </button>
+                </a>
             </div>
 
             <p className="mt-5 text-sm text-center text-gray-600">
