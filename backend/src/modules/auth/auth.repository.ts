@@ -23,6 +23,22 @@ export const authRepository = {
     });
   },
 
+  getEmployersByStatus(status: "pending" | "approved" | "rejected") {
+    const statusMap = {
+      pending: "PENDING",
+      approved: "APPROVED",
+      rejected: "REJECTED",
+    } as const;
+
+    return prisma.user.findMany({
+      where: {
+        role: "EMPLOYER",
+        employerProfile: { verificationStatus: statusMap[status] },
+      },
+      include: { employerProfile: true },
+    });
+  },
+
   rejectEmployer(userId: string) {
     return prisma.employerProfile.update({
       where: { userId },

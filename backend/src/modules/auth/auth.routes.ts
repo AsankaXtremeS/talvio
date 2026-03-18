@@ -11,6 +11,7 @@ import {
   resetPassword,
   approveEmployer,
   rejectEmployer,
+  getEmployersByStatus,
   getPendingEmployers,
 } from "./auth.controller";
 import { upload } from "../../middlewares/upload.middleware";
@@ -40,6 +41,7 @@ router.post("/forgot-password", sensitiveLimiter, forgotPassword);
 router.post("/reset-password", sensitiveLimiter, resetPassword);
 router.post("/approve-employer", authenticate, requireRole("ADMIN"), approveEmployer);
 router.post("/reject-employer", authenticate, requireRole("ADMIN"), rejectEmployer);
+router.get("/employers", authenticate, requireRole("ADMIN"), getEmployersByStatus);
 router.get("/pending-employers", authenticate, requireRole("ADMIN"), getPendingEmployers);
 
 export default router;

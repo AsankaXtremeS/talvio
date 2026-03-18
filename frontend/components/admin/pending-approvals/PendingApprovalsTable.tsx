@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Building2, ExternalLink, Check, X } from "lucide-react";
 import { PendingApproval } from "@/types/admin/approval.types";
 
+type ApprovalStatus = "pending" | "approved" | "rejected";
+
 // -------------------------------------------------
 // Helpers
 // -------------------------------------------------
@@ -59,6 +61,7 @@ interface RowProps {
 
 function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
   const [state, setState] = useState<RowState>("idle");
+  const isPending = item.status === "pending";
 
   const handleApprove = async () => {
     setState("approving");
@@ -114,7 +117,7 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
       {/* Actions */}
       <td className="py-4 pr-2">
         <div className="flex items-center justify-end gap-2">
-             {/* View BR */}
+          {/* View BR */}
           <button
             onClick={() => onViewBR(item.id)}
             className="
@@ -128,45 +131,59 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
             View BR
           </button>
 
-          {/* Approve */}
-          <button
-            onClick={handleApprove}
-            disabled={state !== "idle"}
-            className="
-              flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-              border border-green-300 text-green-600 text-xs font-semibold
-              hover:bg-green-50 transition-colors duration-150
-              disabled:opacity-50 disabled:cursor-not-allowed
-              whitespace-nowrap
-            "
-          >
-            {state === "approving" ? (
-              <span className="w-3 h-3 border-2 border-green-500 rounded-full border-t-transparent animate-spin" />
-            ) : (
-              <Check size={12} />
-            )}
-            Approve
-          </button>
+          {isPending ? (
+            <>
+              {/* Approve */}
+              <button
+                onClick={handleApprove}
+                disabled={state !== "idle"}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                  border border-green-300 text-green-600 text-xs font-semibold
+                  hover:bg-green-50 transition-colors duration-150
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  whitespace-nowrap
+                "
+              >
+                {state === "approving" ? (
+                  <span className="w-3 h-3 border-2 border-green-500 rounded-full border-t-transparent animate-spin" />
+                ) : (
+                  <Check size={12} />
+                )}
+                Approve
+              </button>
 
-          {/* Reject */}
-          <button
-            onClick={handleReject}
-            disabled={state !== "idle"}
-            className="
-              flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-              border border-red-300 text-red-500 text-xs font-semibold
-              hover:bg-red-50 transition-colors duration-150
-              disabled:opacity-50 disabled:cursor-not-allowed
-              whitespace-nowrap
-            "
-          >
-            {state === "rejecting" ? (
-              <span className="w-3 h-3 border-2 border-red-400 rounded-full border-t-transparent animate-spin" />
-            ) : (
-              <X size={12} />
-            )}
-            Reject
-          </button>
+              {/* Reject */}
+              <button
+                onClick={handleReject}
+                disabled={state !== "idle"}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                  border border-red-300 text-red-500 text-xs font-semibold
+                  hover:bg-red-50 transition-colors duration-150
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  whitespace-nowrap
+                "
+              >
+                {state === "rejecting" ? (
+                  <span className="w-3 h-3 border-2 border-red-400 rounded-full border-t-transparent animate-spin" />
+                ) : (
+                  <X size={12} />
+                )}
+                Reject
+              </button>
+            </>
+          ) : (
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                item.status === "approved"
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
+              {item.status === "approved" ? "Approved" : "Rejected"}
+            </span>
+          )}
         </div>
       </td>
     </tr>
@@ -177,23 +194,24 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
 // Main table component
 // -------------------------------------------------
 interface PendingApprovalsTableProps {
+  statusFilter: ApprovalStatus;
+  onStatusFilterChange: (status: ApprovalStatus) => void;
   approvals: PendingApproval[];
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onViewBR: (id: string) => void;
+  loading?: boolean;
 }
 
 export default function PendingApprovalsTable({
+  statusFilter,
+  onStatusFilterChange,
   approvals,
   onApprove,
   onReject,
   onViewBR,
+  loading = false,
 }: PendingApprovalsTableProps) {
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
-
-  // Filter approvals by status
-  const filteredApprovals = approvals.filter(a => a.status === statusFilter);
-
   return (
     <div className="flex flex-col h-full p-6 bg-white border border-gray-100 shadow-sm rounded-2xl">
       {/* Card header with sorting buttons */}
@@ -204,26 +222,29 @@ export default function PendingApprovalsTable({
         <div className="flex gap-2">
           <button
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors duration-150 ${statusFilter === 'pending' ? 'bg-indigo-50 text-indigo-700 border-indigo-300' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-            onClick={() => setStatusFilter('pending')}
+            onClick={() => onStatusFilterChange('pending')}
           >
             Pending
           </button>
           <button
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors duration-150 ${statusFilter === 'approved' ? 'bg-green-50 text-green-700 border-green-300' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-            onClick={() => setStatusFilter('approved')}
+            onClick={() => onStatusFilterChange('approved')}
           >
             Approved
           </button>
           <button
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors duration-150 ${statusFilter === 'rejected' ? 'bg-red-50 text-red-600 border-red-300' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-            onClick={() => setStatusFilter('rejected')}
+            onClick={() => onStatusFilterChange('rejected')}
           >
             Rejected
           </button>
         </div>
       </div>
+      {loading && (
+        <div className="mb-4 text-xs font-medium text-gray-400">Loading companies...</div>
+      )}
       {/* Empty state */}
-      {filteredApprovals.length === 0 ? (
+      {!loading && approvals.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 py-16 text-center">
           <div className="flex items-center justify-center w-12 h-12 mb-3 rounded-full bg-green-50">
             <Check size={22} className="text-green-500" />
@@ -253,7 +274,7 @@ export default function PendingApprovalsTable({
               </tr>
             </thead>
             <tbody>
-              {filteredApprovals.map((item) => (
+              {approvals.map((item) => (
                 <ApprovalRow
                   key={item.id}
                   item={item}

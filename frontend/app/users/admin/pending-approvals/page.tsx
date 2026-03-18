@@ -4,113 +4,87 @@ import { useEffect, useState, useCallback } from "react";
 import { ClipboardCheck } from "lucide-react";
 import PendingApprovalsTable from "@/components/admin/pending-approvals/PendingApprovalsTable";
 import { PendingApproval } from "@/types/admin/approval.types";
+import { useAuth } from "@/context/AuthContext";
+import { authService } from "@/lib/auth.service";
 
-// -------------------------------------------------
-// Mock data — remove when API is wired up
-// -------------------------------------------------
-const MOCK_APPROVALS: PendingApproval[] = [
-  {
-    id: "1",
-    companyName: "Tech Solutions",
-    createdAt: "2025-12-26T10:00:00Z",
-    email: "JohnD2024@gmail.com",
-    status: "pending",
-  },
-  {
-    id: "2",
-    companyName: "Vision Corp",
-    createdAt: "2025-12-26T09:30:00Z",
-    email: "vision2025@gmail.com",
-    status: "pending",
-  },
-  {
-    id: "3",
-    companyName: "Xplore IT",
-    createdAt: "2025-12-26T09:00:00Z",
-    email: "Xplore.IT@gmail.com",
-    status: "pending",
-  },
-  {
-    id: "4",
-    companyName: "App Center",
-    createdAt: "2025-12-26T08:45:00Z",
-    email: "AppC_Software@gmail.com",
-    status: "pending",
-  },
-  {
-    id: "5",
-    companyName: "Rocks Holdings",
-    createdAt: "2025-12-26T08:00:00Z",
-    email: "Rocks3@gmail.com",
-    status: "pending",
-  },
-  {
-    id: "6",
-    companyName: "Xtreme Software",
-    createdAt: "2025-12-25T22:00:00Z",
-    email: "XtremeSoftware@email.com",
-    status: "pending",
-  },
-  {
-    id: "7",
-    companyName: "Xtreme Software",
-    createdAt: "2025-12-25T22:00:00Z",
-    email: "XtremeSoftware@email.com",
-    status: "pending",
-  },
-  
-];
+type ApprovalStatus = "pending" | "approved" | "rejected";
 
 // -------------------------------------------------
 // Page
 // -------------------------------------------------
 export default function PendingApprovalsPage() {
+  const [statusFilter, setStatusFilter] = useState<ApprovalStatus>("pending");
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { accessToken } = useAuth();
 
-  // ── Fetch on mount ──
+  // ── Fetch by status filter ──
   useEffect(() => {
     const load = async () => {
+      setError(null);
+      setLoading(true);
       try {
-        // TODO: replace with real API call:
-        // const data = await fetchPendingApprovals();
-        const data = MOCK_APPROVALS;
+        if (!accessToken) {
+          setError("Not authenticated");
+          return;
+        }
+
+        const employers = await authService.getEmployers(statusFilter, accessToken);
+        const data: PendingApproval[] = employers.map((employer) => ({
+          id: employer.id,
+          companyName: employer.employerProfile.companyName,
+          email: employer.email,
+          createdAt: employer.createdAt,
+          status: statusFilter,
+          companyLogoUrl: undefined,
+        }));
+
         setApprovals(data);
       } catch {
-        setError("Failed to load pending approvals.");
+        setError(`Failed to load ${statusFilter} approvals.`);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [accessToken, statusFilter]);
 
   // ── Approve ──
   const handleApprove = useCallback(async (id: string) => {
-    // TODO: await approveCompany(id);
-    // Optimistically remove from list after short delay
-    await new Promise((r) => setTimeout(r, 600));
+    if (!accessToken) return;
+
+    await authService.approveEmployer(id, accessToken);
     setApprovals((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+  }, [accessToken]);
 
   // ── Reject ──
   const handleReject = useCallback(async (id: string) => {
-    // TODO: await rejectCompany(id);
-    await new Promise((r) => setTimeout(r, 600));
+    if (!accessToken) return;
+
+    await authService.rejectEmployer(id, accessToken);
     setApprovals((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+  }, [accessToken]);
 
   // ── View Business Registration ──
   const handleViewBR = useCallback(async (id: string) => {
     try {
-      // TODO: const url = await getBusinessRegistrationUrl(id);
-      // window.open(url, "_blank");
-      console.log("View BR for company:", id);
+      if (!accessToken) return;
+
+      const employers = await authService.getEmployers(statusFilter, accessToken);
+      const employer = employers.find((e) => e.id === id);
+      const fileUrl = employer?.employerProfile.registrationFileUrl;
+
+      if (!fileUrl) {
+        setError("Business registration document not found.");
+        return;
+      }
+
+      window.open(fileUrl, "_blank");
     } catch {
       console.error("Could not fetch business registration document.");
     }
-  }, []);
+  }, [accessToken, statusFilter]);
 
   // ── Loading skeleton ──
   if (loading) {
@@ -156,10 +130,13 @@ export default function PendingApprovalsPage() {
       </div>
       <div className="flex-1 min-h-[80.15dvh]">
         <PendingApprovalsTable
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
           approvals={approvals}
           onApprove={handleApprove}
           onReject={handleReject}
           onViewBR={handleViewBR}
+          loading={loading}
         />
       </div>
     </div>

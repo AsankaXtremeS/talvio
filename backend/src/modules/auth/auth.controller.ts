@@ -215,6 +215,30 @@ export const rejectEmployer = async (req: Request, res: Response) => {
 };
 
 
+// ADMIN GET EMPLOYERS BY STATUS
+// Admin-only endpoint to list employer registrations by verification status.
+// Query: ?status=pending|approved|rejected
+// Returns: array of users with employerProfile
+
+
+export const getEmployersByStatus = async (req: Request, res: Response) => {
+  try {
+    const status = String(req.query.status || "").toLowerCase();
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status. Use pending, approved, or rejected.",
+      });
+    }
+
+    const employers = await authService.getEmployersByStatus(status as "pending" | "approved" | "rejected");
+    res.json(employers);
+  } catch (err: any) {
+    console.error("getEmployersByStatus error:", err);
+    res.status(500).json({ message: "Failed to fetch employers." });
+  }
+};
+
+
 // ADMIN GET PENDING EMPLOYERS
 // Admin-only endpoint to list all pending employer registrations.
 // Returns: array of users with employerProfile
