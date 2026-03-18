@@ -35,14 +35,18 @@ export const authRepository = {
         role: "EMPLOYER",
         employerProfile: { verificationStatus: statusMap[status] },
       },
+      orderBy: { createdAt: "desc" },
       include: { employerProfile: true },
     });
   },
 
-  rejectEmployer(userId: string) {
+  rejectEmployer(userId: string, reason?: string) {
     return prisma.employerProfile.update({
       where: { userId },
-      data: { verificationStatus: 'REJECTED' },
+      data: {
+        verificationStatus: 'REJECTED',
+        rejectionReason: reason?.trim() || null,
+      } as any,
     });
   },
 
@@ -73,7 +77,10 @@ export const authRepository = {
   approveEmployer(userId: string) {
     return prisma.employerProfile.update({
       where: { userId },
-      data: { verificationStatus: "APPROVED" },
+      data: {
+        verificationStatus: "APPROVED",
+        rejectionReason: null,
+      } as any,
     });
   },
 

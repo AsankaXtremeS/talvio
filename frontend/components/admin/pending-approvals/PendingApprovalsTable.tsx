@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Building2, ExternalLink, Check, X } from "lucide-react";
 import { PendingApproval } from "@/types/admin/approval.types";
+import RejectConfirmationModal from "./RejectConfirmationModal";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -53,14 +54,16 @@ function CompanyAvatar({
 type RowState = "idle" | "approving" | "rejecting" | "approved" | "rejected";
 
 interface RowProps {
+  statusFilter: ApprovalStatus;
   item: PendingApproval;
   onApprove: (id: string) => Promise<void>;
-  onReject: (id: string) => Promise<void>;
+  onReject: (id: string, reason?: string) => Promise<void>;
   onViewBR: (id: string) => void;
 }
 
-function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
+function ApprovalRow({ statusFilter, item, onApprove, onReject, onViewBR }: RowProps) {
   const [state, setState] = useState<RowState>("idle");
+  const [openRejectModal, setOpenRejectModal] = useState(false);
   const isPending = item.status === "pending";
 
   const handleApprove = async () => {
@@ -73,11 +76,12 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (reason?: string) => {
     setState("rejecting");
     try {
-      await onReject(item.id);
+      await onReject(item.id, reason);
       setState("rejected");
+      setOpenRejectModal(false);
     } catch {
       setState("idle");
     }
@@ -87,106 +91,126 @@ function ApprovalRow({ item, onApprove, onReject, onViewBR }: RowProps) {
   const isDone = state === "approved" || state === "rejected";
 
   return (
-    <tr
-      className={`
-        border-b border-gray-100 last:border-0
-        transition-all duration-300
-        ${isDone ? "opacity-40 pointer-events-none" : "hover:bg-gray-50/60"}
-      `}
-    >
-      {/* Company */}
-      <td className="py-4 pl-2 pr-4">
-        <div className="flex items-center gap-3">
-          <CompanyAvatar name={item.companyName} logoUrl={item.companyLogoUrl} />
-          <span className="text-sm font-semibold text-gray-800">
-            {item.companyName}
-          </span>
-        </div>
-      </td>
-
-      {/* Created */}
-      <td className="py-4 pr-8 text-sm text-gray-500 whitespace-nowrap">
-        {formatDate(item.createdAt)}
-      </td>
-
-      {/* Email */}
-      <td className="py-4 pr-8 text-sm text-gray-500">
-        {item.email}
-      </td>
-
-      {/* Actions */}
-      <td className="py-4 pr-2">
-        <div className="flex items-center justify-center gap-2">
-             {/* View BR */}
-          <button
-            onClick={() => onViewBR(item.id)}
-            className="
-              flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-              border border-indigo-300 text-indigo-600 text-xs font-semibold
-              hover:bg-indigo-50 transition-colors duration-150
-              whitespace-nowrap
-            "
-          >
-            <ExternalLink size={12} />
-            View BR
-          </button>
-
-          {isPending ? (
-            <>
-              {/* Approve */}
-              <button
-                onClick={handleApprove}
-                disabled={state !== "idle"}
-                className="
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  border border-green-300 text-green-600 text-xs font-semibold
-                  hover:bg-green-50 transition-colors duration-150
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  whitespace-nowrap
-                "
-              >
-                {state === "approving" ? (
-                  <span className="w-3 h-3 border-2 border-green-500 rounded-full border-t-transparent animate-spin" />
-                ) : (
-                  <Check size={12} />
-                )}
-                Approve
-              </button>
-
-              {/* Reject */}
-              <button
-                onClick={handleReject}
-                disabled={state !== "idle"}
-                className="
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  border border-red-300 text-red-500 text-xs font-semibold
-                  hover:bg-red-50 transition-colors duration-150
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  whitespace-nowrap
-                "
-              >
-                {state === "rejecting" ? (
-                  <span className="w-3 h-3 border-2 border-red-400 rounded-full border-t-transparent animate-spin" />
-                ) : (
-                  <X size={12} />
-                )}
-                Reject
-              </button>
-            </>
-          ) : (
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                item.status === "approved"
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-600"
-              }`}
-            >
-              {item.status === "approved" ? "Approved" : "Rejected"}
+    <>
+      <tr
+        className={`
+          border-b border-gray-100 last:border-0
+          transition-all duration-300
+          ${isDone ? "opacity-40 pointer-events-none" : "hover:bg-gray-50/60"}
+        `}
+      >
+        {/* Company */}
+        <td className="py-4 pl-2 pr-4">
+          <div className="flex items-center gap-3">
+            <CompanyAvatar name={item.companyName} logoUrl={item.companyLogoUrl} />
+            <span className="text-sm font-semibold text-gray-800">
+              {item.companyName}
             </span>
-          )}
-        </div>
-      </td>
-    </tr>
+          </div>
+        </td>
+
+        {/* Created */}
+        <td className="py-4 pr-8 text-sm text-gray-500 whitespace-nowrap">
+          {formatDate(item.createdAt)}
+        </td>
+
+        {/* Email */}
+        <td className="py-4 pr-8 text-sm text-gray-500">
+          {item.email}
+        </td>
+
+        {/* Rejection Reason */}
+        {statusFilter === "rejected" && (
+          <td className="py-4 pr-8 text-sm text-gray-500 max-w-70">
+            <p className="line-clamp-2 text-xs leading-5 text-gray-600">
+              {item.rejectionReason?.trim() || "No reason provided"}
+            </p>
+          </td>
+        )}
+
+        {/* Actions */}
+        <td className="py-4 pr-2">
+          <div className="flex items-center justify-center gap-2">
+              {/* View BR */}
+            <button
+              onClick={() => onViewBR(item.id)}
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                border border-indigo-300 text-indigo-600 text-xs font-semibold
+                hover:bg-indigo-50 transition-colors duration-150
+                whitespace-nowrap
+              "
+            >
+              <ExternalLink size={12} />
+              View BR
+            </button>
+
+            {isPending ? (
+              <>
+                {/* Approve */}
+                <button
+                  onClick={handleApprove}
+                  disabled={state !== "idle"}
+                  className="
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                    border border-green-300 text-green-600 text-xs font-semibold
+                    hover:bg-green-50 transition-colors duration-150
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    whitespace-nowrap
+                  "
+                >
+                  {state === "approving" ? (
+                    <span className="w-3 h-3 border-2 border-green-500 rounded-full border-t-transparent animate-spin" />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  Approve
+                </button>
+
+                {/* Reject */}
+                <button
+                  onClick={() => setOpenRejectModal(true)}
+                  disabled={state !== "idle"}
+                  className="
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                    border border-red-300 text-red-500 text-xs font-semibold
+                    hover:bg-red-50 transition-colors duration-150
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    whitespace-nowrap
+                  "
+                >
+                  {state === "rejecting" ? (
+                    <span className="w-3 h-3 border-2 border-red-400 rounded-full border-t-transparent animate-spin" />
+                  ) : (
+                    <X size={12} />
+                  )}
+                  Reject
+                </button>
+              </>
+            ) : (
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  item.status === "approved"
+                    ? "bg-green-50 text-green-700"
+                    : "bg-red-50 text-red-600"
+                }`}
+              >
+                {item.status === "approved" ? "Approved" : "Rejected"}
+              </span>
+            )}
+          </div>
+        </td>
+      </tr>
+
+      <RejectConfirmationModal
+        isOpen={openRejectModal}
+        companyName={item.companyName}
+        onCancel={() => setOpenRejectModal(false)}
+        onConfirm={async (reason) => {
+          await handleReject(reason);
+        }}
+      />
+    </>
   );
 }
 
@@ -198,7 +222,7 @@ interface PendingApprovalsTableProps {
   onStatusFilterChange: (status: ApprovalStatus) => void;
   approvals: PendingApproval[];
   onApprove: (id: string) => Promise<void>;
-  onReject: (id: string) => Promise<void>;
+  onReject: (id: string, reason?: string) => Promise<void>;
   onViewBR: (id: string) => void;
   loading?: boolean;
 }
@@ -268,6 +292,11 @@ export default function PendingApprovalsTable({
                 <th className="pb-3 text-xs font-medium tracking-wide text-left text-gray-400 uppercase">
                   Email
                 </th>
+                {statusFilter === "rejected" && (
+                  <th className="pb-3 text-xs font-medium tracking-wide text-left text-gray-400 uppercase">
+                    Reason
+                  </th>
+                )}
                 <th className="pb-3 pr-2 text-xs font-medium tracking-wide text-center text-gray-400 uppercase">
                   Actions
                 </th>
@@ -277,6 +306,7 @@ export default function PendingApprovalsTable({
               {approvals.map((item) => (
                 <ApprovalRow
                   key={item.id}
+                  statusFilter={statusFilter}
                   item={item}
                   onApprove={onApprove}
                   onReject={onReject}

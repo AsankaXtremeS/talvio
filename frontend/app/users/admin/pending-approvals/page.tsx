@@ -31,14 +31,17 @@ export default function PendingApprovalsPage() {
         }
 
         const employers = await authService.getEmployers(statusFilter, accessToken);
-        const data: PendingApproval[] = employers.map((employer) => ({
+        const data: PendingApproval[] = employers
+          .map((employer) => ({
           id: employer.id,
           companyName: employer.employerProfile.companyName,
           email: employer.email,
           createdAt: employer.createdAt,
           status: statusFilter,
           companyLogoUrl: undefined,
-        }));
+            rejectionReason: employer.employerProfile.rejectionReason ?? null,
+          }))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         setApprovals(data);
       } catch {
@@ -59,10 +62,10 @@ export default function PendingApprovalsPage() {
   }, [accessToken]);
 
   // ── Reject ──
-  const handleReject = useCallback(async (id: string) => {
+  const handleReject = useCallback(async (id: string, reason?: string) => {
     if (!accessToken) return;
 
-    await authService.rejectEmployer(id, accessToken);
+    await authService.rejectEmployer(id, accessToken, reason);
     setApprovals((prev) => prev.filter((a) => a.id !== id));
   }, [accessToken]);
 
