@@ -6,6 +6,36 @@ import {
   validateLogin,
 } from "./auth.validation";
 
+const getSecureCookieFlag = (req: Request) => {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const isForwardedHttps =
+    typeof forwardedProto === "string"
+      ? forwardedProto.includes("https")
+      : Array.isArray(forwardedProto)
+        ? forwardedProto.some((value) => value.includes("https"))
+        : false;
+
+  return req.secure || isForwardedHttps;
+};
+
+const buildAuthCookieOptions = (req: Request, maxAge: number) => ({
+  httpOnly: true,
+  secure: getSecureCookieFlag(req),
+  sameSite: "strict" as const,
+  maxAge,
+});
+
+const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const ACCESS_COOKIE_MAX_AGE = 15 * 60 * 1000;
+
+const sanitizeRegistrationError = (message?: string, fallback?: string) => {
+  if (!message) return fallback || "Registration failed. Please try again.";
+
+  if (message === "User already exists") return "User already exists";
+  if (message === "Business registration PDF is required") return message;
+  return fallback || "Registration failed. Please try again.";
+};
+
 
 
 // REGISTER STUDENT / PROFESSIONAL
@@ -21,7 +51,7 @@ export const registerUser = async (req: Request, res: Response) => {
     res.status(201).json({ message: "Registration successful. Please log in." });
   } catch (err: any) {
     console.error("registerUser error:", err);
-    res.status(400).json({ message: "Registration failed. Please try again." });
+    res.status(400).json({ message: sanitizeRegistrationError(err?.message) });
   }
 };
 
@@ -48,7 +78,9 @@ export const registerEmployer = async (req: Request, res: Response) => {
     res.status(201).json(result);
   } catch (err: any) {
     console.error("registerEmployer error:", err);
-    res.status(400).json({ message: "Employer registration failed. Please try again." });
+    res.status(400).json({
+      message: sanitizeRegistrationError(err?.message, "Employer registration failed. Please try again."),
+    });
   }
 };
 
@@ -63,16 +95,12 @@ export const registerEmployer = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     validateLogin(req.body);
-    const { accessToken, refreshToken } = await authService.login(req.body);
+    const { accessToken, refreshToken, user } = await authService.login(req.body);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("accessToken", accessToken, buildAuthCookieOptions(req, ACCESS_COOKIE_MAX_AGE));
+    res.cookie("refreshToken", refreshToken, buildAuthCookieOptions(req, REFRESH_COOKIE_MAX_AGE));
 
-    res.json({ accessToken });
+    res.json({ user });
   } catch (err: any) {
     console.error("login error:", err);
     if (err?.message === "Account pending admin approval") {
@@ -100,16 +128,12 @@ export const refresh = async (req: Request, res: Response) => {
     if (!token) {
       return res.status(401).json({ message: "No refresh token" });
     }
-    const { accessToken, refreshToken } = await authService.refresh(token);
+    const { accessToken, refreshToken, user } = await authService.refresh(token);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("accessToken", accessToken, buildAuthCookieOptions(req, ACCESS_COOKIE_MAX_AGE));
+    res.cookie("refreshToken", refreshToken, buildAuthCookieOptions(req, REFRESH_COOKIE_MAX_AGE));
 
-    res.json({ accessToken });
+    res.json({ user });
   } catch (err: any) {
     console.error("refresh error:", err);
     res.status(401).json({ message: "Token refresh failed." });
@@ -128,7 +152,19 @@ export const logout = async (req: Request, res: Response) => {
   try {
     const token = req.cookies?.refreshToken;
     if (token) await authService.logout(token);
-    res.clearCookie('refreshToken');
+
+    const clearCookieOptions = {
+      httpOnly: true,
+      secure: getSecureCookieFlag(req),
+      sameSite: "strict" as const,
+    };
+
+    res.clearCookie("accessToken", clearCookieOptions);
+    res.clearCookie("refreshToken", {
+      httpOnly: clearCookieOptions.httpOnly,
+      secure: clearCookieOptions.secure,
+      sameSite: clearCookieOptions.sameSite,
+    });
     res.json({ message: 'Logged out successfully' });
   } catch (err: any) {
     console.error("logout error:", err);
@@ -294,22 +330,12 @@ export const oauthCallback = async (req: Request, res: Response) => {
       return res.redirect(`${frontendUrl}/login?error=Unsupported%20OAuth%20provider`);
     }
 
-    const { accessToken, refreshToken, user } = await authService.handleOAuthCallback(provider, code, state);
+    const { accessToken, refreshToken } = await authService.handleOAuthCallback(provider, code, state);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("accessToken", accessToken, buildAuthCookieOptions(req, ACCESS_COOKIE_MAX_AGE));
+    res.cookie("refreshToken", refreshToken, buildAuthCookieOptions(req, REFRESH_COOKIE_MAX_AGE));
 
-    const params = new URLSearchParams({
-      accessToken,
-      role: user.role,
-      email: user.email,
-    });
-
-    return res.redirect(`${frontendUrl}/oauth/callback?${params.toString()}`);
+    return res.redirect(`${frontendUrl}/oauth/callback`);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "OAuth callback failed";
     console.error("oauthCallback error:", err);

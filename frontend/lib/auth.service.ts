@@ -16,6 +16,12 @@ export interface PendingEmployer {
   employerProfile: EmployerProfile;
 }
 
+export interface SessionUser {
+  id: string;
+  role: 'STUDENT' | 'PROFESSIONAL' | 'EMPLOYER' | 'ADMIN';
+  email: string;
+}
+
 export const authService = {
   register: (data: {
     firstName?: string;
@@ -45,7 +51,7 @@ export const authService = {
     `/api/auth/oauth/${provider}?role=${role}`,
 
   login: (data: { email: string; password: string }) =>
-    apiClient<{ accessToken: string }>('/api/auth/login', {
+    apiClient<{ user: SessionUser }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -65,29 +71,25 @@ export const authService = {
       body: JSON.stringify({ token, newPassword }),
     }),
 
-  getPendingEmployers: (accessToken: string) =>
+  getPendingEmployers: (_accessToken?: string) =>
     apiClient<PendingEmployer[]>('/api/auth/pending-employers', {
       method: 'GET',
-      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
-  getEmployers: (status: 'pending' | 'approved' | 'rejected', accessToken: string) =>
+  getEmployers: (status: 'pending' | 'approved' | 'rejected', _accessToken?: string) =>
     apiClient<PendingEmployer[]>(`/api/auth/employers?status=${status}`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
-  approveEmployer: (userId: string, accessToken: string) =>
+  approveEmployer: (userId: string, _accessToken?: string) =>
     apiClient('/api/auth/approve-employer', {
       method: 'POST',
       body: JSON.stringify({ userId }),
-      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
-  rejectEmployer: (userId: string, accessToken: string, reason?: string) =>
+  rejectEmployer: (userId: string, _accessToken?: string, reason?: string) =>
     apiClient('/api/auth/reject-employer', {
       method: 'POST',
       body: JSON.stringify({ userId, reason }),
-      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };

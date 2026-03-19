@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/auth.service";
 import { useAuth } from "@/context/AuthContext";
-import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Popup from "@/components/admin/layout/Popup";
@@ -37,14 +36,13 @@ export default function LoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { accessToken } = await authService.login(data);
-      const decoded = jwtDecode<{ userId: string; role: string }>(accessToken);
-      if (decoded.role !== 'EMPLOYER') {
+      const { user } = await authService.login(data);
+      if (user.role !== 'EMPLOYER') {
         setError('root', { type: 'manual', message: 'Access denied. This login is for employers only.' });
         return;
       }
-      setUser({ id: decoded.userId, role: 'EMPLOYER', email: data.email });
-      setAccessToken(accessToken);
+      setUser(user);
+      setAccessToken("cookie-session");
       router.push('/users/employer');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Login failed. Check your credentials.';
@@ -120,12 +118,7 @@ export default function LoginForm() {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" className="w-4 h-4" />
-            <span className="text-slate-600">Remember me</span>
-          </label>
-
+        <div className="flex justify-center text-sm">
           <p className="text-sm text-indigo-600 cursor-pointer" onClick={() => router.push("/forgot-password")}>
             Forgot Password?
           </p>

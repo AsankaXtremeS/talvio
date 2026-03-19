@@ -1,42 +1,62 @@
 "use client"
 
 import { useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 
 type Role = "STUDENT" | "PROFESSIONAL" | "EMPLOYER" | "ADMIN"
 
+type SessionUser = {
+  id: string
+  role: Role
+  email: string
+}
+
 export default function OAuthCallbackPage() {
-  const searchParams = useSearchParams()
   const router = useRouter()
   const { setAccessToken, setUser } = useAuth()
 
   useEffect(() => {
-    const accessToken = searchParams.get("accessToken")
-    const role = searchParams.get("role") as Role | null
-    const email = searchParams.get("email")
+    const completeOAuthLogin = async () => {
+      try {
+        const res = await fetch("/api/auth/refresh", {
+          method: "POST",
+          credentials: "include",
+        })
 
-    if (!accessToken || !role || !email) {
-      router.replace("/login")
-      return
+        if (!res.ok) {
+          router.replace("/login")
+          return
+        }
+
+        const data = (await res.json()) as { user?: SessionUser }
+        const user = data.user
+        if (!user) {
+          router.replace("/login")
+          return
+        }
+
+        if (user.role !== "STUDENT" && user.role !== "PROFESSIONAL") {
+          router.replace("/login")
+          return
+        }
+
+        setAccessToken("cookie-session")
+        setUser(user)
+
+        if (user.role === "STUDENT") {
+          router.replace("/users/undergraduate")
+          return
+        }
+
+        router.replace("/users/professional")
+      } catch {
+        router.replace("/login")
+      }
     }
 
-    if (role !== "STUDENT" && role !== "PROFESSIONAL") {
-      router.replace("/login")
-      return
-    }
-
-    setAccessToken(accessToken)
-    setUser({ id: "oauth", role, email })
-    localStorage.setItem("accessToken", accessToken)
-
-    if (role === "STUDENT") {
-      router.replace("/users/undergraduate")
-      return
-    }
-
-    router.replace("/users/professional")
-  }, [router, searchParams, setAccessToken, setUser])
+    completeOAuthLogin()
+  }, [router, setAccessToken, setUser])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-purple-50 to-blue-100">

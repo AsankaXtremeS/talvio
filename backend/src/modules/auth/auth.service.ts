@@ -319,7 +319,15 @@ export const authService = {
       }
     }
 
-    return issueTokensForUser(user.id, user.role);
+    const tokens = await issueTokensForUser(user.id, user.role);
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
+    };
   },
 
   async refresh(token: string) {
@@ -346,6 +354,11 @@ export const authService = {
     return {
       accessToken: generateAccessToken(payload.userId, user.role),
       refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
     };
   },
 
@@ -474,19 +487,12 @@ export const authService = {
         userId: user.id,
         provider: providerEnum,
         providerUserId: providerData.profile.providerUserId,
-        accessToken: providerData.accessToken,
-        refreshToken: providerData.refreshToken,
-        expiresAt: providerData.expiresIn
-          ? new Date(Date.now() + providerData.expiresIn * 1000)
-          : undefined,
       });
     } else {
       await authRepository.updateAuthAccountTokens(providerEnum, providerData.profile.providerUserId, {
-        accessToken: providerData.accessToken,
-        refreshToken: providerData.refreshToken,
-        expiresAt: providerData.expiresIn
-          ? new Date(Date.now() + providerData.expiresIn * 1000)
-          : undefined,
+        accessToken: null,
+        refreshToken: null,
+        expiresAt: null,
       });
     }
 

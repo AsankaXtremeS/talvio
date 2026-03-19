@@ -22,7 +22,6 @@ const schema = z
       .regex(/[0-9]/, "Must contain a number"),
     confirmPassword: z.string(),
     businessRegistration: z.any().optional(),
-    rememberMe: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -61,6 +60,11 @@ export default function EmployerSignupForm() {
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({ open: false, message: "", success: false })
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const toPopupMessage = (message: string) =>
+    /already exists|already exist/i.test(message)
+      ? "This user is already exist."
+      : message
+
   const {
     register,
     handleSubmit,
@@ -88,11 +92,12 @@ export default function EmployerSignupForm() {
       if (result?.userId) {
         setPopup({ open: true, message: "Registration submitted! Awaiting admin approval.", success: true })
       } else {
-        setPopup({ open: true, message: result?.message || "Registration failed. Please check your details and try again.", success: false })
+        setPopup({ open: true, message: toPopupMessage(result?.message || "Registration failed. Please check your details and try again."), success: false })
       }
     } catch (error: unknown) {
       console.error("Error:", error)
-      setPopup({ open: true, message: error instanceof Error ? error.message : "An error occurred. Please try again.", success: false })
+      const message = error instanceof Error ? error.message : "An error occurred. Please try again."
+      setPopup({ open: true, message: toPopupMessage(message), success: false })
     } finally {
       setIsLoading(false)
     }
@@ -280,16 +285,8 @@ export default function EmployerSignupForm() {
         </div>
       </div>
 
-      {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between pt-2">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            {...register("rememberMe")}
-            type="checkbox"
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <span className="text-sm text-slate-700">Remember me</span>
-        </label>
+      {/* Forgot Password */}
+      <div className="flex justify-end pt-2">
         <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
           Forgot password?
         </Link>

@@ -9,20 +9,23 @@ export const authenticate = (
 ) => {
   const header = req.headers.authorization;
 
-  if (!header || !header.startsWith("Bearer ")) {
+  const bearerToken = header && header.startsWith("Bearer ") ? header.split(" ")[1] : undefined;
+  const cookieToken = req.cookies?.accessToken as string | undefined;
+
+  const tokenCandidates = [bearerToken, cookieToken].filter(Boolean) as string[];
+  if (tokenCandidates.length === 0) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const token = header.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
+  for (const token of tokenCandidates) {
+    try {
+      const decoded = verifyAccessToken(token);
+      req.user = decoded;
+      return next();
+    } catch {
+      // Try next token candidate.
+    }
   }
 
-  try {
-    const decoded = verifyAccessToken(token);
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ message: "Invalid token" });
-  }
+  return res.status(401).json({ message: "Invalid token" });
 };
