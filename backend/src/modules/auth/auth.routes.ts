@@ -41,8 +41,8 @@ router.post(
 );
 
 router.post("/login", sensitiveLimiter, login);
-router.post("/refresh", refresh);
-router.post("/logout", logout);
+router.post("/refresh", sensitiveLimiter, refresh);
+router.post("/logout", sensitiveLimiter, logout);
 router.post("/forgot-password", sensitiveLimiter, forgotPassword);
 router.post("/reset-password", sensitiveLimiter, resetPassword);
 router.post("/approve-employer", authenticate, requireRole("ADMIN"), approveEmployer);

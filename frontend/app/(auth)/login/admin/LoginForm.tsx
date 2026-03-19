@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { authService } from "@/lib/auth.service"
 import { useAuth } from "@/context/AuthContext"
-import { jwtDecode } from "jwt-decode"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 
 const schema = z.object({
@@ -31,14 +30,13 @@ export default function AdminLoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { accessToken } = await authService.login(data)
-      const decoded = jwtDecode<{ userId: string; role: string }>(accessToken)
-      if (decoded.role !== "ADMIN") {
+      const { user } = await authService.login(data)
+      if (user.role !== "ADMIN") {
         setError("root", { type: "manual", message: "Access denied. Admin only." })
         return
       }
-      setUser({ id: decoded.userId, role: "ADMIN", email: data.email })
-      setAccessToken(accessToken)
+      setUser(user)
+      setAccessToken("cookie-session")
       router.push("/users/admin/dashboard")
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Login failed."

@@ -38,8 +38,8 @@ export const authRepository = {
     userId: string;
     provider: "GOOGLE" | "LINKEDIN";
     providerUserId: string;
-    accessToken?: string;
-    refreshToken?: string;
+    accessToken?: string | null;
+    refreshToken?: string | null;
     expiresAt?: Date;
   }) {
     return prisma.authAccount.create({ data });
@@ -49,9 +49,9 @@ export const authRepository = {
     provider: "GOOGLE" | "LINKEDIN",
     providerUserId: string,
     data: {
-      accessToken?: string;
-      refreshToken?: string;
-      expiresAt?: Date;
+      accessToken?: string | null;
+      refreshToken?: string | null;
+      expiresAt?: Date | null;
     }
   ) {
     return prisma.authAccount.update({
