@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface RejectConfirmationModalProps {
   isOpen: boolean;
@@ -16,8 +17,13 @@ export default function RejectConfirmationModal({
 }: RejectConfirmationModalProps) {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -35,7 +41,7 @@ export default function RejectConfirmationModal({
     onCancel();
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-white p-6 shadow-xl animate-in fade-in zoom-in duration-200">
         <div className="mb-4 flex items-start gap-3">
@@ -80,4 +86,6 @@ export default function RejectConfirmationModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
