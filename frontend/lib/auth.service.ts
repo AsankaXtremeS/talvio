@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import axios from 'axios';
 
 export interface EmployerProfile {
   companyName: string;
@@ -33,19 +34,16 @@ export const authService = {
   }) =>
     apiClient('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      data, // Axios uses `data` instead of `body`
     }),
 
   registerEmployer: (formData: FormData) =>
-    fetch('/api/auth/register-employer', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    }).then(async r => {
-      const data = await r.json();
-      if (!r.ok) throw new Error(data?.message || 'Registration failed');
-      return data;
-    }),
+    axios.post('/api/auth/register-employer', formData, { withCredentials: true })
+      .then(res => res.data)
+      .catch(err => {
+        const errorMessage = err.response?.data?.message || 'Registration failed';
+        throw new Error(errorMessage);
+      }),
 
   getOAuthSignupUrl: (provider: 'google' | 'linkedin', role: 'STUDENT' | 'PROFESSIONAL') =>
     `/api/auth/oauth/${provider}?role=${role}`,
@@ -53,7 +51,7 @@ export const authService = {
   login: (data: { email: string; password: string }) =>
     apiClient<{ user: SessionUser }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify(data),
+      data,
     }),
 
   logout: () =>
@@ -62,13 +60,13 @@ export const authService = {
   forgotPassword: (email: string) =>
     apiClient('/api/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      data: { email },
     }),
 
   resetPassword: (token: string, newPassword: string) =>
     apiClient('/api/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ token, newPassword }),
+      data: { token, newPassword },
     }),
 
   getPendingEmployers: (_accessToken?: string) =>
@@ -84,12 +82,12 @@ export const authService = {
   approveEmployer: (userId: string, _accessToken?: string) =>
     apiClient('/api/auth/approve-employer', {
       method: 'POST',
-      body: JSON.stringify({ userId }),
+      data: { userId },
     }),
 
   rejectEmployer: (userId: string, _accessToken?: string, reason?: string) =>
     apiClient('/api/auth/reject-employer', {
       method: 'POST',
-      body: JSON.stringify({ userId, reason }),
+      data: { userId, reason },
     }),
 };
