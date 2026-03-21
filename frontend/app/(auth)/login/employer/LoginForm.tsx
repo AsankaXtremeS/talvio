@@ -5,9 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/auth.service";
 import { useAuth } from "@/context/AuthContext";
-import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import Popup from "@/components/admin/layout/Popup";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -28,26 +28,47 @@ export default function LoginForm() {
   const { setUser, setAccessToken } = useAuth();
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
+    open: false,
+    message: "",
+    success: false,
+  });
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { accessToken } = await authService.login(data);
-      const decoded = jwtDecode<{ userId: string; role: string }>(accessToken);
-      if (decoded.role !== 'EMPLOYER') {
+      const { user } = await authService.login(data);
+      if (user.role !== 'EMPLOYER') {
         setError('root', { type: 'manual', message: 'Access denied. This login is for employers only.' });
         return;
       }
-      setUser({ id: decoded.userId, role: 'EMPLOYER', email: data.email });
-      setAccessToken(accessToken);
+      setUser(user);
+      setAccessToken("cookie-session");
       router.push('/users/employer');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Login failed. Check your credentials.';
+
+      if (message.toLowerCase().includes("pending admin approval")) {
+        setPopup({
+          open: true,
+          message: "Your employer account is still pending admin approval. Please wait until admin verification.",
+          success: false,
+        });
+        return;
+      }
+
       setError('root', { type: 'manual', message });
     }
   }
 
   return (
     <>
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
         {errors.root && (
@@ -97,12 +118,7 @@ export default function LoginForm() {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" className="w-4 h-4" />
-            <span className="text-slate-600">Remember me</span>
-          </label>
-
+        <div className="flex justify-center text-sm">
           <p className="text-sm text-indigo-600 cursor-pointer" onClick={() => router.push("/forgot-password")}>
             Forgot Password?
           </p>

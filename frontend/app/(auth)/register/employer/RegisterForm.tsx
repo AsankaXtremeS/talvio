@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Upload, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { authService } from "@/lib/auth.service"
+import Popup from "@/components/admin/layout/Popup"
 
 const schema = z
   .object({
@@ -21,7 +22,6 @@ const schema = z
       .regex(/[0-9]/, "Must contain a number"),
     confirmPassword: z.string(),
     businessRegistration: z.any().optional(),
-    rememberMe: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -57,7 +57,13 @@ export default function EmployerSignupForm() {
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [pwValue, setPwValue] = useState("")
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({ open: false, message: "", success: false })
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const toPopupMessage = (message: string) =>
+    /already exists|already exist/i.test(message)
+      ? "This user is already exist."
+      : message
 
   const {
     register,
@@ -72,7 +78,7 @@ export default function EmployerSignupForm() {
     try {
       const file = fileRef.current?.files?.[0]
       if (!file) {
-        alert("Please upload your business registration PDF.")
+        setPopup({ open: true, message: "Please upload your business registration PDF.", success: false })
         setIsLoading(false)
         return
       }
@@ -84,14 +90,14 @@ export default function EmployerSignupForm() {
       formData.append("registrationFile", file)
       const result = await authService.registerEmployer(formData)
       if (result?.userId) {
-        alert("Registration submitted! Awaiting admin approval.")
-        window.location.href = "/login/employer"
+        setPopup({ open: true, message: "Registration submitted! Awaiting admin approval.", success: true })
       } else {
-        alert(result?.message || "Registration failed. Please check your details and try again.")
+        setPopup({ open: true, message: toPopupMessage(result?.message || "Registration failed. Please check your details and try again."), success: false })
       }
     } catch (error: unknown) {
       console.error("Error:", error)
-      alert(error instanceof Error ? error.message : "An error occurred. Please try again.")
+      const message = error instanceof Error ? error.message : "An error occurred. Please try again."
+      setPopup({ open: true, message: toPopupMessage(message), success: false })
     } finally {
       setIsLoading(false)
     }
@@ -131,7 +137,19 @@ export default function EmployerSignupForm() {
   const { label, color, text } = strengthMeta[strength]
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+    <>
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => {
+          setPopup({ ...popup, open: false })
+          if (popup.success) {
+            window.location.href = "/login/employer"
+          }
+        }}
+      />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
 
       {/* Company Name */}
       <div>
@@ -267,16 +285,8 @@ export default function EmployerSignupForm() {
         </div>
       </div>
 
-      {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between pt-2">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            {...register("rememberMe")}
-            type="checkbox"
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <span className="text-sm text-slate-700">Remember me</span>
-        </label>
+      {/* Forgot Password */}
+      <div className="flex justify-end pt-2">
         <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
           Forgot password?
         </Link>
@@ -293,5 +303,6 @@ export default function EmployerSignupForm() {
       </button>
 
     </form>
+    </>
   )
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { Plus, CalendarDays , LayoutDashboard } from "lucide-react";
-import { useRouter } from "next/navigation";
 import StatsRow from "@/components/employer/dashboard/StatsRow";
 import AIMatchedWidget from "@/components/employer/dashboard/AIMatchedWidget";
 import UpcomingInterviewsWidget from "@/components/employer/dashboard/UpcomingInterviewsWidget";
@@ -22,9 +21,7 @@ export default function DashboardPage() {
 						       Wednesday, December 20, 2025
 					       </p>
 				       </div>
-				       <button className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
-
-					   >
+				       <button className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
 					       <Plus size={16} />
 					       Post New Job
 				       </button>

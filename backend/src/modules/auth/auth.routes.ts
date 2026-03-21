@@ -11,7 +11,11 @@ import {
   resetPassword,
   approveEmployer,
   rejectEmployer,
+  getEmployersByStatus,
   getPendingEmployers,
+  // OAUTH endpoints
+  oauthStart,
+  oauthCallback,
 } from "./auth.controller";
 import { upload } from "../../middlewares/upload.middleware";
 import rateLimit from "express-rate-limit";
@@ -27,6 +31,9 @@ import { requireRole } from "../../middlewares/role.middleware";
 const router = Router();
 
 router.post("/register", sensitiveLimiter, registerUser);
+// OAUTH routes
+router.get("/oauth/:provider", oauthStart);
+router.get("/oauth/:provider/callback", oauthCallback);
 router.post(
   "/register-employer",
   upload.single("registrationFile"),
@@ -34,12 +41,13 @@ router.post(
 );
 
 router.post("/login", sensitiveLimiter, login);
-router.post("/refresh", refresh);
-router.post("/logout", logout);
+router.post("/refresh", sensitiveLimiter, refresh);
+router.post("/logout", sensitiveLimiter, logout);
 router.post("/forgot-password", sensitiveLimiter, forgotPassword);
 router.post("/reset-password", sensitiveLimiter, resetPassword);
 router.post("/approve-employer", authenticate, requireRole("ADMIN"), approveEmployer);
 router.post("/reject-employer", authenticate, requireRole("ADMIN"), rejectEmployer);
+router.get("/employers", authenticate, requireRole("ADMIN"), getEmployersByStatus);
 router.get("/pending-employers", authenticate, requireRole("ADMIN"), getPendingEmployers);
 
 export default router;

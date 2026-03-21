@@ -16,6 +16,57 @@ export const authRepository = {
     });
   },
 
+ // Finds a user by their associated OAuth provider and provider user ID.
+
+  findAuthAccount(provider: "GOOGLE" | "LINKEDIN", providerUserId: string) {
+    return prisma.authAccount.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider,
+          providerUserId,
+        },
+      },
+      include: {
+        user: {
+          include: { employerProfile: true },
+        },
+      },
+    });
+  },
+
+  createAuthAccount(data: {
+    userId: string;
+    provider: "GOOGLE" | "LINKEDIN";
+    providerUserId: string;
+    accessToken?: string | null;
+    refreshToken?: string | null;
+    expiresAt?: Date;
+  }) {
+    return prisma.authAccount.create({ data });
+  },
+
+  updateAuthAccountTokens(
+    provider: "GOOGLE" | "LINKEDIN",
+    providerUserId: string,
+    data: {
+      accessToken?: string | null;
+      refreshToken?: string | null;
+      expiresAt?: Date | null;
+    }
+  ) {
+    return prisma.authAccount.update({
+      where: {
+        provider_providerUserId: {
+          provider,
+          providerUserId,
+        },
+      },
+      data,
+    });
+  },
+//Oauth end here
+
+
   getPendingEmployers() {
     return prisma.user.findMany({
       where: { role: 'EMPLOYER', employerProfile: { verificationStatus: 'PENDING' } },
@@ -23,10 +74,30 @@ export const authRepository = {
     });
   },
 
-  rejectEmployer(userId: string) {
+  getEmployersByStatus(status: "pending" | "approved" | "rejected") {
+    const statusMap = {
+      pending: "PENDING",
+      approved: "APPROVED",
+      rejected: "REJECTED",
+    } as const;
+
+    return prisma.user.findMany({
+      where: {
+        role: "EMPLOYER",
+        employerProfile: { verificationStatus: statusMap[status] },
+      },
+      orderBy: { createdAt: "desc" },
+      include: { employerProfile: true },
+    });
+  },
+
+  rejectEmployer(userId: string, reason?: string) {
     return prisma.employerProfile.update({
       where: { userId },
-      data: { verificationStatus: 'REJECTED' },
+      data: {
+        verificationStatus: 'REJECTED',
+        rejectionReason: reason?.trim() || null,
+      } as any,
     });
   },
 
@@ -48,7 +119,7 @@ export const authRepository = {
   },
 
   revokeRefreshToken(token: string) {
-    return prisma.refreshToken.update({
+    return prisma.refreshToken.updateMany({
       where: { token },
       data: { isRevoked: true },
     });
@@ -57,7 +128,10 @@ export const authRepository = {
   approveEmployer(userId: string) {
     return prisma.employerProfile.update({
       where: { userId },
-      data: { verificationStatus: "APPROVED" },
+      data: {
+        verificationStatus: "APPROVED",
+        rejectionReason: null,
+      } as any,
     });
   },
 
