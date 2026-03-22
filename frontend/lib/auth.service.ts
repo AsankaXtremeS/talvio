@@ -69,23 +69,23 @@ export const authService = {
       data: { token, newPassword },
     }),
 
-  getPendingEmployers: (_accessToken?: string) =>
+  getPendingEmployers: () =>
     apiClient<PendingEmployer[]>('/api/auth/pending-employers', {
       method: 'GET',
     }),
 
-  getEmployers: (status: 'pending' | 'approved' | 'rejected', _accessToken?: string) =>
+  getEmployers: (status: 'pending' | 'approved' | 'rejected') =>
     apiClient<PendingEmployer[]>(`/api/auth/employers?status=${status}`, {
       method: 'GET',
     }),
 
-  approveEmployer: (userId: string, _accessToken?: string) =>
+  approveEmployer: (userId: string) =>
     apiClient('/api/auth/approve-employer', {
       method: 'POST',
       data: { userId },
     }),
 
-  rejectEmployer: (userId: string, _accessToken?: string, reason?: string) =>
+  rejectEmployer: (userId: string, reason?: string) =>
     apiClient('/api/auth/reject-employer', {
       method: 'POST',
       data: { userId, reason },

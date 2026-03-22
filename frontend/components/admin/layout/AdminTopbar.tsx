@@ -1,7 +1,11 @@
+"use client";
+
 import { Search, ChevronDown } from 'lucide-react';
 
 interface AdminTopbarProps {
 	searchPlaceholder?: string;
+	searchValue?: string;
+	onSearchChange?: (value: string) => void;
 	filters?: React.ReactNode;
 	rightControl?: React.ReactNode;
 	showSearch?: boolean;
@@ -9,6 +13,8 @@ interface AdminTopbarProps {
 
 export default function AdminTopbar({
 	searchPlaceholder = 'Search',
+	searchValue,
+	onSearchChange,
 	filters,
 	rightControl,
 	showSearch = true,
@@ -25,6 +31,8 @@ export default function AdminTopbar({
 						<input
 							type="text"
 							placeholder={searchPlaceholder}
+							value={searchValue}
+							onChange={(event) => onSearchChange?.(event.target.value)}
 							className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-indigo-300"
 						/>
 					</div>

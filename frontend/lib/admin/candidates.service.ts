@@ -1,55 +1,135 @@
+import { apiClient } from '@/lib/apiClient';
 import type { Candidate, CandidateStats } from '@/types/admin/candidate.types';
 
-const stats: CandidateStats = {
-	lookingForInternships: 1420,
-	lookingForJobs: 3890,
-	internshipApplyingRate: 24,
-	internshipHiringRate: 9,
-	jobApplyingRate: 38,
-	jobHiringRate: 14,
+export type CandidateRoleFilter = 'all' | 'STUDENT' | 'PROFESSIONAL';
+
+interface CandidateApiItem {
+	id: string;
+	fullName: string;
+	email: string;
+	role: 'STUDENT' | 'PROFESSIONAL';
+	joinedAt: string;
+	isVerified: boolean;
+	authProvider: string;
+}
+
+interface CandidateApiResponse {
+	data: CandidateApiItem[];
+	pagination: {
+		total: number;
+		page: number;
+		limit: number;
+		totalPages: number;
+	};
+}
+
+interface CandidateQuery {
+	search?: string;
+	role?: CandidateRoleFilter;
+	page?: number;
+	limit?: number;
+}
+
+const formatJoinedDate = (isoDate: string): string => {
+	const date = new Date(isoDate);
+	if (Number.isNaN(date.getTime())) return isoDate;
+
+	return date.toLocaleDateString('en-US', {
+		month: 'short',
+		day: '2-digit',
+		year: 'numeric',
+	});
 };
 
-const candidates: Candidate[] = [
-	{
-		id: '1',
-		name: 'Sarah Johnson',
-		role: 'Frontend Developer',
-		type: 'Professional',
-		joinedAt: 'Mar 08 2026',
-		email: 'sarah.johnson@example.com',
-	},
-	{
-		id: '2',
-		name: 'Kasun Perera',
-		role: 'UI/UX Designer',
-		type: 'Undergraduate',
-		joinedAt: 'Mar 05 2026',
-		email: 'kasun.perera@example.com',
-	},
-	{
-		id: '3',
-		name: 'Nimasha Silva',
-		role: 'Data Analyst',
-		type: 'Professional',
-		joinedAt: 'Feb 28 2026',
-		email: 'nimasha.silva@example.com',
-	},
-	{
-		id: '4',
-		name: 'Amila Fernando',
-		role: 'Backend Engineer',
-		type: 'Undergraduate',
-		joinedAt: 'Feb 24 2026',
-		email: 'amila.fernando@example.com',
-	},
-];
+const toCandidateType = (role: CandidateApiItem['role']): Candidate['type'] =>
+	role === 'STUDENT' ? 'Undergraduate' : 'Professional';
+
+const toCandidateRoleLabel = (role: CandidateApiItem['role']): string =>
+	role === 'STUDENT' ? 'Student Candidate' : 'Professional Candidate';
+
+const mapCandidate = (item: CandidateApiItem): Candidate => ({
+	id: item.id,
+	name: item.fullName,
+	role: toCandidateRoleLabel(item.role),
+	type: toCandidateType(item.role),
+	joinedAt: formatJoinedDate(item.joinedAt),
+	email: item.email,
+});
+
+const buildQueryString = (query?: CandidateQuery): string => {
+	if (!query) return '';
+
+	const params = new URLSearchParams();
+
+	if (query.search?.trim()) {
+		params.set('search', query.search.trim());
+	}
+
+	if (query.role && query.role !== 'all') {
+		params.set('role', query.role);
+	}
+
+	if (typeof query.page === 'number') {
+		params.set('page', String(query.page));
+	}
+
+	if (typeof query.limit === 'number') {
+		params.set('limit', String(query.limit));
+	}
+
+	const queryString = params.toString();
+	return queryString ? `?${queryString}` : '';
+};
+
+const fetchCandidates = async (query?: CandidateQuery): Promise<CandidateApiResponse> => {
+	const queryString = buildQueryString(query);
+	return apiClient<CandidateApiResponse>(`/api/admin/candidates${queryString}`, {
+		method: 'GET',
+	});
+};
 
 export const candidatesService = {
 	async getStats(): Promise<CandidateStats> {
-		return stats;
+		const allCandidates = await this.getCandidates({ page: 1, limit: 1000, role: 'all' });
+
+		const internshipSeekers = allCandidates.filter((candidate) => candidate.type === 'Undergraduate').length;
+		const jobSeekers = allCandidates.filter((candidate) => candidate.type === 'Professional').length;
+		const total = internshipSeekers + jobSeekers;
+
+		const internshipApplyingRate = total === 0 ? 0 : Math.round((internshipSeekers / total) * 100);
+		const jobApplyingRate = total === 0 ? 0 : Math.round((jobSeekers / total) * 100);
+
+		return {
+			lookingForInternships: internshipSeekers,
+			lookingForJobs: jobSeekers,
+			internshipApplyingRate,
+			internshipHiringRate: 0,
+			jobApplyingRate,
+			jobHiringRate: 0,
+		};
 	},
 
-	async getCandidates(): Promise<Candidate[]> {
-		return candidates;
+	async getCandidates(filters?: CandidateQuery): Promise<Candidate[]> {
+		const result = await fetchCandidates({
+			...filters,
+			page: filters?.page ?? 1,
+			limit: filters?.limit ?? 100,
+		});
+
+		return result.data.map(mapCandidate);
+	},
+
+	async getCandidateById(id: string): Promise<Candidate> {
+		const item = await apiClient<CandidateApiItem>(`/api/admin/candidates/${id}`, {
+			method: 'GET',
+		});
+
+		return mapCandidate(item);
+	},
+
+	async removeCandidate(id: string): Promise<void> {
+		await apiClient<{ message: string }>(`/api/admin/candidates/${id}`, {
+			method: 'DELETE',
+		});
 	},
 };
