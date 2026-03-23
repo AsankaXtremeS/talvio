@@ -319,11 +319,19 @@ export const oauthStart = async (req: Request, res: Response, next: NextFunction
     const state = authService.createOAuthState(provider, role);
     const scope = ["openid", "email", "profile"];
 
-    return passport.authenticate(provider, {
+    const authOptions: Record<string, unknown> = {
       scope,
       session: false,
       state,
-    })(req, res, next);
+    };
+
+    // Force Google to show account selection instead of silently reusing a signed-in account.
+    if (provider === "google") {
+      authOptions.prompt = "select_account";
+      authOptions.accessType = "offline";
+    }
+
+    return passport.authenticate(provider, authOptions)(req, res, next);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "OAuth initialization failed";
     console.error("oauthStart error:", err);

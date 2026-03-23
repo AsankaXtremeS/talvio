@@ -48,7 +48,7 @@ function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1.5 min-w-[160px] bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute left-0 z-50 mt-1.5 min-w-40 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
           {options.map((opt) => (
             <button
               key={opt}
@@ -73,9 +73,9 @@ export default function RecommendationsFilterBar({
   skillMatch, onSkillMatchChange,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 bg-white border-b border-gray-100 px-7 py-3">
+    <div className="flex flex-wrap items-center gap-3 px-7 py-3">
       {/* Search */}
-      <div className="relative flex-1 min-w-[200px]">
+      <div className="relative flex-1 min-w-50">
         <Search size={15} className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
         <input
           type="text"
@@ -86,7 +86,7 @@ export default function RecommendationsFilterBar({
         />
       </div>
 
-      <Dropdown value={location} onChange={onLocationChange} options={["Location", "Remote", "New York", "San Francisco", "Mountain View, CA"]} />
+      <Dropdown value={location} onChange={onLocationChange} options={["Location", "Remote", "Onsite", "Hybrid"]} />
       <Dropdown value={jobType} onChange={onJobTypeChange} options={["Job type", "Full time", "Part time", "Internship", "Contract"]} />
       <Dropdown value={skillMatch} onChange={onSkillMatchChange} options={["Skill matched %", "90%+", "80%+", "70%+", "60%+"]} />
 

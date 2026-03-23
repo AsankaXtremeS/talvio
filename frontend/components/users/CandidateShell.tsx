@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Cog,
@@ -17,11 +16,11 @@ import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/lib/auth.service";
 
-interface StudentProfessionalShellProps {
+interface CandidateShellProps {
   children: React.ReactNode;
 }
 
-export default function StudentProfessionalShell({ children }: StudentProfessionalShellProps) {
+export default function CandidateShell({ children }: CandidateShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setUser, setAccessToken } = useAuth();
@@ -41,7 +40,7 @@ export default function StudentProfessionalShell({ children }: StudentProfession
       icon: <FileText size={18} />,
     },
     {
-      label: user?.role === "PROFESSIONAL" ? "Jobs" : "Recommendations",
+      label: "Recommendations",
       href: "/users/candidate/recommendations",
       icon: <Cog size={18} />,
     },
@@ -49,7 +48,7 @@ export default function StudentProfessionalShell({ children }: StudentProfession
 
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const displayName = fullName || user?.email?.split("@")[0] || roleLabel;
-  const avatarSeed = user?.id || roleLabel;
+  const avatarInitial = displayName.charAt(0).toUpperCase() || "U";
 
   const isActive = (href: string) => pathname.startsWith(href);
 
@@ -96,14 +95,8 @@ export default function StudentProfessionalShell({ children }: StudentProfession
             `}
           >
             <div className="flex items-center min-w-0 gap-3">
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-indigo-100 shrink-0">
-                <Image
-                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${avatarSeed}`}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                  width={36}
-                  height={36}
-                />
+              <div className="w-9 h-9 rounded-full bg-indigo-100 shrink-0 flex items-center justify-center">
+                <span className="text-sm font-semibold text-indigo-700">{avatarInitial}</span>
               </div>
 
               {!collapsed && (
