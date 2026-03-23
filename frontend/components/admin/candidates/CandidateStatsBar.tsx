@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown, GraduationCap, Briefcase } from 'lucide-react';
-import type { CandidateStats } from '@/types/admin/candidate.types';
+import type { CandidateStats } from '@/types/candidate/candidate.stats.types';
 
 interface CandidateStatsBarProps {
   stats: CandidateStats;

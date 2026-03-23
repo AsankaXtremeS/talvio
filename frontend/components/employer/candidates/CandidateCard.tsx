@@ -1,6 +1,6 @@
 import { Check, Clock, Briefcase, CalendarPlus, UserRound } from "lucide-react";
 import Image from "next/image";
-import { CandidateInfo } from "@/types/employer/candidate.types";
+import { CandidateInfo } from "@/types/candidate/candidate.types";
 import { getAvatarGradient } from "@/lib/employer/candidates.service";
 import { useState } from "react";
 

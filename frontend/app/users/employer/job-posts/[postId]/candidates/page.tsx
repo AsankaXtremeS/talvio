@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getCandidates } from "@/lib/employer/candidates.service";
-import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
+import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
 interface Props {
   params: { postId: string };

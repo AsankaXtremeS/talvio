@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
-import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
+import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 import { MOCK_CANDIDATES } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
@@ -100,6 +100,6 @@ export default function CandidatesPage() {
             onSchedule={handleSchedule}
           />
         )}
-    </div>
+      </div>
   );
 }
