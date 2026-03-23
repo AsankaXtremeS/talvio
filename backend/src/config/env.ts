@@ -30,4 +30,11 @@ export const env = {
   SMTP_PASS: process.env.SMTP_PASS,
   SMTP_FROM: process.env.SMTP_FROM || "noreply@talvio.com",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
+
+  // OAuth credentials
+  BACKEND_URL: process.env.BACKEND_URL || "http://localhost:8000",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
 }

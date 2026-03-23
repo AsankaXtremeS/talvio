@@ -1,8 +1,9 @@
 export interface DashboardStats {
 	totalUsers: number;
 	totalCompanies: number;
-	reviews: number;
-	reports: number;
+	undergraduates: number;
+	professionals: number;
+	pendingApprovals: number;
 }
 
 export interface UserGrowthDataPoint {
@@ -16,10 +17,10 @@ export interface CompanyRatingDistribution {
 	color: string;
 }
 
-export interface ReviewsActivityDataPoint {
+export interface CandidatesCompaniesActivityDataPoint {
 	month: string;
-	posts: number;
-	reviews: number;
+	candidates: number;
+	companies: number;
 }
 
 export interface RecentCandidate {

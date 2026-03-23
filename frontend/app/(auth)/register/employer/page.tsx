@@ -6,8 +6,8 @@ import EmployerSignupForm from "./RegisterForm"
 
 export default function EmployerSignupPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-      <div className="w-full max-w-6xl h-[650px] bg-white rounded-3xl shadow-2xl overflow-hidden flex">
+    <div className="flex items-center justify-center min-h-screen p-6 bg-linear-to-br from-blue-50 via-purple-50 to-blue-100">
+      <div className="w-full max-w-6xl h-162.5 bg-white rounded-3xl shadow-2xl overflow-hidden flex">
 
         {/* Left Panel */}
         <div

@@ -2,6 +2,7 @@
 
 import { ChevronDown, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { CandidateRoleFilter } from '@/lib/admin/candidates.service';
 
 function FilterDropdown({
   value,
@@ -69,27 +70,37 @@ function FilterDropdown({
   );
 }
 
-export default function CandidateFilterBar() {
-  const [status, setStatus] = useState('Status');
-  const [jobRole, setJobRole] = useState('Job Role');
-  const [userType, setUserType] = useState('User Type');
+interface CandidateFilterBarProps {
+  roleFilter: CandidateRoleFilter;
+  onRoleFilterChange: (value: CandidateRoleFilter) => void;
+}
+
+const roleLabelMap: Record<CandidateRoleFilter, string> = {
+  all: 'All Candidates',
+  STUDENT: 'Undergraduates',
+  PROFESSIONAL: 'Professionals',
+};
+
+const roleOptions: CandidateRoleFilter[] = ['all', 'STUDENT', 'PROFESSIONAL'];
+
+export default function CandidateFilterBar({ roleFilter, onRoleFilterChange }: CandidateFilterBarProps) {
+  const [selectedRoleLabel, setSelectedRoleLabel] = useState(roleLabelMap[roleFilter]);
+
+  useEffect(() => {
+    setSelectedRoleLabel(roleLabelMap[roleFilter]);
+  }, [roleFilter]);
 
   return (
     <div className="flex items-center gap-3">
       <FilterDropdown
-        value={status}
-        onChange={setStatus}
-        options={['Status', 'Draft', 'Active', 'Closed']}
-      />
-      <FilterDropdown
-        value={jobRole}
-        onChange={setJobRole}
-        options={['Job Role', 'Engineering', 'Design', 'Marketing', 'Management']}
-      />
-      <FilterDropdown
-        value={userType}
-        onChange={setUserType}
-        options={['User Type', 'Job', 'Internship']}
+        value={selectedRoleLabel}
+        onChange={(label) => {
+          setSelectedRoleLabel(label);
+
+          const roleValue = roleOptions.find((option) => roleLabelMap[option] === label);
+          onRoleFilterChange(roleValue ?? 'all');
+        }}
+        options={roleOptions.map((option) => roleLabelMap[option])}
       />
     </div>
   );

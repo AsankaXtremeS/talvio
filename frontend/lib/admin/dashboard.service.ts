@@ -1,18 +1,19 @@
 import type {
 	ApplicationStats,
+	CandidatesCompaniesActivityDataPoint,
 	CompanyRatingDistribution,
 	DashboardStats,
 	RecentCandidate,
 	RecentCompany,
-	ReviewsActivityDataPoint,
 	UserGrowthDataPoint,
 } from '@/types/admin/dashboard.types';
 
 const stats: DashboardStats = {
 	totalUsers: 12480,
 	totalCompanies: 326,
-	reviews: 1840,
-	reports: 27,
+	undergraduates: 1840,
+	professionals: 3890,
+	pendingApprovals: 27,
 };
 
 const userGrowth: UserGrowthDataPoint[] = [
@@ -32,13 +33,13 @@ const companyRatings: CompanyRatingDistribution[] = [
 	{ label: '1 Star', count: 8, color: '#E0E7FF' },
 ];
 
-const reviewsActivity: ReviewsActivityDataPoint[] = [
-	{ month: 'Jan', posts: 140, reviews: 82 },
-	{ month: 'Feb', posts: 165, reviews: 97 },
-	{ month: 'Mar', posts: 182, reviews: 111 },
-	{ month: 'Apr', posts: 174, reviews: 105 },
-	{ month: 'May', posts: 210, reviews: 126 },
-	{ month: 'Jun', posts: 238, reviews: 143 },
+const candidatesCompaniesActivity: CandidatesCompaniesActivityDataPoint[] = [
+	{ month: 'Jan', candidates: 140, companies: 82 },
+	{ month: 'Feb', candidates: 165, companies: 97 },
+	{ month: 'Mar', candidates: 182, companies: 111 },
+	{ month: 'Apr', candidates: 174, companies: 105 },
+	{ month: 'May', candidates: 210, companies: 126 },
+	{ month: 'Jun', candidates: 238, companies: 143 },
 ];
 
 const recentCandidates: RecentCandidate[] = [
@@ -75,8 +76,8 @@ export const dashboardService = {
 		return companyRatings;
 	},
 
-	async getReviewsActivity(): Promise<ReviewsActivityDataPoint[]> {
-		return reviewsActivity;
+	async getCandidatesCompaniesActivity(): Promise<CandidatesCompaniesActivityDataPoint[]> {
+		return candidatesCompaniesActivity;
 	},
 
 	async getRecentCandidates(): Promise<RecentCandidate[]> {

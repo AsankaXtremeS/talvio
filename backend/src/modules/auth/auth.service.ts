@@ -9,9 +9,16 @@ import { createHash } from "crypto";
 import { prisma } from "../../config/db";
 import { sendPasswordResetEmail } from "../../utils/email";
 import { env } from "../../config/env";
+import { OAuthProviderPayload } from "../../config/passport";
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
+
+// OAUTH STATE SECRET is used to sign the state parameter for OAuth flows to prevent CSRF attacks.
+const OAUTH_STATE_SECRET = `${env.JWT_SECRET}_oauth_state`;
+
+type OAuthProvider = "google" | "linkedin";
+type OAuthRole = "STUDENT" | "PROFESSIONAL";
 
 const generateAccessToken = (userId: string, role: string) => {
   return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: "15m" });
@@ -33,6 +40,40 @@ const generateRefreshToken = async (userId: string) => {
 
   return token;
 };
+// Issues access and refresh tokens for a given user ID and role.(Access token is short-lived, refresh token is long-lived and stored in DB for rotation and revocation)
+
+const issueTokensForUser = async (userId: string, role: string) => {
+  const accessToken = generateAccessToken(userId, role);
+  const refreshToken = await generateRefreshToken(userId);
+  return { accessToken, refreshToken };
+};
+
+const validateOAuthRole = (role: string): OAuthRole => {
+  const normalized = String(role || "").toUpperCase();
+  if (normalized !== "STUDENT" && normalized !== "PROFESSIONAL") {
+    throw new Error("Invalid role for OAuth signup.");
+  }
+  return normalized;
+};
+
+const createOAuthState = (provider: OAuthProvider, role: OAuthRole) => {
+  return jwt.sign({ provider, role }, OAUTH_STATE_SECRET, { expiresIn: "10m" });
+};
+
+const parseOAuthState = (state: string): { provider: OAuthProvider; role: OAuthRole } => {
+  const payload = jwt.verify(state, OAUTH_STATE_SECRET) as { provider?: OAuthProvider; role?: OAuthRole };
+  if (!payload.provider || !payload.role) {
+    throw new Error("Invalid OAuth state payload");
+  }
+  if (payload.provider !== "google" && payload.provider !== "linkedin") {
+    throw new Error("Invalid OAuth provider in state");
+  }
+  if (payload.role !== "STUDENT" && payload.role !== "PROFESSIONAL") {
+    throw new Error("Invalid OAuth role in state");
+  }
+  return { provider: payload.provider, role: payload.role };
+};
+//OAuth ends here
 
 export const authService = {
   async registerUser(data: any) {
@@ -56,10 +97,7 @@ export const authService = {
       role: requestedRole,
     });
 
-    const accessToken = generateAccessToken(user.id, user.role);
-    const refreshToken = await generateRefreshToken(user.id);
-
-    return { accessToken, refreshToken };
+    return issueTokensForUser(user.id, user.role);
   },
 
   async registerEmployer(data: any) {
@@ -116,10 +154,15 @@ export const authService = {
       }
     }
 
-    const accessToken = generateAccessToken(user.id, user.role);
-    const refreshToken = await generateRefreshToken(user.id);
-
-    return { accessToken, refreshToken };
+    const tokens = await issueTokensForUser(user.id, user.role);
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
+    };
   },
 
   async refresh(token: string) {
@@ -146,6 +189,11 @@ export const authService = {
     return {
       accessToken: generateAccessToken(payload.userId, user.role),
       refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
     };
   },
 
@@ -199,12 +247,110 @@ export const authService = {
     return { message: "Employer approved successfully" };
   },
 
-  async rejectEmployer(userId: string) {
-    await authRepository.rejectEmployer(userId);
+  async rejectEmployer(userId: string, reason?: string) {
+    await authRepository.rejectEmployer(userId, reason);
     return { message: "Employer rejected" };
+  },
+
+  async getEmployersByStatus(status: "pending" | "approved" | "rejected") {
+    return authRepository.getEmployersByStatus(status);
   },
 
   async getPendingEmployers() {
     return authRepository.getPendingEmployers();
+  },
+
+
+  //Oauth methods here
+  createOAuthState(provider: OAuthProvider, role: string) {
+    const validatedRole = validateOAuthRole(role);
+    return createOAuthState(provider, validatedRole);
+  },
+
+  async completeOAuthCallback(
+    provider: OAuthProvider,
+    state: string,
+    oauthPayload: OAuthProviderPayload
+  ) {
+    if (!state) {
+      throw new Error("Missing OAuth state");
+    }
+
+    const parsedState = parseOAuthState(state);
+    if (parsedState.provider !== provider) {
+      throw new Error("OAuth provider mismatch in callback");
+    }
+
+    if (!oauthPayload.providerUserId || !oauthPayload.email) {
+      throw new Error("OAuth response is missing required profile fields");
+    }
+
+    const providerEnum = provider === "google" ? "GOOGLE" : "LINKEDIN";
+
+    const existingAuth = await authRepository.findAuthAccount(
+      providerEnum,
+      oauthPayload.providerUserId
+    );
+
+    let user = existingAuth?.user ?? null;
+
+    if (!user) {
+      const existingByEmail = await authRepository.findUserByEmail(oauthPayload.email);
+      if (existingByEmail) {
+        user = existingByEmail;
+      } else {
+        const createdUser = await authRepository.createUser({
+          firstName: oauthPayload.firstName,
+          lastName: oauthPayload.lastName,
+          email: oauthPayload.email,
+          password: null,
+          role: parsedState.role,
+          isVerified: true,
+        });
+
+        user = await authRepository.findUserById(createdUser.id);
+      }
+
+      if (!user) {
+        throw new Error("Failed to create OAuth user");
+      }
+
+      await authRepository.createAuthAccount({
+        userId: user.id,
+        provider: providerEnum,
+        providerUserId: oauthPayload.providerUserId,
+        accessToken: oauthPayload.accessToken || null,
+        refreshToken: oauthPayload.refreshToken || null,
+        expiresAt: oauthPayload.expiresIn
+          ? new Date(Date.now() + oauthPayload.expiresIn * 1000)
+          : undefined,
+      });
+    } else {
+      await authRepository.updateAuthAccountTokens(
+        providerEnum,
+        oauthPayload.providerUserId,
+        {
+          accessToken: oauthPayload.accessToken || null,
+          refreshToken: oauthPayload.refreshToken || null,
+          expiresAt: oauthPayload.expiresIn
+            ? new Date(Date.now() + oauthPayload.expiresIn * 1000)
+            : null,
+        }
+      );
+    }
+
+    if (!user) {
+      throw new Error("OAuth user not found");
+    }
+
+    const tokens = await issueTokensForUser(user.id, user.role);
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
   },
 };

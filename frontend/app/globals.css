@@ -50,6 +50,18 @@ body.landing-no-scrollbar::-webkit-scrollbar {
   scrollbar-width: none;
 }
 
+/* Hide any scrollbar inside admin pages while keeping scroll functionality */
+.admin-scrollbars-hidden,
+.admin-scrollbars-hidden * {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.admin-scrollbars-hidden::-webkit-scrollbar,
+.admin-scrollbars-hidden *::-webkit-scrollbar {
+  display: none;
+}
+
 /* Hide browser default calendar and clock icons for date/time inputs (all browsers) */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {

@@ -24,8 +24,7 @@ interface NavItem {
 }
 
 // -------------------------------------------------
-// Nav items — matches your Figma sidebar exactly
-// Dashboard · Candidates · Job Posts · Interviews
+// Nav items
 // -------------------------------------------------
 const navItems: NavItem[] = [
   {
@@ -51,17 +50,16 @@ const navItems: NavItem[] = [
 ];
 
 // -------------------------------------------------
-// Props — company info comes from auth context
-// Replace with useAuth() hook when ready
+// Props
 // -------------------------------------------------
 interface SidebarProps {
   companyName?: string;
-  companyRole?: string;       // e.g. "Team · 100 Members"
-  companyInitial?: string;    // e.g. "R" for Rackspace
+  companyRole?: string;
+  companyInitial?: string;
 }
 
 // -------------------------------------------------
-// Root layout — wraps all employer pages
+// Root layout
 // -------------------------------------------------
 export default function EmployerLayout({
   children,
@@ -77,7 +75,7 @@ export default function EmployerLayout({
 }
 
 // -------------------------------------------------
-// Sidebar component (used only inside this layout)
+// Sidebar component
 // -------------------------------------------------
 function Sidebar({
   companyName = "Rackspace",
@@ -135,8 +133,12 @@ function Sidebar({
           ${collapsed ? "justify-center" : "justify-between"}
         `}
       >
-        {/* Avatar */}
-        <div className="flex items-center min-w-0 gap-3">
+        {/* Avatar & Info Linked to Profile View */}
+        <Link 
+          href="/users/employer/profile" 
+          className="flex items-center min-w-0 gap-3 transition-opacity hover:opacity-75"
+          title={collapsed ? "View Company Profile" : undefined}
+        >
           <div className="flex items-center justify-center flex-shrink-0 text-sm font-bold text-white bg-gray-800 rounded-lg w-9 h-9">
             {companyInitial}
           </div>
@@ -150,7 +152,7 @@ function Sidebar({
               <p className="text-[11px] text-gray-400 truncate">{companyRole}</p>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Settings icon — hidden when collapsed */}
         {!collapsed && (
@@ -166,7 +168,6 @@ function Sidebar({
 
       {/* ── NAV MENU ── */}
       <nav className="flex-1 px-0 mt-5">
-        {/* Label */}
         {!collapsed && (
           <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest mb-2 px-2">
             Main Menu
@@ -192,7 +193,6 @@ function Sidebar({
                   `}
                   title={collapsed ? item.label : undefined}
                 >
-                  {/* Icon */}
                   <span
                     className={`flex-shrink-0 ${
                       active ? "text-indigo-600" : "text-gray-400"
@@ -201,7 +201,6 @@ function Sidebar({
                     {item.icon}
                   </span>
 
-                  {/* Label — hidden when collapsed */}
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
               </li>

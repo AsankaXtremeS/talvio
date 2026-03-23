@@ -5,6 +5,7 @@ export default function ApplicantPanel() {
     <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="https://i.pravatar.cc/150?u=sarah" 
             alt="Sarah Johnson" 
