@@ -1,5 +1,5 @@
 import { Users } from "lucide-react";
-import { CandidateInfo } from "@/types/employer/candidate.types";
+import { CandidateInfo } from "@/types/candidate/candidate.types";
 import CandidateCard from "./CandidateCard";
 
 interface Props {

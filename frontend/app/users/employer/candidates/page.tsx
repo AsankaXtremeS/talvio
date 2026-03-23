@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
-import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
+import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 import { MOCK_CANDIDATES } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
@@ -90,6 +90,7 @@ export default function CandidatesPage() {
                   <div className="h-2.5 bg-[#E8EBF3] rounded-full w-1/2" />
                 </div>
               </div>
+            </div>
             ))}
           </div>
         ) : (
@@ -100,6 +101,5 @@ export default function CandidatesPage() {
           />
         )}
       </div>
-    </div>
   );
 }
