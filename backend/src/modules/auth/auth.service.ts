@@ -9,10 +9,12 @@ import { createHash } from "crypto";
 import { prisma } from "../../config/db";
 import { sendPasswordResetEmail } from "../../utils/email";
 import { env } from "../../config/env";
+import {
+  generateAccessToken as generateAccessJwt,
+  generateRefreshToken as generateRefreshJwt,
+  verifyRefreshToken,
+} from "../../utils/jwt";
 import { OAuthProviderPayload } from "../../config/passport";
-
-const JWT_SECRET = env.JWT_SECRET;
-const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
 
 // OAUTH STATE SECRET is used to sign the state parameter for OAuth flows to prevent CSRF attacks.
 const OAUTH_STATE_SECRET = `${env.JWT_SECRET}_oauth_state`;
@@ -21,7 +23,7 @@ type OAuthProvider = "google" | "linkedin";
 type OAuthRole = "STUDENT" | "PROFESSIONAL";
 
 const generateAccessToken = (userId: string, role: string) => {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: "15m" });
+  return generateAccessJwt({ userId, role });
 };
 
 const hashToken = (token: string) => {
@@ -29,7 +31,7 @@ const hashToken = (token: string) => {
 };
 
 const generateRefreshToken = async (userId: string) => {
-  const token = jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+  const token = generateRefreshJwt({ userId });
   const hashedToken = hashToken(token);
 
   await authRepository.createRefreshToken({
@@ -76,6 +78,55 @@ const parseOAuthState = (state: string): { provider: OAuthProvider; role: OAuthR
 //OAuth ends here
 
 export const authService = {
+  async getCurrentUser(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      preferences: {
+        locale: "en",
+        theme: "light",
+      },
+      permissions: [user.role],
+      employerProfile: user.employerProfile
+        ? {
+            companyName: user.employerProfile.companyName,
+            verificationStatus: user.employerProfile.verificationStatus,
+            rejectionReason: user.employerProfile.rejectionReason,
+          }
+        : null,
+    };
+  },
+
+  async upgradeCurrentUserRole(userId: string, targetRole: "PROFESSIONAL") {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.role === "EMPLOYER" || user.role === "ADMIN") {
+      throw new Error("This account type cannot be changed.");
+    }
+
+    if (user.role === targetRole) {
+      return this.getCurrentUser(userId);
+    }
+
+    if (user.role !== "STUDENT" || targetRole !== "PROFESSIONAL") {
+      throw new Error("Only Undergraduate to Professional upgrade is allowed.");
+    }
+
+    await authRepository.updateUserRole(userId, targetRole);
+    return this.getCurrentUser(userId);
+  },
+
   async registerUser(data: any) {
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) throw new Error("User already exists");
@@ -178,7 +229,7 @@ export const authService = {
     // Revoke old refresh token (rotation)
     await authRepository.revokeRefreshToken(stored.token);
 
-    const payload = jwt.verify(token, JWT_REFRESH_SECRET) as any;
+    const payload = verifyRefreshToken(token) as any;
     // Issue new refresh token
     const newRefreshToken = await generateRefreshToken(payload.userId);
 

@@ -371,3 +371,43 @@ export const oauthCallback = async (req: Request, res: Response, next: NextFunct
     return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
   }
 };
+
+// CURRENT SESSION USER
+// Protected endpoint for reading the authenticated user's own profile.
+// Identity is derived from auth middleware (token/cookie), not URL or request body.
+export const me = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await authService.getCurrentUser(userId);
+    return res.json({ user });
+  } catch (err: any) {
+    console.error("me error:", err);
+    return res.status(400).json({ message: err?.message || "Failed to load session user." });
+  }
+};
+
+// UPDATE CURRENT USER ROLE
+// Protected endpoint: role change is applied to the authenticated user only.
+export const updateMyRole = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const targetRole = String(req.body?.targetRole || "").toUpperCase();
+    if (targetRole !== "PROFESSIONAL") {
+      return res.status(400).json({ message: "Only PROFESSIONAL target role is supported." });
+    }
+
+    const user = await authService.upgradeCurrentUserRole(userId, "PROFESSIONAL");
+    return res.json({ message: "Role upgraded successfully.", user });
+  } catch (err: any) {
+    console.error("updateMyRole error:", err);
+    return res.status(400).json({ message: err?.message || "Failed to update role." });
+  }
+};

@@ -13,6 +13,8 @@ import {
   rejectEmployer,
   getEmployersByStatus,
   getPendingEmployers,
+  me,
+  updateMyRole,
   // OAUTH endpoints
   oauthStart,
   oauthCallback,
@@ -43,6 +45,8 @@ router.post(
 router.post("/login", sensitiveLimiter, login);
 router.post("/refresh", sensitiveLimiter, refresh);
 router.post("/logout", sensitiveLimiter, logout);
+router.get("/me", authenticate, me);
+router.patch("/me/role", authenticate, updateMyRole);
 router.post("/forgot-password", sensitiveLimiter, forgotPassword);
 router.post("/reset-password", sensitiveLimiter, resetPassword);
 router.post("/approve-employer", authenticate, requireRole("ADMIN"), approveEmployer);

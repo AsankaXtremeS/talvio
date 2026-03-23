@@ -36,9 +36,6 @@ export async function apiClient<T>(
             return retryRes.data;
           }
         } catch {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
           throw new Error('Session expired');
         }
       }

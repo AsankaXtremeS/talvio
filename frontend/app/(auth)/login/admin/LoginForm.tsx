@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { authService } from "@/lib/auth.service"
 import { useAuth } from "@/context/AuthContext"
 import { FiEye, FiEyeOff } from "react-icons/fi"
+import { getRoleHomeRoute } from "@/lib/roleRoutes"
 
 const schema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
@@ -37,7 +38,7 @@ export default function AdminLoginForm() {
       }
       setUser(user)
       setAccessToken("cookie-session")
-      router.push("/users/admin/dashboard")
+      router.push(getRoleHomeRoute(user.role, user.id))
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Login failed."
       setError("root", { type: "manual", message })

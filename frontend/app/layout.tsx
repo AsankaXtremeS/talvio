@@ -1,7 +1,14 @@
 import type { Metadata } from "next"
+import { Roboto } from "next/font/google"
 import "./globals.css"
 import PageTransition from "@/components/layout/PageTransition"
 import { AuthProvider } from "@/context/AuthContext"
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: "Talvio - Connecting Talent with Opportunity",
@@ -15,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body>
+      <body className={roboto.className}>
         <AuthProvider>
           <PageTransition>
             {children}
