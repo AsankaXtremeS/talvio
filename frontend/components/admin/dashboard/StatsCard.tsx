@@ -9,8 +9,9 @@ interface StatsCardProps {
 const STAT_CARD_BACKGROUNDS: Record<string, string> = {
   'Total Users': 'bg-[#7C6FCD]',
   'Total Companies': 'bg-[#6B5FC0]',
-  Reviews: 'bg-[#5A4FB3]',
-  Reports: 'bg-[#4A3FA6]',
+  Undergraduates: 'bg-[#5A4FB3]',
+  Professionals: 'bg-[#5448AD]',
+  'Pending Approvals': 'bg-[#4A3FA6]',
 };
 
 export default function StatsCard({ title, value, icon: Icon }: StatsCardProps) {

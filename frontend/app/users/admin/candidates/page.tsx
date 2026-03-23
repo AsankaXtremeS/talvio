@@ -6,6 +6,7 @@ import CandidateStatsBar from '@/components/admin/candidates/CandidateStatsBar';
 import CandidatesTable from '@/components/admin/candidates/CandidatesTable';
 import CandidateFilterBar from '@/components/admin/candidates/CandidateFilterBar';
 import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
+import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import { candidatesService, type CandidateRoleFilter } from '@/lib/admin/candidates.service';
 import type { Candidate, CandidateStats } from '@/types/admin/candidate.types';
@@ -169,9 +170,7 @@ export default function CandidatesPage() {
         <CandidateStatsBar stats={stats} />
 
         {isLoading ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-sm text-gray-500">
-            Loading candidates...
-          </div>
+          <AdminLoadingCard label="Loading candidates..." />
         ) : error ? (
           <div className="rounded-2xl border border-red-100 bg-white p-6 text-sm text-red-500">
             {error}

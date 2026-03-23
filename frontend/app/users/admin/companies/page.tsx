@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Building2 } from 'lucide-react';
 import CompaniesTable from '@/components/admin/companies/CompaniesTable';
 import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
+import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import { companiesService } from '@/lib/admin/companies.service';
 import type { Company } from '@/types/admin/company.types';
@@ -121,9 +122,7 @@ export default function CompaniesPage() {
         </div>
 
         {isLoading ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-sm text-gray-500">
-            Loading companies...
-          </div>
+          <AdminLoadingCard label="Loading companies..." />
         ) : error ? (
           <div className="rounded-2xl border border-red-100 bg-white p-6 text-sm text-red-500">
             {error}
