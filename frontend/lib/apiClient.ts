@@ -16,7 +16,7 @@ export async function apiClient<T>(
     });
 
     return res.data; // Axios automatically parses JSON responses
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         try {
@@ -36,7 +36,9 @@ export async function apiClient<T>(
             return retryRes.data;
           }
         } catch {
-          window.location.href = '/login';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
           throw new Error('Session expired');
         }
       }

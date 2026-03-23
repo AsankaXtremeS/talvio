@@ -30,7 +30,7 @@ export default function PendingApprovalsPage() {
           return;
         }
 
-        const employers = await authService.getEmployers(statusFilter, accessToken);
+        const employers = await authService.getEmployers(statusFilter);
         const data: PendingApproval[] = employers
           .map((employer) => ({
           id: employer.id,
@@ -57,7 +57,7 @@ export default function PendingApprovalsPage() {
   const handleApprove = useCallback(async (id: string) => {
     if (!accessToken) return;
 
-    await authService.approveEmployer(id, accessToken);
+    await authService.approveEmployer(id);
     setApprovals((prev) => prev.filter((a) => a.id !== id));
   }, [accessToken]);
 
@@ -65,7 +65,7 @@ export default function PendingApprovalsPage() {
   const handleReject = useCallback(async (id: string, reason?: string) => {
     if (!accessToken) return;
 
-    await authService.rejectEmployer(id, accessToken, reason);
+    await authService.rejectEmployer(id, reason);
     setApprovals((prev) => prev.filter((a) => a.id !== id));
   }, [accessToken]);
 
@@ -74,7 +74,7 @@ export default function PendingApprovalsPage() {
     try {
       if (!accessToken) return;
 
-      const employers = await authService.getEmployers(statusFilter, accessToken);
+      const employers = await authService.getEmployers(statusFilter);
       const employer = employers.find((e) => e.id === id);
       const fileUrl = employer?.employerProfile.registrationFileUrl;
 

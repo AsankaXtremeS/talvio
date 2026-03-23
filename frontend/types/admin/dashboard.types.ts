@@ -1,8 +1,9 @@
 export interface DashboardStats {
 	totalUsers: number;
 	totalCompanies: number;
-	reviews: number;
-	reports: number;
+	undergraduates: number;
+	professionals: number;
+	pendingApprovals: number;
 }
 
 export interface UserGrowthDataPoint {
