@@ -7,6 +7,7 @@ import { authService } from "@/lib/auth.service";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { getRoleHomeRoute } from "@/lib/roleRoutes";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -37,7 +38,7 @@ export default function LoginForm() {
       }
       setUser(user);
       setAccessToken("cookie-session");
-      router.push('/users/professional');
+      router.push(getRoleHomeRoute(user.role, user.id));
     } catch (error: unknown) {
       setError('root', {
         type: 'manual',

@@ -3,6 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import { getRoleHomeRoute } from "@/lib/roleRoutes"
+import { authService } from "@/lib/auth.service"
 
 type Role = "STUDENT" | "PROFESSIONAL" | "EMPLOYER" | "ADMIN"
 
@@ -10,6 +12,8 @@ type SessionUser = {
   id: string
   role: Role
   email: string
+  firstName?: string | null
+  lastName?: string | null
 }
 
 export default function OAuthCallbackPage() {
@@ -19,18 +23,7 @@ export default function OAuthCallbackPage() {
   useEffect(() => {
     const completeOAuthLogin = async () => {
       try {
-        const res = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "include",
-        })
-
-        if (!res.ok) {
-          router.replace("/login")
-          return
-        }
-
-        const data = (await res.json()) as { user?: SessionUser }
-        const user = data.user
+        const { user } = (await authService.me()) as { user?: SessionUser }
         if (!user) {
           router.replace("/login")
           return
@@ -43,13 +36,7 @@ export default function OAuthCallbackPage() {
 
         setAccessToken("cookie-session")
         setUser(user)
-
-        if (user.role === "STUDENT") {
-          router.replace("/users/undergraduate")
-          return
-        }
-
-        router.replace("/users/professional")
+        router.replace(getRoleHomeRoute(user.role, user.id))
       } catch {
         router.replace("/login")
       }

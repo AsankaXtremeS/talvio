@@ -21,6 +21,18 @@ export interface SessionUser {
   id: string;
   role: 'STUDENT' | 'PROFESSIONAL' | 'EMPLOYER' | 'ADMIN';
   email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  preferences?: {
+    locale?: string;
+    theme?: string;
+  } | null;
+  permissions?: string[];
+  employerProfile?: {
+    companyName: string;
+    verificationStatus: string;
+    rejectionReason?: string | null;
+  } | null;
 }
 
 export const authService = {
@@ -52,6 +64,17 @@ export const authService = {
     apiClient<{ user: SessionUser }>('/api/auth/login', {
       method: 'POST',
       data,
+    }),
+
+  me: () =>
+    apiClient<{ user: SessionUser }>('/api/auth/me', {
+      method: 'GET',
+    }),
+
+  updateMyRole: (targetRole: 'PROFESSIONAL') =>
+    apiClient<{ message: string; user: SessionUser }>('/api/auth/me/role', {
+      method: 'PATCH',
+      data: { targetRole },
     }),
 
   logout: () =>
