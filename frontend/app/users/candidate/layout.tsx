@@ -1,11 +1,11 @@
 "use client";
 
-import StudentProfessionalShell from "@/components/users/StudentProfessionalShell";
+import CandidateShell from "../../../components/users/CandidateShell";
 
 export default function CandidateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <StudentProfessionalShell>{children}</StudentProfessionalShell>;
+  return <CandidateShell>{children}</CandidateShell>;
 }

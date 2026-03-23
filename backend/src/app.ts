@@ -7,10 +7,13 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { errorHandler } from "./middlewares/error.middleware";
 import passport, { initializePassport } from "./config/passport";
+import { Request } from "express";
 
 const app = express();
 
 initializePassport();
+
+morgan.token("pathNoQuery", (req) => (req as Request).originalUrl.split("?")[0]);
 
 app.use(helmet());
 app.use(cors({
@@ -30,7 +33,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
-app.use(morgan("dev"));
+app.use(morgan(":method :pathNoQuery :status :response-time ms - :res[content-length]"));
 
 // Serve uploaded files (employer registration PDFs)
 app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads')));

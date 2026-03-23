@@ -22,6 +22,20 @@ const OAUTH_STATE_SECRET = `${env.JWT_SECRET}_oauth_state`;
 type OAuthProvider = "google" | "linkedin";
 type OAuthRole = "STUDENT" | "PROFESSIONAL";
 
+const normalizeEmail = (email: string) => String(email || "").trim().toLowerCase();
+
+const assertOAuthRoleCompatibility = (existingRole: string, requestedRole: OAuthRole) => {
+  if (existingRole === requestedRole) return;
+
+  if (existingRole === "STUDENT" || existingRole === "PROFESSIONAL") {
+    throw new Error(
+      `This Google account is already registered as ${existingRole}. Please continue with ${existingRole} or use a different Google account.`
+    );
+  }
+
+  throw new Error("This Google account is already linked to a restricted account type.");
+};
+
 const generateAccessToken = (userId: string, role: string) => {
   return generateAccessJwt({ userId, role });
 };
@@ -336,6 +350,8 @@ export const authService = {
       throw new Error("OAuth response is missing required profile fields");
     }
 
+    const normalizedEmail = normalizeEmail(oauthPayload.email);
+
     const providerEnum = provider === "google" ? "GOOGLE" : "LINKEDIN";
 
     const existingAuth = await authRepository.findAuthAccount(
@@ -345,15 +361,20 @@ export const authService = {
 
     let user = existingAuth?.user ?? null;
 
+    if (user) {
+      assertOAuthRoleCompatibility(user.role, parsedState.role);
+    }
+
     if (!user) {
-      const existingByEmail = await authRepository.findUserByEmail(oauthPayload.email);
+      const existingByEmail = await authRepository.findUserByEmail(normalizedEmail);
       if (existingByEmail) {
+        assertOAuthRoleCompatibility(existingByEmail.role, parsedState.role);
         user = existingByEmail;
       } else {
         const createdUser = await authRepository.createUser({
           firstName: oauthPayload.firstName,
           lastName: oauthPayload.lastName,
-          email: oauthPayload.email,
+          email: normalizedEmail,
           password: null,
           role: parsedState.role,
           isVerified: true,
