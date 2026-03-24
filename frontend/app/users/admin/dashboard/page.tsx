@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Users, Building2, Star, Flag } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Building2, GraduationCap, Briefcase, Clock3 } from 'lucide-react';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import StatsCard from '@/components/admin/dashboard/StatsCard';
 import UserGrowthChart from '@/components/admin/dashboard/UserGrowthChart';
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex min-h-full flex-col overflow-visible fixed">
       <AdminTopbar
         showSearch={false}
         filters={
@@ -43,16 +43,17 @@ export default async function DashboardPage() {
         rightControl={<DashboardPeriodDropdown />}
       />
 
-      <div className="min-h-0 flex flex-1 flex-col px-6 pb-6">
+      <div className="flex flex-1 flex-col px-6 pb-8">
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <StatsCard title="Total Users" value={stats.totalUsers} icon={Users} />
           <StatsCard title="Total Companies" value={stats.totalCompanies} icon={Building2} />
-          <StatsCard title="Reviews" value={stats.reviews} icon={Star} />
-          <StatsCard title="Reports" value={stats.reports} icon={Flag} />
+          <StatsCard title="Undergraduates" value={stats.undergraduates} icon={GraduationCap} />
+          <StatsCard title="Professionals" value={stats.professionals} icon={Briefcase} />
+          <StatsCard title="Pending Approvals" value={stats.pendingApprovals} icon={Clock3} />
         </div>
 
-        <div className="admin-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-visible">
           {/* Charts Row */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* User Growth */}

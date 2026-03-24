@@ -11,8 +11,9 @@ import type {
 const stats: DashboardStats = {
 	totalUsers: 12480,
 	totalCompanies: 326,
-	reviews: 1840,
-	reports: 27,
+	undergraduates: 1840,
+	professionals: 3890,
+	pendingApprovals: 27,
 };
 
 const userGrowth: UserGrowthDataPoint[] = [

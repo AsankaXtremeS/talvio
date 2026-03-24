@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Users, Calendar, CheckCircle} from "lucide-react";
-import { CandidateStatus } from "@/types/employer/candidate.types";
+import { CandidateStatus } from "@/types/candidate/candidate.types";
 
 interface Props {
   status: CandidateStatus;

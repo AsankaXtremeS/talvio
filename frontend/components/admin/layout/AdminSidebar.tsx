@@ -39,8 +39,11 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setUser, setAccessToken } = useAuth();
+  const { user, setUser, setAccessToken } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  const displayName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'Admin';
+  const initial = displayName.slice(0, 1).toUpperCase();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
@@ -93,9 +96,9 @@ export default function AdminSidebar({
 
           <div className="flex items-center gap-3 px-4 pb-5">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-300 to-pink-400 text-white text-sm font-semibold">
-              A
+              {initial}
             </div>
-            <span className="truncate text-sm font-semibold text-gray-800">Admin101</span>
+            <span className="truncate text-sm font-semibold text-gray-800">{displayName}</span>
             <Link
               href="/users/admin/settings"
               className="ml-auto text-gray-400 transition-colors hover:text-gray-600"
@@ -169,9 +172,9 @@ export default function AdminSidebar({
 
       <div className={`flex items-center gap-3 px-4 pb-5 ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-300 to-pink-400 flex items-center justify-center overflow-hidden shrink-0">
-          <span className="text-white text-sm font-semibold">A</span>
+          <span className="text-white text-sm font-semibold">{initial}</span>
         </div>
-        {!collapsed && <span className="text-sm font-semibold text-gray-800">Admin101</span>}
+        {!collapsed && <span className="text-sm font-semibold text-gray-800">{displayName}</span>}
         {!collapsed && (
           <Link href="/users/admin/settings" className="ml-auto text-gray-400 hover:text-gray-600 transition-colors">
             <Settings size={16} />

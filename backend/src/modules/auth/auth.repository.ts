@@ -155,4 +155,8 @@ export const authRepository = {
   updateUserPassword(userId: string, password: string) {
     return prisma.user.update({ where: { id: userId }, data: { password } });
   },
+
+  updateUserRole(userId: string, role: "STUDENT" | "PROFESSIONAL" | "EMPLOYER" | "ADMIN") {
+    return prisma.user.update({ where: { id: userId }, data: { role } });
+  },
 };

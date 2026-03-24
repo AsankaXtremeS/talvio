@@ -13,6 +13,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import RoleGate from "@/components/auth/RoleGate";
+import { useAuth } from "@/context/AuthContext";
 
 // -------------------------------------------------
 // Types
@@ -67,10 +69,12 @@ export default function EmployerLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
-      <Sidebar />
-      <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
-    </div>
+    <RoleGate allowedRoles={["EMPLOYER"]}>
+      <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
+        <Sidebar />
+        <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
+      </div>
+    </RoleGate>
   );
 }
 
@@ -84,7 +88,12 @@ function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  const resolvedCompanyName = user?.employerProfile?.companyName || companyName;
+  const resolvedRoleLabel = user?.email ? `Employer · ${user.email}` : companyRole;
+  const resolvedInitial = resolvedCompanyName.slice(0, 1).toUpperCase() || companyInitial;
 
   // Active link detection
   const isActive = (href: string) => pathname.startsWith(href);
@@ -140,16 +149,16 @@ function Sidebar({
           title={collapsed ? "View Company Profile" : undefined}
         >
           <div className="flex items-center justify-center flex-shrink-0 text-sm font-bold text-white bg-gray-800 rounded-lg w-9 h-9">
-            {companyInitial}
+            {resolvedInitial}
           </div>
 
           {/* Name + role — hidden when collapsed */}
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">
-                {companyName}
+                {resolvedCompanyName}
               </p>
-              <p className="text-[11px] text-gray-400 truncate">{companyRole}</p>
+              <p className="text-[11px] text-gray-400 truncate">{resolvedRoleLabel}</p>
             </div>
           )}
         </Link>
