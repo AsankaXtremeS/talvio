@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getRoleHomeRoute, type AppRole } from "@/lib/roleRoutes";
-import { authService } from "@/lib/auth.service";
-
-type SessionUser = {
-  id: string;
-  role: AppRole;
-  email: string;
-};
 
 interface RoleGateProps {
   allowedRoles: AppRole[];
@@ -20,58 +13,26 @@ interface RoleGateProps {
 export default function RoleGate({ allowedRoles, children }: RoleGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isHydrating, setUser, setAccessToken } = useAuth();
-  const [isChecking, setIsChecking] = useState(true);
+  const { user, isHydrating } = useAuth();
 
   const allowedRoleSet = useMemo(() => new Set(allowedRoles), [allowedRoles]);
 
   useEffect(() => {
-    let isMounted = true;
+    if (isHydrating) {
+      return;
+    }
 
-    const handleAuthorizedUser = (sessionUser: SessionUser) => {
-      if (!allowedRoleSet.has(sessionUser.role)) {
-        router.replace(getRoleHomeRoute(sessionUser.role, sessionUser.id));
-        return;
-      }
-      if (isMounted) {
-        setIsChecking(false);
-      }
-    };
+    if (!user) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
 
-    const run = async () => {
-      if (isHydrating) {
-        return;
-      }
+    if (!allowedRoleSet.has(user.role as AppRole)) {
+      router.replace(getRoleHomeRoute(user.role as AppRole, user.id));
+    }
+  }, [allowedRoleSet, isHydrating, pathname, router, user]);
 
-      if (user) {
-        handleAuthorizedUser(user as SessionUser);
-        return;
-      }
-
-      try {
-        const { user: sessionUser } = await authService.me();
-
-        if (!sessionUser) {
-          router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-          return;
-        }
-
-        setAccessToken("cookie-session");
-        setUser(sessionUser);
-        handleAuthorizedUser(sessionUser);
-      } catch {
-        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-      }
-    };
-
-    run();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [allowedRoleSet, isHydrating, pathname, router, setAccessToken, setUser, user]);
-
-  if (isChecking) {
+  if (isHydrating || !user || !allowedRoleSet.has(user.role as AppRole)) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-600">
         Loading your dashboard...

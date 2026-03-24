@@ -77,8 +77,16 @@ export const authService = {
       data: { targetRole },
     }),
 
-  logout: () =>
-    apiClient('/api/auth/logout', { method: 'POST' }),
+  logout: async () => {
+    try {
+      await apiClient('/api/auth/logout', {
+        method: 'POST',
+        retryOnAuth: false,
+      });
+    } catch {
+      // Client state is cleared by caller; logout should stay best-effort.
+    }
+  },
 
   forgotPassword: (email: string) =>
     apiClient('/api/auth/forgot-password', {
