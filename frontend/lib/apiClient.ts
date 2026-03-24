@@ -16,7 +16,7 @@ export async function apiClient<T>(
     });
 
     return res.data; // Axios automatically parses JSON responses
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         try {
@@ -41,8 +41,9 @@ export async function apiClient<T>(
         }
       }
 
+      const responseData = error.response?.data as { message?: string } | undefined;
       const errorMessage =
-        error.response?.data?.message || error.message || 'Request failed';
+        responseData?.message || error.message || 'Request failed';
       throw new Error(errorMessage);
     } else {
       throw new Error('An unexpected error occurred');

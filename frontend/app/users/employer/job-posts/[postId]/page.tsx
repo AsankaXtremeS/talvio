@@ -1,3 +1,4 @@
+"use client";
 import JobPostForm from "@/components/employer/job-posts/JobPostForm";
 
 interface Props {

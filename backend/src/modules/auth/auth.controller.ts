@@ -21,7 +21,7 @@ const getSecureCookieFlag = (req: Request) => {
 const buildAuthCookieOptions = (req: Request, maxAge: number) => ({
   httpOnly: true,
   secure: getSecureCookieFlag(req),
-  sameSite: "strict" as const,
+  sameSite: "lax" as const,
   maxAge,
 });
 
@@ -156,7 +156,7 @@ export const logout = async (req: Request, res: Response) => {
     const clearCookieOptions = {
       httpOnly: true,
       secure: getSecureCookieFlag(req),
-      sameSite: "strict" as const,
+      sameSite: "lax" as const,
     };
 
     res.clearCookie("accessToken", clearCookieOptions);

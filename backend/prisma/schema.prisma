@@ -76,6 +76,7 @@ model EmployerProfile {
   rejectionReason      String?
   createdAt            DateTime           @default(now())
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosts             JobPost[] 
 }
 
 enum Role {
@@ -95,4 +96,37 @@ enum VerificationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model JobPost {
+  id           String      @id @default(uuid())  // - Identity
+  // - Job Details
+  title        String
+  department   String
+  type         JobType
+  description  String?
+  requirements String?
+  closedDate   DateTime?
+  status       PostStatus  @default(DRAFT)
+  employerId   String
+  employer     EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  // - Timestamps
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  // ─── Indexes ─────────────────────────────────────────────────────────────────
+  // employerId index — every list query filters by employer (critical for performance)
+  @@index([employerId])
+  // status index — dashboard stats filter by status frequently
+  @@index([status])
+}
+
+enum JobType {
+  JOB
+  INTERNSHIP
+}
+
+enum PostStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
 }

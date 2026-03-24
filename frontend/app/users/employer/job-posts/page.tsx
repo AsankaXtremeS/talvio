@@ -1,47 +1,53 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Briefcase } from "lucide-react";
-import { JobPost } from "@/types/employer/jobPost.types";
+import { JobPost, JobPostStats } from "@/types/employer/jobPost.types";
 import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
-
-// ── Mock data so the page works before backend is ready ──
-const MOCK_POSTS: JobPost[] = [
-  { id: "1", title: "Frontend Developer", department: "Engineering", type: "Job",        closedDate: "Apr 26,2024", status: "Draft",  applicantsCount: 0   },
-  { id: "2", title: "UI/UX Designer",     department: "Design",      type: "Internship", closedDate: "Apr 26,2024", status: "Active", applicantsCount: 24  },
-  { id: "3", title: "Data Analyst",       department: "Engineering", type: "Job",        closedDate: "Apr 26,2024", status: "Active", applicantsCount: 12  },
-  { id: "4", title: "Marketing Intern",   department: "Marketing",   type: "Job",        closedDate: "Apr 26,2024", status: "Closed", applicantsCount: 210 },
-  { id: "5", title: "QA Engineer",        department: "Engineering", type: "Job",        closedDate: "Apr 26,2024", status: "Active", applicantsCount: 8   },
-  { id: "6", title: "Product Manager",    department: "Management",  type: "Job",        closedDate: "Apr 26,2024", status: "Active", applicantsCount: 16  },
-];
+import { getJobPosts, getJobPostStats } from "@/lib/employer/jobPosts.service";
 
 export default function JobPostsPage() {
   const router = useRouter();
 
-  const [posts]   = useState<JobPost[]>(MOCK_POSTS);
-  const [loading] = useState(false);
+  // ── State ──
+  const [posts, setPosts] = useState<JobPost[]>([]);
+  const [stats, setStats] = useState<JobPostStats>({ total: 0, active: 0, closed: 0, draft: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Filter state
-  const [search,  setSearch]  = useState("");
-  const [status,  setStatus]  = useState("Status");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("Status");
   const [jobRole, setJobRole] = useState("Job Role");
-  const [sort,    setSort]    = useState("Newest");
-  const [period,  setPeriod]  = useState("This Week");
+  const [sort, setSort] = useState("Newest");
+  const [period, setPeriod] = useState("This Week");
 
-  // Uncomment when backend is ready:
-  // useEffect(() => {
-  //   setLoading(true);
-  //   getJobPosts().then(setPosts).finally(() => setLoading(false));
-  // }, []);
+  // ── Fetch posts + stats from backend ──
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        // Fetch posts and stats in parallel for better performance
+        const [postsData, statsData] = await Promise.all([
+          getJobPosts(),
+          getJobPostStats(),
+        ]);
+        setPosts(postsData);
+        setStats(statsData);
+      } catch (err: unknown) {
+        console.error("Failed to load job posts:", err);
+        setError("Failed to load job posts. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // ── Derived stats ──
-  const totalPosts    = posts.length;
-  const activePosts   = posts.filter((p) => p.status === "Active").length;
-  const applications  = posts.reduce((acc, p) => acc + (p.applicantsCount ?? 0), 0);
-  const closedPosts   = posts.filter((p) => p.status === "Closed").length;
+    fetchData();
+  }, []);
 
   // ── Client-side filtering ──
   const filtered = useMemo(() => {
@@ -49,7 +55,7 @@ export default function JobPostsPage() {
       .filter((p) => {
         const matchSearch = p.title.toLowerCase().includes(search.toLowerCase());
         const matchStatus = status === "Status" || p.status === status;
-        const matchRole   = jobRole === "Job Role" || p.department === jobRole;
+        const matchRole = jobRole === "Job Role" || p.department === jobRole;
         return matchSearch && matchStatus && matchRole;
       })
       .sort((a, b) =>
@@ -66,15 +72,15 @@ export default function JobPostsPage() {
   return (
     <div className="flex flex-col h-full p-8 pt-2 overflow-hidden">
 
-      {/* ── Fixed header section (filter + title + stats) ── */}
+      {/* ── Fixed header section ── */}
       <div className="shrink-0">
-        {/* ── Filter bar (top) ── */}
+        {/* ── Filter bar ── */}
         <FilterBar
-          search={search}       onSearchChange={setSearch}
-          status={status}       onStatusChange={setStatus}
-          jobRole={jobRole}     onJobRoleChange={setJobRole}
-          sort={sort}           onSortChange={setSort}
-          period={period}       onPeriodChange={setPeriod}
+          search={search}   onSearchChange={setSearch}
+          status={status}   onStatusChange={setStatus}
+          jobRole={jobRole} onJobRoleChange={setJobRole}
+          sort={sort}       onSortChange={setSort}
+          period={period}   onPeriodChange={setPeriod}
         />
 
         {/* ── Page header ── */}
@@ -93,12 +99,12 @@ export default function JobPostsPage() {
           </button>
         </div>
 
-        {/* ── Stats row ── */}
+        {/* ── Stats row — uses real data from backend ── */}
         <StatsRow
-          totalPosts={totalPosts}
-          active={activePosts}
-          applications={applications}
-          closed={closedPosts}
+          totalPosts={stats.total}
+          active={stats.active}
+          applications={0}      // Applications module එක later add කරන්න
+          closed={stats.closed}
         />
       </div>
 
@@ -107,6 +113,10 @@ export default function JobPostsPage() {
         {loading ? (
           <div className="p-12 text-sm text-center text-gray-400 bg-white border border-gray-100 rounded-2xl">
             Loading...
+          </div>
+        ) : error ? (
+          <div className="p-12 text-sm text-center text-red-400 bg-white border border-red-100 rounded-2xl">
+            {error}
           </div>
         ) : (
           <JobPostsTable posts={filtered} onEdit={handleEdit} />
