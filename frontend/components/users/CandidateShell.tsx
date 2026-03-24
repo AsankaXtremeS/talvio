@@ -7,6 +7,7 @@ import {
   Cog,
   FileText,
   LayoutDashboard,
+  Loader2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -15,6 +16,7 @@ import {
 import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/lib/auth.service";
+import { setRedirectToast } from "@/lib/postRedirectToast";
 
 interface CandidateShellProps {
   children: React.ReactNode;
@@ -25,6 +27,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const router = useRouter();
   const { user, setUser, setAccessToken } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
 
@@ -53,12 +56,17 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const isActive = (href: string) => pathname.startsWith(href);
 
   const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
     try {
       await authService.logout();
     } finally {
+      localStorage.removeItem("accessToken");
       setUser(null);
       setAccessToken(null);
-      router.push("/login");
+      setRedirectToast({ message: "Signed out successfully", tone: "success" });
+      router.replace("/login");
     }
   };
 
@@ -158,11 +166,16 @@ export default function CandidateShell({ children }: CandidateShellProps) {
           <div className="mb-2">
             <button
               onClick={handleSignOut}
+              disabled={isSigningOut}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors duration-150 justify-center"
             >
               <span className="flex items-center justify-center w-full gap-2">
-                <LogOut size={16} className="shrink-0" />
-                {!collapsed && <span>Sign Out</span>}
+                {isSigningOut ? (
+                  <Loader2 size={16} className="shrink-0 animate-spin" />
+                ) : (
+                  <LogOut size={16} className="shrink-0" />
+                )}
+                {!collapsed && <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>}
               </span>
             </button>
           </div>

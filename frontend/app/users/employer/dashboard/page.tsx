@@ -37,7 +37,7 @@ export default function DashboardPage() {
             Post New Job
           </button>
         </div>
-        <div className="sticky top-[88px] z-20 bg-[#E9F3FD] pb-2">
+        <div className="sticky top-22 z-20 bg-[#E9F3FD] pb-2">
           <StatsRow />
         </div>
       </div>

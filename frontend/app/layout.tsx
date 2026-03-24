@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Roboto } from "next/font/google"
 import "./globals.css"
 import PageTransition from "@/components/layout/PageTransition"
+import GlobalRedirectToast from "@/components/layout/GlobalRedirectToast"
 import { AuthProvider } from "@/context/AuthContext"
 
 const roboto = Roboto({
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={roboto.className}>
         <AuthProvider>
+          <GlobalRedirectToast />
           <PageTransition>
             {children}
           </PageTransition>
