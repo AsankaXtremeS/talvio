@@ -70,7 +70,22 @@ export const authRepository = {
   getPendingEmployers() {
     return prisma.user.findMany({
       where: { role: 'EMPLOYER', employerProfile: { verificationStatus: 'PENDING' } },
-      include: { employerProfile: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        employerProfile: {
+          select: {
+            companyName: true,
+            registrationFileUrl: true,
+            registrationFileName: true,
+            verificationStatus: true,
+            rejectionReason: true,
+            createdAt: true,
+          },
+        },
+      },
     });
   },
 
@@ -87,7 +102,21 @@ export const authRepository = {
         employerProfile: { verificationStatus: statusMap[status] },
       },
       orderBy: { createdAt: "desc" },
-      include: { employerProfile: true },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        employerProfile: {
+          select: {
+            companyName: true,
+            registrationFileUrl: true,
+            registrationFileName: true,
+            verificationStatus: true,
+            rejectionReason: true,
+            createdAt: true,
+          },
+        },
+      },
     });
   },
 

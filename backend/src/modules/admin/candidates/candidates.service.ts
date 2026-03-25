@@ -29,6 +29,15 @@ export interface CandidateListResponse {
   };
 }
 
+export interface CandidateStatsDTO {
+  lookingForInternships: number;
+  lookingForJobs: number;
+  internshipApplyingRate: number;
+  internshipHiringRate: number;
+  jobApplyingRate: number;
+  jobHiringRate: number;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toFullName(firstName: string | null, lastName: string | null): string {
@@ -57,6 +66,20 @@ function toDTO(user: any): CandidateDTO {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const candidatesService = {
+
+  async getCandidateStats(): Promise<CandidateStatsDTO> {
+    const { undergraduates, professionals } = await candidatesRepository.getStats();
+    const total = undergraduates + professionals;
+
+    return {
+      lookingForInternships: undergraduates,
+      lookingForJobs: professionals,
+      internshipApplyingRate: total === 0 ? 0 : Math.round((undergraduates / total) * 100),
+      internshipHiringRate: 0,
+      jobApplyingRate: total === 0 ? 0 : Math.round((professionals / total) * 100),
+      jobHiringRate: 0,
+    };
+  },
 
   async getCandidates(options: GetCandidatesOptions): Promise<CandidateListResponse> {
     const page = Math.max(1, options.page ?? 1);

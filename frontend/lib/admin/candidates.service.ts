@@ -90,23 +90,9 @@ const fetchCandidates = async (query?: CandidateQuery): Promise<CandidateApiResp
 
 export const candidatesService = {
 	async getStats(): Promise<CandidateStats> {
-		const allCandidates = await this.getCandidates({ page: 1, limit: 1000, role: 'all' });
-
-		const internshipSeekers = allCandidates.filter((candidate) => candidate.type === 'Undergraduate').length;
-		const jobSeekers = allCandidates.filter((candidate) => candidate.type === 'Professional').length;
-		const total = internshipSeekers + jobSeekers;
-
-		const internshipApplyingRate = total === 0 ? 0 : Math.round((internshipSeekers / total) * 100);
-		const jobApplyingRate = total === 0 ? 0 : Math.round((jobSeekers / total) * 100);
-
-		return {
-			lookingForInternships: internshipSeekers,
-			lookingForJobs: jobSeekers,
-			internshipApplyingRate,
-			internshipHiringRate: 0,
-			jobApplyingRate,
-			jobHiringRate: 0,
-		};
+		return apiClient<CandidateStats>('/api/admin/candidates/stats', {
+			method: 'GET',
+		});
 	},
 
 	async getCandidates(filters?: CandidateQuery): Promise<Candidate[]> {
