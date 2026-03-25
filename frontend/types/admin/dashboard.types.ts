@@ -45,3 +45,11 @@ export interface ApplicationStats {
 	hiredGrowth: number;
 	scheduledGrowth: number;
 }
+
+export interface DashboardOverview {
+	stats: DashboardStats;
+	userGrowth: UserGrowthDataPoint[];
+	candidatesCompaniesActivity: CandidatesCompaniesActivityDataPoint[];
+	recentCandidates: RecentCandidate[];
+	applicationStats: ApplicationStats;
+}

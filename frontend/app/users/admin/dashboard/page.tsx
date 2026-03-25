@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, CalendarDays, Users, Building2, GraduationCap, Briefcase, Clock3 } from 'lucide-react';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import StatsCard from '@/components/admin/dashboard/StatsCard';
@@ -6,16 +9,46 @@ import { CandidatesCompaniesActivityChart } from '@/components/admin/dashboard/C
 import RecentCandidatesWidget from '@/components/admin/dashboard/RecentCandidatesWidget';
 import DashboardPeriodDropdown from '@/components/admin/dashboard/DashboardPeriodDropdown';
 import { dashboardService } from '@/lib/admin/dashboard.service';
+import type { DashboardOverview } from '@/types/admin/dashboard.types';
 
-export default async function DashboardPage() {
-  const [stats, userGrowth, candidatesCompaniesActivity, recentCandidates, appStats] =
-    await Promise.all([
-      dashboardService.getStats(),
-      dashboardService.getUserGrowth(),
-      dashboardService.getCandidatesCompaniesActivity(),
-      dashboardService.getRecentCandidates(),
-      dashboardService.getApplicationStats(),
-    ]);
+export default function DashboardPage() {
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const response = await dashboardService.getOverview();
+        setOverview(response);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+          return;
+        }
+        setError('Failed to load dashboard data.');
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  if (error) {
+    return (
+      <div className="flex min-h-full items-center justify-center px-6 py-10">
+        <p className="text-sm text-red-600">{error}</p>
+      </div>
+    );
+  }
+
+  if (!overview) {
+    return (
+      <div className="flex min-h-full items-center justify-center px-6 py-10">
+        <p className="text-sm text-gray-500">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  const { stats, userGrowth, candidatesCompaniesActivity, recentCandidates, applicationStats: appStats } = overview;
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
