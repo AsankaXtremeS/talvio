@@ -70,6 +70,9 @@ export async function apiClient<T>(
         error.response?.data?.message || error.message || 'Request failed';
       throw new Error(errorMessage);
     } else {
+      if (error instanceof Error) {
+        throw new Error(error.message || 'An unexpected error occurred');
+      }
       throw new Error('An unexpected error occurred');
     }
   }

@@ -12,6 +12,18 @@ export interface GetCandidatesOptions {
 
 export const candidatesRepository = {
 
+  async getStats() {
+    const [undergraduates, professionals] = await Promise.all([
+      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.user.count({ where: { role: "PROFESSIONAL" } }),
+    ]);
+
+    return {
+      undergraduates,
+      professionals,
+    };
+  },
+
   async findAll(options: GetCandidatesOptions = {}) {
     const { search, role, page = 1, limit = 20 } = options;
     const skip = (page - 1) * limit;

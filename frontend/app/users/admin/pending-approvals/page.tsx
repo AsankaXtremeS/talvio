@@ -70,6 +70,7 @@ export default function PendingApprovalsPage() {
           createdAt: employer.createdAt,
           status: statusFilter,
           companyLogoUrl: undefined,
+            registrationFileUrl: employer.employerProfile.registrationFileUrl,
             rejectionReason: employer.employerProfile.rejectionReason ?? null,
           }))
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -98,21 +99,16 @@ export default function PendingApprovalsPage() {
 
   // ── View Business Registration ──
   const handleViewBR = useCallback(async (id: string) => {
-    try {
-      const employers = await authService.getEmployers(statusFilter);
-      const employer = employers.find((e) => e.id === id);
-      const fileUrl = employer?.employerProfile.registrationFileUrl;
+    const approval = approvals.find((entry) => entry.id === id);
+    const fileUrl = approval?.registrationFileUrl;
 
-      if (!fileUrl) {
-        setError("Business registration document not found.");
-        return;
-      }
-
-      window.open(fileUrl, "_blank");
-    } catch {
-      console.error("Could not fetch business registration document.");
+    if (!fileUrl) {
+      setError("Business registration document not found.");
+      return;
     }
-  }, [statusFilter]);
+
+    window.open(fileUrl, "_blank");
+  }, [approvals]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

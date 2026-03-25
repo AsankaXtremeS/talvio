@@ -42,6 +42,13 @@ export interface DashboardOverviewDTO {
   applicationStats: ApplicationStatsDTO;
 }
 
+const DASHBOARD_CACHE_TTL_MS = 30 * 1000;
+
+let dashboardOverviewCache: {
+  value: DashboardOverviewDTO;
+  expiresAt: number;
+} | null = null;
+
 const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "short" });
 
 const toMonthLabel = (date: Date): string => monthFormatter.format(date);
@@ -64,6 +71,10 @@ const growthPercent = (current: number, previous: number): number => {
 
 export const dashboardService = {
   async getOverview(): Promise<DashboardOverviewDTO> {
+    if (dashboardOverviewCache && dashboardOverviewCache.expiresAt > Date.now()) {
+      return dashboardOverviewCache.value;
+    }
+
     const [
       userRoleCounts,
       companyCounts,
@@ -80,7 +91,7 @@ export const dashboardService = {
       dashboardRepository.getCurrentAndPreviousMonthCounts(),
     ]);
 
-    return {
+    const overview: DashboardOverviewDTO = {
       stats: {
         totalUsers: userRoleCounts.totalUsers,
         totalCompanies: companyCounts.totalCompanies,
@@ -111,5 +122,12 @@ export const dashboardService = {
         scheduledGrowth: growthPercent(monthlyCounts.scheduled.current, monthlyCounts.scheduled.previous),
       },
     };
+
+    dashboardOverviewCache = {
+      value: overview,
+      expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+    };
+
+    return overview;
   },
 };
