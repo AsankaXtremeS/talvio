@@ -55,6 +55,8 @@ export const validateLogin = (data: any) => {
     throw new Error("Email and password required");
   }
 
+  data.email = String(data.email).trim().toLowerCase();
+
   if (!validator.isEmail(data.email)) {
     throw new Error("Invalid email format");
   }
