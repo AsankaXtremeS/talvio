@@ -22,10 +22,13 @@ export const authenticate = (
       const decoded = verifyAccessToken(token);
       req.user = decoded;
       return next();
-    } catch {
+    } catch (err) {
+      // Log token verification errors for debugging
+      console.error(`Token verification failed:`, (err as Error).message);
       // Try next token candidate.
     }
   }
 
+  console.error(`All token verification attempts failed. Bearer: ${!!bearerToken}, Cookie: ${!!cookieToken}`);
   return res.status(401).json({ message: "Invalid token" });
 };

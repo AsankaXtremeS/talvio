@@ -103,7 +103,7 @@ export default function FilterBar({
         />
       </div>
 
-      <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Draft", "Active", "Closed"]} />
+      <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Active", "Close"]} />
       <Dropdown value={jobRole} onChange={onJobRoleChange} options={["Job Role", "Engineering", "Design", "Marketing", "Management"]} />
       <Dropdown value={sort}    onChange={onSortChange}    options={["Newest", "Oldest"]} />
       <Dropdown value={period}  onChange={onPeriodChange}  options={["This Week", "This Month", "All Time"]} />

@@ -26,8 +26,43 @@ import {
  * Defaults to 500 for unexpected errors.
  */
 const resolveStatusCode = (err: any): number => {
+  if (isDbUnavailableError(err)) return 503;
   if (typeof err?.statusCode === "number") return err.statusCode;
   return 500;
+};
+
+const isDbUnavailableError = (err: any): boolean => {
+  const message = typeof err?.message === "string" ? err.message.toLowerCase() : "";
+  const name = typeof err?.name === "string" ? err.name : "";
+
+  return (
+    name === "PrismaClientInitializationError" ||
+    name === "PrismaClientKnownRequestError" ||
+    message.includes("can't reach database server") ||
+    message.includes("database") ||
+    message.includes("p1001")
+  );
+};
+
+const getPublicErrorMessage = (err: any, fallback: string): string => {
+  if (isDbUnavailableError(err)) {
+    return "Service temporarily unavailable. Please try again in a moment.";
+  }
+
+  if (typeof err?.message === "string" && err.message.trim()) {
+    return err.message;
+  }
+
+  return fallback;
+};
+
+const logControllerError = (scope: string, err: any): void => {
+  if (isDbUnavailableError(err)) {
+    console.error(`${scope} error: database unavailable`);
+    return;
+  }
+
+  console.error(`${scope} error:`, err);
 };
 
 /**
@@ -39,6 +74,10 @@ const getUserId = (req: any): string | null => {
   return req.user?.id ?? req.user?.userId ?? null;
 };
 
+const isUuid = (value: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+};
+
 
 // ─── GET /api/employer/job-posts/stats ────────────────────────────────────────
 //
@@ -46,17 +85,23 @@ const getUserId = (req: any): string | null => {
 // Used to populate the stats cards at the top of the Job Posts page.
 //
 // Response: { total, active, draft, closed }
+// IMPORTANT: Stats are calculated by counting job posts in each status.
+// This helps employers quickly see how many posts in each state they have.
 
 export const getJobPostStats = async (req: Request, res: Response) => {
   try {
+    // Extract user ID from JWT payload (set by authenticate middleware)
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    // Delegate to service layer for business logic
     const stats = await jobsService.getStats(userId);
     res.json(stats);
   } catch (err: any) {
-    console.error("getJobPostStats error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to fetch stats." });
+    logControllerError("getJobPostStats", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to fetch stats."),
+    });
   }
 };
 
@@ -73,13 +118,16 @@ export const getJobPostStats = async (req: Request, res: Response) => {
 //   limit   - optional: records per page (default: 20)
 //
 // Response: { data: JobPostDTO[], pagination: { total, page, limit, totalPages } }
+// IMPORTANT: Only returns posts owned by the requesting employer.
+// Pagination prevents loading too many records at once.
 
 export const getJobPosts = async (req: Request, res: Response) => {
   try {
+    // Verify user is authenticated
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // Validate and parse query parameters using Zod
+    // Validate and parse query parameters using Zod schema for type safety
     const queryResult = jobPostQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -88,11 +136,14 @@ export const getJobPosts = async (req: Request, res: Response) => {
       });
     }
 
+    // Call service to fetch filtered, paginated results
     const result = await jobsService.getJobPosts(userId, queryResult.data);
     res.json(result);
   } catch (err: any) {
-    console.error("getJobPosts error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to fetch job posts." });
+    logControllerError("getJobPosts", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to fetch job posts."),
+    });
   }
 };
 
@@ -107,21 +158,27 @@ export const getJobPosts = async (req: Request, res: Response) => {
 //
 // Response: JobPostDTO
 // Errors:   404 if not found or not owned by this employer
+// IMPORTANT: Ownership check prevents employers from accessing other's posts.
 
 export const getJobPostById = async (req: Request, res: Response) => {
   try {
+    // Verify user is authenticated
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    // Extract post ID from URL parameter
     const postIdParam = req.params.id;
     const postId = Array.isArray(postIdParam) ? postIdParam[0] : postIdParam;
     if (!postId) return res.status(400).json({ message: "Job post ID is required" });
 
+    // Service validates ownership before returning
     const post = await jobsService.getJobPostById(userId, postId);
     res.json(post);
   } catch (err: any) {
-    console.error("getJobPostById error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to fetch job post." });
+    logControllerError("getJobPostById", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to fetch job post."),
+    });
   }
 };
 
@@ -132,23 +189,25 @@ export const getJobPostById = async (req: Request, res: Response) => {
 //
 // Request body (JSON):
 //   title*       - string
-//   department*  - string
 //   type*        - "JOB" | "INTERNSHIP"
 //   description  - string (optional)
 //   requirements - string (optional)
 //   location     - string (optional)
-//   closedDate   - ISO date string (optional)
+//   closingDate  - ISO date string (optional)
 //   status       - "DRAFT" | "ACTIVE" (optional, default: "DRAFT")
 //
 // Response: 201 + JobPostDTO
 // Errors:   400 if validation fails | 403 if not approved employer
+// IMPORTANT: Only approved employers can create job posts.
+// New posts start as DRAFT and can be activated later.
 
 export const createJobPost = async (req: Request, res: Response) => {
   try {
+    // Verify user is authenticated
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // Validate request body with Zod schema
+    // Validate request body with Zod schema — ensures type safety
     const bodyResult = createJobPostSchema.safeParse(req.body);
     if (!bodyResult.success) {
       return res.status(400).json({
@@ -158,12 +217,15 @@ export const createJobPost = async (req: Request, res: Response) => {
       });
     }
 
+    // Service creates the post and checks employer approval status
     const post = await jobsService.createJobPost(userId, bodyResult.data);
     // 201 Created — standard HTTP status for successful resource creation
     res.status(201).json(post);
   } catch (err: any) {
-    console.error("createJobPost error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to create job post." });
+    logControllerError("createJobPost", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to create job post."),
+    });
   }
 };
 
@@ -180,12 +242,16 @@ export const createJobPost = async (req: Request, res: Response) => {
 //
 // Response: updated JobPostDTO
 // Errors:   400 validation | 403 not approved | 404 not found / not owned
+// IMPORTANT: Only the owner (employer who created it) can update it.
+// Uses PATCH (not PUT), so only changed fields need to be sent.
 
 export const updateJobPost = async (req: Request, res: Response) => {
   try {
+    // Verify user is authenticated
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    // Extract post ID from URL parameter
     const postIdParam = req.params.id;
     const postId = Array.isArray(postIdParam) ? postIdParam[0] : postIdParam;
     if (!postId) return res.status(400).json({ message: "Job post ID is required" });
@@ -199,11 +265,14 @@ export const updateJobPost = async (req: Request, res: Response) => {
       });
     }
 
+    // Service updates post and checks ownership
     const updated = await jobsService.updateJobPost(userId, postId, bodyResult.data);
     res.json(updated);
   } catch (err: any) {
-    console.error("updateJobPost error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to update job post." });
+    logControllerError("updateJobPost", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to update job post."),
+    });
   }
 };
 
@@ -218,20 +287,27 @@ export const updateJobPost = async (req: Request, res: Response) => {
 //
 // Response: { message: "Job post deleted successfully." }
 // Errors:   403 not approved | 404 not found / not owned
+// IMPORTANT: This is a permanent operation — deleted posts cannot be recovered.
 
 export const deleteJobPost = async (req: Request, res: Response) => {
   try {
+    // Verify user is authenticated
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    // Extract and validate post ID from URL parameter
     const postIdParam = req.params.id;
     const postId = Array.isArray(postIdParam) ? postIdParam[0] : postIdParam;
     if (!postId) return res.status(400).json({ message: "Job post ID is required" });
+    if (!isUuid(postId)) return res.status(400).json({ message: "Invalid job post ID format" });
 
+    // Service deletes post after ownership verification
     await jobsService.deleteJobPost(userId, postId);
     res.json({ message: "Job post deleted successfully." });
   } catch (err: any) {
-    console.error("deleteJobPost error:", err);
-    res.status(resolveStatusCode(err)).json({ message: err.message || "Failed to delete job post." });
+    logControllerError("deleteJobPost", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to delete job post."),
+    });
   }
 };

@@ -10,9 +10,8 @@ export type JobType = "Job" | "Internship";
 export interface JobPost {
   id: string;
   title: string;
-  department: string;
   type: JobType;
-  closedDate: string;         // Formatted date string e.g. "Apr 26, 2024"
+  closingDate: string;        // Date input value e.g. "2026-03-30"
   status: JobStatus;
   location?: string;
   description?: string;
@@ -23,6 +22,8 @@ export interface JobPost {
   salaryMax?: number;
   workMode?: "On site" | "Remote" | "Hybrid";
   employmentType?: "Full-time" | "Part-time" | "Contract";
+  additionalInformation?: string;
+  skills?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -32,14 +33,15 @@ export interface JobPost {
 
 export interface JobPostFormData {
   title: string;
-  department: string;
   type: JobType;
-  closedDate: string;
+  closingDate: string;
   location: string;
   salaryMin: string;
   salaryMax: string;
   description: string;
   requirements: string;
+  additionalInformation: string;
+  skills: string;
   workMode: "On site" | "Remote" | "Hybrid";
   employmentType: "Full-time" | "Part-time" | "Contract";
   status: JobStatus;

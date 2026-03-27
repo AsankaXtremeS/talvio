@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getCandidates } from "@/lib/employer/candidates.service";
 import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
 
 interface Props {
-  params: { postId: string };
+  params: Promise<{ postId: string }>;
 }
 
 export default function PostCandidatesPage({ params }: Props) {
+  const { postId } = use(params);
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
@@ -52,7 +53,7 @@ export default function PostCandidatesPage({ params }: Props) {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Candidates for Post — {params.postId}</h1>
+      <h1 className="text-2xl font-bold">Candidates for Post — {postId}</h1>
       <CandidateFilterBar
         status={status}
         onStatusChange={setStatus}

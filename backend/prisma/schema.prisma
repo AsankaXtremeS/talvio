@@ -102,11 +102,10 @@ model JobPost {
   id           String      @id @default(uuid())  // - Identity
   // - Job Details
   title        String
-  department   String
   type         JobType
   description  String?
   requirements String?
-  closedDate   DateTime?
+  closingDate  DateTime?
   status       PostStatus  @default(DRAFT)
   employerId   String
   employer     EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)

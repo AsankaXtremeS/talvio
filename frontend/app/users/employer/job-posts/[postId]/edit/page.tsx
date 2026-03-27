@@ -57,15 +57,16 @@ export default function EditJobPostPage() {
         postId={post.id}
         initialData={{
           title:          post.title,
-          department:     post.department,
           type:           post.type,
-          closedDate:     post.closedDate,
+          closingDate:    post.closingDate,
           status:         post.status,
           location:       post.location ?? "",
           salaryMin:      post.salaryMin?.toString() ?? "",
           salaryMax:      post.salaryMax?.toString() ?? "",
           description:    post.description ?? "",
           requirements:   post.requirements ?? "",
+          additionalInformation: post.additionalInformation ?? "",
+          skills:         (post.skills ?? []).join(", "),
           workMode:       post.workMode ?? "On site",
           employmentType: post.employmentType ?? "Full-time",
         }}

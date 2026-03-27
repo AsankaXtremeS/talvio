@@ -1,5 +1,17 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
+const isAuthEndpoint = (endpoint: string): boolean => endpoint.startsWith('/api/auth/');
+
+const getLoginPathForCurrentRoute = (): string => {
+  if (typeof window === 'undefined') return '/login';
+  const pathname = window.location.pathname;
+  if (pathname.startsWith('/users/employer')) return '/login/employer';
+  if (pathname.startsWith('/users/admin')) return '/login/admin';
+  if (pathname.startsWith('/users/professional')) return '/login/professional';
+  if (pathname.startsWith('/users/undergraduate')) return '/login/undergraduate';
+  return '/login';
+};
+
 export async function apiClient<T>(
   endpoint: string,
   options: AxiosRequestConfig = {}
@@ -18,7 +30,7 @@ export async function apiClient<T>(
     return res.data; // Axios automatically parses JSON responses
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
+      if (error.response?.status === 401 && !isAuthEndpoint(endpoint)) {
         try {
           // Attempt to refresh the token
           const refreshRes = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
@@ -36,7 +48,13 @@ export async function apiClient<T>(
             return retryRes.data;
           }
         } catch {
-          window.location.href = '/login';
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            const isAlreadyOnLogin = currentPath === '/login' || currentPath.startsWith('/login/');
+            if (!isAlreadyOnLogin) {
+              window.location.href = getLoginPathForCurrentRoute();
+            }
+          }
           throw new Error('Session expired');
         }
       }

@@ -5,10 +5,15 @@ const PROTECTED_PREFIXES = ["/users"];
 const isProtectedPath = (pathname: string) =>
   PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  // Employer dashboard uses client-side token bootstrap. Avoid cookie-only redirect loops.
+  if (pathname === "/users/employer" || pathname.startsWith("/users/employer/")) {
     return NextResponse.next();
   }
 

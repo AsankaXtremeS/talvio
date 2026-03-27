@@ -10,8 +10,8 @@ const prisma = new PrismaClient();
 async function main() {
 
   // ─── Admin User ───────────────────────────────────────────────────────────
-  const adminEmail = 'admiiiiin@talvio.com';
-  const adminPassword = 'Admiiiiiiin@1234';
+  const adminEmail = 'admin@talvio.com';
+  const adminPassword = 'Admin@1234';
 
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existingAdmin) {

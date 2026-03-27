@@ -21,13 +21,6 @@ export const createJobPostSchema = z.object({
     .max(150, "Job title cannot exceed 150 characters")
     .trim(),
 
-  // department must be a non-empty string, max 100 chars
-  department: z
-    .string()
-    .min(1, "Department cannot be empty")
-    .max(100, "Department cannot exceed 100 characters")
-    .trim(),
-
   // type must be exactly "JOB" or "INTERNSHIP" — no other values accepted
   type: z.enum(["JOB", "INTERNSHIP"]),
 
@@ -45,11 +38,11 @@ export const createJobPostSchema = z.object({
     .trim()
     .optional(),
 
-  // closedDate must be a valid ISO date string if provided
+  // closingDate must be a valid ISO date string if provided
   // We coerce it to a Date object for DB storage
-  closedDate: z
+  closingDate: z
     .string()
-    .datetime({ message: "Closed date must be a valid ISO 8601 date" })
+    .datetime({ message: "Closing date must be a valid ISO 8601 date" })
     .optional(),
 
   // status defaults to DRAFT if not provided

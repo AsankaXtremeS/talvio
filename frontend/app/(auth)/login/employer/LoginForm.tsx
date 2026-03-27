@@ -36,13 +36,28 @@ export default function LoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { user } = await authService.login(data);
+      const { user, accessToken, refreshToken } = await authService.login(data);
       if (user.role !== 'EMPLOYER') {
         setError('root', { type: 'manual', message: 'Access denied. This login is for employers only.' });
         return;
       }
       setUser(user);
-      setAccessToken("cookie-session");
+      localStorage.removeItem("token");
+
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
+        setAccessToken(accessToken);
+      } else {
+        // Fall back to cookie-based authentication
+        // (Server sets accessToken cookie during login)
+        console.warn("No accessToken in response, relying on httpOnly cookie");
+        setAccessToken(null);
+      }
+
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+
       router.push('/users/employer');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Login failed. Check your credentials.';
@@ -51,6 +66,15 @@ export default function LoginForm() {
         setPopup({
           open: true,
           message: "Your employer account is still pending admin approval. Please wait until admin verification.",
+          success: false,
+        });
+        return;
+      }
+
+      if (message.toLowerCase().includes("rejected")) {
+        setPopup({
+          open: true,
+          message,
           success: false,
         });
         return;
