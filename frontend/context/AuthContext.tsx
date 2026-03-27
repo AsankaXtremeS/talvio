@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { authService } from '@/lib/auth.service';
 
 interface AuthUser {
@@ -32,12 +33,37 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
+  const [hasHydratedSession, setHasHydratedSession] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+
+    const needsSessionHydration =
+      pathname.startsWith('/users') ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/oauth');
+
+    // Public pages do not need an immediate /me call, which removes one blocking network hop.
+    if (!needsSessionHydration) {
+      setIsHydrating(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    // Reuse existing auth state across internal route changes.
+    if (hasHydratedSession) {
+      setIsHydrating(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setIsHydrating(true);
 
     const hydrateSession = async () => {
       try {
@@ -51,7 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setAccessToken(null);
       } finally {
-        if (mounted) setIsHydrating(false);
+        if (mounted) {
+          setHasHydratedSession(true);
+          setIsHydrating(false);
+        }
       }
     };
 
@@ -60,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [hasHydratedSession, pathname]);
 
   const logout = async () => {
     await authService.logout();

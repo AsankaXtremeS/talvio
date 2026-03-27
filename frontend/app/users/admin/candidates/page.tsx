@@ -33,6 +33,7 @@ export default function CandidatesPage() {
   const [stats, setStats] = useState<CandidateStats>(defaultStats);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,15 +53,11 @@ export default function CandidatesPage() {
     setError(null);
 
     try {
-      const [nextStats, nextCandidates] = await Promise.all([
-        candidatesService.getStats(),
-        candidatesService.getCandidates({
-          search: normalizedSearch || undefined,
-          role: roleFilter,
-        }),
-      ]);
+      const nextCandidates = await candidatesService.getCandidates({
+        search: normalizedSearch || undefined,
+        role: roleFilter,
+      });
 
-      setStats(nextStats);
       setCandidates(nextCandidates);
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to load candidates.'));
@@ -68,6 +65,23 @@ export default function CandidatesPage() {
       setIsLoading(false);
     }
   }, [normalizedSearch, roleFilter]);
+
+  const loadStats = useCallback(async () => {
+    setIsStatsLoading(true);
+
+    try {
+      const nextStats = await candidatesService.getStats();
+      setStats(nextStats);
+    } catch {
+      // Keep default stats if stats endpoint fails; list can still render.
+    } finally {
+      setIsStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     void loadCandidates();
@@ -169,7 +183,7 @@ export default function CandidatesPage() {
 
         <CandidateStatsBar stats={stats} />
 
-        {isLoading ? (
+        {isLoading || isStatsLoading ? (
           <AdminLoadingCard label="Loading candidates..." />
         ) : error ? (
           <div className="rounded-2xl border border-red-100 bg-white p-6 text-sm text-red-500">
