@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { FileText, LogOut } from "lucide-react";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
 import { createJobPost, updateJobPost } from "@/lib/employer/jobPosts.service";
 import JobPostedSuccessfully from "./JobPostedSuccessfully";
@@ -15,14 +15,15 @@ interface JobPostFormProps {
 
 const EMPTY: JobPostFormData = {
   title: "",
-  department: "",
   type: "Job",
-  closedDate: "",
+  closingDate: "",
   location: "",
   salaryMin: "",
   salaryMax: "",
   description: "",
   requirements: "",
+  additionalInformation: "",
+  skills: "",
   workMode: "On site",
   employmentType: "Full-time",
   status: "Draft",
@@ -35,6 +36,7 @@ const textareaCls =
   "w-full resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] text-gray-700 outline-none focus:border-indigo-500";
 
 const labelCls = "mb-2 block text-[15px] font-semibold text-gray-800";
+const PREVIEW_STORAGE_KEY = "employerJobPostPreviewDraft";
 
 export default function JobPostForm({
   initialData,
@@ -49,10 +51,24 @@ export default function JobPostForm({
   });
 
   const [loading, setLoading] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
   const isEdit = Boolean(postId);
+
+  useEffect(() => {
+    if (isEdit) return;
+
+    const raw = sessionStorage.getItem(PREVIEW_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as JobPostFormData;
+      setForm((prev) => ({ ...prev, ...parsed }));
+    } catch {
+      // Ignore invalid stored data and keep default form values.
+    }
+  }, [isEdit]);
 
   const setField = (key: keyof JobPostFormData, value: string) => {
     setForm((prev) => ({
@@ -66,6 +82,15 @@ export default function JobPostForm({
 
     if (!form.title || !form.location || !form.description) {
       setError("Please fill in the required fields before posting.");
+      return;
+    }
+
+    if (!isEdit) {
+      sessionStorage.setItem(
+        PREVIEW_STORAGE_KEY,
+        JSON.stringify(form)
+      );
+      router.push("/users/employer/job-posts/preview");
       return;
     }
 
@@ -93,6 +118,29 @@ export default function JobPostForm({
     }
   };
 
+  const handleMakeDraft = async () => {
+    if (isEdit) return;
+
+    setError("");
+    setDraftLoading(true);
+
+    try {
+      const payload: JobPostFormData = {
+        ...form,
+        status: "Draft",
+      };
+
+      await createJobPost(payload);
+      sessionStorage.removeItem(PREVIEW_STORAGE_KEY);
+      router.push("/users/employer/job-posts");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save draft. Please try again.");
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="h-full overflow-y-auto rounded-2xl bg-white px-12 py-10 shadow-sm">
@@ -113,7 +161,7 @@ export default function JobPostForm({
 
         <div className="space-y-5 pb-2">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
-            <div className="md:col-span-8">
+            <div className="md:col-span-4">
               <label className={labelCls}>Job Title</label>
               <input
                 className={inputCls}
@@ -136,6 +184,26 @@ export default function JobPostForm({
               >
                 <option value="Job">Job</option>
                 <option value="Internship">Internship</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-4">
+              <label className="mb-2 block text-[15px] font-semibold text-transparent">
+                Employment Type
+              </label>
+              <select
+                className={inputCls}
+                value={form.employmentType}
+                onChange={(e) =>
+                  setField(
+                    "employmentType",
+                    e.target.value as JobPostFormData["employmentType"]
+                  )
+                }
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
               </select>
             </div>
           </div>
@@ -173,7 +241,7 @@ export default function JobPostForm({
           <div>
             <label className={labelCls}>Job Description</label>
             <textarea
-              className={`${textareaCls} min-h-[120px]`}
+              className={`${textareaCls} min-h-30`}
               placeholder="Describe the role, team and what the candidate will be doing..."
               value={form.description}
               onChange={(e) => setField("description", e.target.value)}
@@ -181,22 +249,22 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Responsibilities</label>
+            <label className={labelCls}>Qualifications</label>
             <textarea
-              className={`${textareaCls} min-h-[100px]`}
-              placeholder="List the main responsibilities..."
-              value={form.department}
-              onChange={(e) => setField("department", e.target.value)}
+              className={`${textareaCls} min-h-25`}
+              placeholder="List required experience and education..."
+              value={form.requirements}
+              onChange={(e) => setField("requirements", e.target.value)}
             />
           </div>
 
           <div>
-            <label className={labelCls}>Qualifications</label>
+            <label className={labelCls}>Additional Information</label>
             <textarea
-              className={`${textareaCls} min-h-[100px]`}
-              placeholder="List required experience and education..."
-              value={form.requirements}
-              onChange={(e) => setField("requirements", e.target.value)}
+              className={`${textareaCls} min-h-25`}
+              placeholder="Add any extra details candidates should know..."
+              value={form.additionalInformation}
+              onChange={(e) => setField("additionalInformation", e.target.value)}
             />
           </div>
 
@@ -205,39 +273,40 @@ export default function JobPostForm({
             <input
               className={inputCls}
               placeholder="Add skills (e.g. React, Python)"
-              value={form.employmentType}
-              onChange={(e) => setField("employmentType", e.target.value)}
+              value={form.skills}
+              onChange={(e) => setField("skills", e.target.value)}
             />
           </div>
 
           <div className="max-w-md">
-            <label className={labelCls}>Salary Range</label>
+            <label className={labelCls}>Closing Date</label>
             <input
+              type="date"
               className={inputCls}
-              placeholder="Minimum - Maximum"
-              value={
-                form.salaryMin || form.salaryMax
-                  ? `${form.salaryMin}${
-                      form.salaryMin || form.salaryMax ? " - " : ""
-                    }${form.salaryMax}`
-                  : ""
-              }
-              onChange={(e) => {
-                const parts = e.target.value.split("-");
-                setField("salaryMin", parts[0]?.trim() || "");
-                setField("salaryMax", parts[1]?.trim() || "");
-              }}
+              value={form.closingDate}
+              onChange={(e) => setField("closingDate", e.target.value)}
             />
           </div>
+          <div className="flex items-center justify-end gap-3 pt-3">
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={handleMakeDraft}
+                disabled={draftLoading || loading}
+                className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FileText size={16} />
+                {draftLoading ? "Saving Draft..." : "Make as Draft"}
+              </button>
+            )}
 
-          <div className="flex justify-end pt-3">
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading}
-              className="flex min-w-[235px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              disabled={loading || draftLoading}
+              className="flex min-w-[220px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
             >
-              {loading ? "Posting..." : isEdit ? "Update" : "Post"}
+              {loading ? "Posting..." : isEdit ? "Update" : "Preview"}
               <LogOut size={16} />
             </button>
           </div>

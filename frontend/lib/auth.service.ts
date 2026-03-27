@@ -61,7 +61,7 @@ export const authService = {
     `/api/auth/oauth/${provider}?role=${role}`,
 
   login: (data: { email: string; password: string }) =>
-    apiClient<{ user: SessionUser }>('/api/auth/login', {
+    apiClient<{ user: SessionUser; accessToken?: string; refreshToken?: string }>('/api/auth/login', {
       method: 'POST',
       data,
     }),
