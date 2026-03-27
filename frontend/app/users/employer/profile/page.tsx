@@ -1,5 +1,14 @@
 import Image from "next/image";
-import { Briefcase, Building2, CalendarDays, Globe, Users } from "lucide-react";
+import Link from "next/link";
+import {
+  Briefcase,
+  Building2,
+  CalendarDays,
+  ExternalLink,
+  Globe,
+  Pencil,
+  Users,
+} from "lucide-react";
 import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 
 export default function EmployerProfilePage() {
@@ -27,13 +36,23 @@ export default function EmployerProfilePage() {
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button className="rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95">
+                  <Link
+                    href="/users/employer/profile/edit"
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                  >
+                    <Pencil className="h-4 w-4" />
                     Edit Page
-                  </button>
+                  </Link>
 
-                  <button className="rounded-xl border border-[#3b82f6] bg-white px-6 py-3 text-sm font-semibold text-[#2563eb] transition hover:bg-blue-50">
+                  <a
+                    href="https://rackspace.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-xl border border-[#3b82f6] bg-white px-6 py-3 text-sm font-semibold text-[#2563eb] transition hover:bg-blue-50"
+                  >
+                    <ExternalLink className="h-4 w-4" />
                     Visit us
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -236,7 +255,6 @@ export default function EmployerProfilePage() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

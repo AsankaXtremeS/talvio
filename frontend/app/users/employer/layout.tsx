@@ -8,11 +8,16 @@ import {
   Users,
   Briefcase,
   SquareUser,
+  Loader2,
   LogOut,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import RoleGate from "@/components/auth/RoleGate";
+import { useAuth } from "@/context/AuthContext";
+import { authService } from "@/lib/auth.service";
+import { setRedirectToast } from "@/lib/postRedirectToast";
 
 // -------------------------------------------------
 // Types
@@ -67,10 +72,12 @@ export default function EmployerLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
-      <Sidebar />
-      <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
-    </div>
+    <RoleGate allowedRoles={["EMPLOYER"]}>
+      <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
+        <Sidebar />
+        <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
+      </div>
+    </RoleGate>
   );
 }
 
@@ -84,22 +91,38 @@ function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, setUser, setAccessToken } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const resolvedCompanyName = user?.employerProfile?.companyName || companyName;
+  const resolvedRoleLabel = user?.email ? `Employer · ${user.email}` : companyRole;
+  const resolvedInitial = resolvedCompanyName.slice(0, 1).toUpperCase() || companyInitial;
 
   // Active link detection
   const isActive = (href: string) => pathname.startsWith(href);
 
-  const handleSignOut = () => {
-    // TODO: call auth.service.ts signOut() then redirect
-    router.push("/login");
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    try {
+      await authService.logout();
+    } finally {
+      localStorage.removeItem("accessToken");
+      setUser(null);
+      setAccessToken(null);
+      setRedirectToast({ message: "Signed out successfully", tone: "success" });
+      router.replace("/login/employer");
+    }
   };
 
   return (
     <aside
       className={`
         relative flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100
-        transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden
-        ${collapsed ? "w-[72px]" : "w-[240px]"}
+        transition-all duration-300 ease-in-out shrink-0 overflow-hidden
+        ${collapsed ? "w-18" : "w-60"}
         h-full p-4
       `}
     >
@@ -139,17 +162,17 @@ function Sidebar({
           className="flex items-center min-w-0 gap-3 transition-opacity hover:opacity-75"
           title={collapsed ? "View Company Profile" : undefined}
         >
-          <div className="flex items-center justify-center flex-shrink-0 text-sm font-bold text-white bg-gray-800 rounded-lg w-9 h-9">
-            {companyInitial}
+          <div className="flex items-center justify-center shrink-0 text-sm font-bold text-white bg-gray-800 rounded-lg w-9 h-9">
+            {resolvedInitial}
           </div>
 
           {/* Name + role — hidden when collapsed */}
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">
-                {companyName}
+                {resolvedCompanyName}
               </p>
-              <p className="text-[11px] text-gray-400 truncate">{companyRole}</p>
+              <p className="text-[11px] text-gray-400 truncate">{resolvedRoleLabel}</p>
             </div>
           )}
         </Link>
@@ -158,7 +181,7 @@ function Sidebar({
         {!collapsed && (
           <Link
             href="/users/employer/profile/edit"
-            className="flex-shrink-0 text-gray-400 transition-colors hover:text-gray-700"
+            className="shrink-0 text-gray-400 transition-colors hover:text-gray-700"
             aria-label="Company settings"
           >
             <Settings size={16} />
@@ -194,7 +217,7 @@ function Sidebar({
                   title={collapsed ? item.label : undefined}
                 >
                   <span
-                    className={`flex-shrink-0 ${
+                    className={`shrink-0 ${
                       active ? "text-indigo-600" : "text-gray-400"
                     }`}
                   >
@@ -213,6 +236,7 @@ function Sidebar({
       <div className="mb-2">
         <button
           onClick={handleSignOut}
+          disabled={isSigningOut}
           className={`
             w-full flex items-center gap-3 px-3 py-3 rounded-xl
             bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold
@@ -221,8 +245,12 @@ function Sidebar({
           `}
         >
           <span className="flex items-center justify-center w-full gap-2">
-            <LogOut size={16} className="flex-shrink-0" />
-            {!collapsed && <span>Sign Out</span>}
+            {isSigningOut ? (
+              <Loader2 size={16} className="shrink-0 animate-spin" />
+            ) : (
+              <LogOut size={16} className="shrink-0" />
+            )}
+            {!collapsed && <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>}
           </span>
         </button>
       </div>

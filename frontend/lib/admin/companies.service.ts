@@ -1,4 +1,53 @@
+import { apiClient } from '@/lib/apiClient';
 import type { Company, CompanyFilters, CompanyStats, JobPost } from '@/types/admin/company.types';
+
+interface CompaniesApiItem {
+	id: string;
+	companyName: string;
+	email: string;
+	joinedAt: string;
+}
+
+interface CompaniesApiResponse {
+	data: CompaniesApiItem[];
+	pagination: {
+		total: number;
+		page: number;
+		limit: number;
+		totalPages: number;
+	};
+}
+
+const formatJoinedDate = (isoDate: string): string => {
+	const date = new Date(isoDate);
+	if (Number.isNaN(date.getTime())) return isoDate;
+
+	return date.toLocaleDateString('en-US', {
+		month: 'short',
+		day: '2-digit',
+		year: 'numeric',
+	});
+};
+
+const initialsFromName = (name: string): string => {
+	const parts = name
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean);
+
+	if (parts.length === 0) return 'CO';
+	if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+	return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+const mapCompany = (item: CompaniesApiItem): Company => ({
+	id: item.id,
+	name: item.companyName,
+	email: item.email,
+	postCount: 0,
+	joinedAt: formatJoinedDate(item.joinedAt),
+	logoText: initialsFromName(item.companyName),
+});
 
 const stats: CompanyStats = {
 	internshipPosts: 84,
@@ -6,36 +55,6 @@ const stats: CompanyStats = {
 	jobPosts: 214,
 	jobCompanies: 76,
 };
-
-const companies: Company[] = [
-	{
-		id: '1',
-		name: 'Nova Labs',
-		email: 'contact@novalabs.com',
-		postCount: 12,
-		joinedAt: 'Mar 04 2026',
-		logoColor: '#4F46E5',
-		logoText: 'NL',
-	},
-	{
-		id: '2',
-		name: 'Bright Stack',
-		email: 'team@brightstack.ai',
-		postCount: 8,
-		joinedAt: 'Feb 27 2026',
-		logoColor: '#0EA5E9',
-		logoText: 'BS',
-	},
-	{
-		id: '3',
-		name: 'Pixel Forge',
-		email: 'hello@pixelforge.io',
-		postCount: 5,
-		joinedAt: 'Feb 21 2026',
-		logoColor: '#F97316',
-		logoText: 'PF',
-	},
-];
 
 const jobPosts: JobPost[] = [
 	{
@@ -78,21 +97,34 @@ export const companiesService = {
 	},
 
 	async getCompanies(filters?: Partial<CompanyFilters>): Promise<Company[]> {
-		if (!filters?.search) {
-			return companies.map((company) => ({ ...company }));
+		const params = new URLSearchParams();
+
+		if (filters?.search?.trim()) {
+			params.set('search', filters.search.trim());
 		}
 
-		const search = filters.search.toLowerCase();
-		return companies
-			.filter(
-				(company) =>
-					company.name.toLowerCase().includes(search) || company.email.toLowerCase().includes(search),
-			)
-			.map((company) => ({ ...company }));
+		const query = params.toString();
+		const endpoint = `/api/admin/companies${query ? `?${query}` : ''}`;
+
+		const result = await apiClient<CompaniesApiResponse>(endpoint, {
+			method: 'GET',
+		});
+
+		return result.data.map(mapCompany);
+	},
+
+	async getCompanyById(id: string): Promise<Company> {
+		const item = await apiClient<CompaniesApiItem>(`/api/admin/companies/${id}`, {
+			method: 'GET',
+		});
+
+		return mapCompany(item);
 	},
 
 	async removeCompany(id: string): Promise<void> {
-		console.log('Remove company:', id);
+		await apiClient<{ message: string }>(`/api/admin/companies/${id}`, {
+			method: 'DELETE',
+		});
 	},
 
 	async getJobPosts(filters?: Partial<CompanyFilters>): Promise<JobPost[]> {

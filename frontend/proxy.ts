@@ -12,11 +12,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Employer dashboard uses client-side token bootstrap. Avoid cookie-only redirect loops.
-  if (pathname === "/users/employer" || pathname.startsWith("/users/employer/")) {
-    return NextResponse.next();
-  }
-
   const hasAccessToken = Boolean(request.cookies.get("accessToken")?.value);
   const hasRefreshToken = Boolean(request.cookies.get("refreshToken")?.value);
   const isAuthenticated = hasAccessToken || hasRefreshToken;

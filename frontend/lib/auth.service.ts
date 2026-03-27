@@ -21,6 +21,18 @@ export interface SessionUser {
   id: string;
   role: 'STUDENT' | 'PROFESSIONAL' | 'EMPLOYER' | 'ADMIN';
   email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  preferences?: {
+    locale?: string;
+    theme?: string;
+  } | null;
+  permissions?: string[];
+  employerProfile?: {
+    companyName: string;
+    verificationStatus: string;
+    rejectionReason?: string | null;
+  } | null;
 }
 
 export const authService = {
@@ -54,8 +66,27 @@ export const authService = {
       data,
     }),
 
-  logout: () =>
-    apiClient('/api/auth/logout', { method: 'POST' }),
+  me: () =>
+    apiClient<{ user: SessionUser }>('/api/auth/me', {
+      method: 'GET',
+    }),
+
+  updateMyRole: (targetRole: 'PROFESSIONAL') =>
+    apiClient<{ message: string; user: SessionUser }>('/api/auth/me/role', {
+      method: 'PATCH',
+      data: { targetRole },
+    }),
+
+  logout: async () => {
+    try {
+      await apiClient('/api/auth/logout', {
+        method: 'POST',
+        retryOnAuth: false,
+      });
+    } catch {
+      // Client state is cleared by caller; logout should stay best-effort.
+    }
+  },
 
   forgotPassword: (email: string) =>
     apiClient('/api/auth/forgot-password', {
@@ -69,23 +100,23 @@ export const authService = {
       data: { token, newPassword },
     }),
 
-  getPendingEmployers: (_accessToken?: string) =>
+  getPendingEmployers: () =>
     apiClient<PendingEmployer[]>('/api/auth/pending-employers', {
       method: 'GET',
     }),
 
-  getEmployers: (status: 'pending' | 'approved' | 'rejected', _accessToken?: string) =>
+  getEmployers: (status: 'pending' | 'approved' | 'rejected') =>
     apiClient<PendingEmployer[]>(`/api/auth/employers?status=${status}`, {
       method: 'GET',
     }),
 
-  approveEmployer: (userId: string, _accessToken?: string) =>
+  approveEmployer: (userId: string) =>
     apiClient('/api/auth/approve-employer', {
       method: 'POST',
       data: { userId },
     }),
 
-  rejectEmployer: (userId: string, _accessToken?: string, reason?: string) =>
+  rejectEmployer: (userId: string, reason?: string) =>
     apiClient('/api/auth/reject-employer', {
       method: 'POST',
       data: { userId, reason },

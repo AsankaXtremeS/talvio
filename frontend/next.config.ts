@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         hostname: 'randomuser.me',
         pathname: '/api/portraits/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/7.x/**',
+      },
     ],
   },
   async rewrites() {

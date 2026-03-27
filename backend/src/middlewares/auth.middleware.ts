@@ -2,8 +2,28 @@
 import { Request, Response, NextFunction } from "express"
 import { verifyAccessToken } from "../utils/jwt"
 
+const toAuthenticatedUser = (decoded: unknown): Express.User | undefined => {
+  if (!decoded || typeof decoded !== "object") return undefined;
+
+  const payload = decoded as Record<string, unknown>;
+  const id =
+    typeof payload.userId === "string"
+      ? payload.userId
+      : typeof payload.id === "string"
+        ? payload.id
+        : undefined;
+  const role = typeof payload.role === "string" ? payload.role : undefined;
+
+  if (!id || !role) return undefined;
+
+  return {
+    id,
+    role: role as Express.User["role"],
+  };
+};
+
 export const authenticate = (
-  req: any,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -20,7 +40,12 @@ export const authenticate = (
   for (const token of tokenCandidates) {
     try {
       const decoded = verifyAccessToken(token);
-      req.user = decoded;
+      const user = toAuthenticatedUser(decoded);
+      if (!user) {
+        continue;
+      }
+
+      req.user = user;
       return next();
     } catch (err) {
       // Log token verification errors for debugging

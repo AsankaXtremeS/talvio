@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Popup from "@/components/admin/layout/Popup";
+import { getRoleHomeRoute } from "@/lib/roleRoutes";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -42,23 +43,8 @@ export default function LoginForm() {
         return;
       }
       setUser(user);
-      localStorage.removeItem("token");
-
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-        setAccessToken(accessToken);
-      } else {
-        // Fall back to cookie-based authentication
-        // (Server sets accessToken cookie during login)
-        console.warn("No accessToken in response, relying on httpOnly cookie");
-        setAccessToken(null);
-      }
-
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-
-      router.push('/users/employer');
+      setAccessToken("cookie-session");
+      router.push(getRoleHomeRoute(user.role, user.id));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Login failed. Check your credentials.';
 

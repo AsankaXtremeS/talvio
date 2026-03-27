@@ -8,6 +8,7 @@ import {
   Users,
   Building2,
   ClipboardCheck,
+  Loader2,
   LogOut,
   PanelLeftOpen,
   PanelLeftClose,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { authService } from '@/lib/auth.service';
+import { setRedirectToast } from '@/lib/postRedirectToast';
 
 const navItems = [
   { href: '/users/admin/dashboard',          label: 'Dashboard',         icon: LayoutDashboard },
@@ -39,22 +41,27 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setUser, setAccessToken } = useAuth();
+  const { user, setUser, setAccessToken } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const displayName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'Admin';
+  const initial = displayName.slice(0, 1).toUpperCase();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
     try {
-      // Call logout API to clear refresh token on backend
       await authService.logout();
-    } catch (error) {
-      console.error('Sign out failed:', error);
     } finally {
       localStorage.removeItem('accessToken');
       setUser(null);
       setAccessToken(null);
-      router.push('/login/admin');
+      setRedirectToast({ message: 'Signed out successfully', tone: 'success' });
+      router.replace('/login/admin');
     }
   };
 
@@ -92,10 +99,10 @@ export default function AdminSidebar({
           </div>
 
           <div className="flex items-center gap-3 px-4 pb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-300 to-pink-400 text-white text-sm font-semibold">
-              A
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-orange-300 to-pink-400 text-white text-sm font-semibold">
+              {initial}
             </div>
-            <span className="truncate text-sm font-semibold text-gray-800">Admin101</span>
+            <span className="truncate text-sm font-semibold text-gray-800">{displayName}</span>
             <Link
               href="/users/admin/settings"
               className="ml-auto text-gray-400 transition-colors hover:text-gray-600"
@@ -135,10 +142,11 @@ export default function AdminSidebar({
           <div className="p-4">
             <button
               onClick={handleSignOut}
+              disabled={isSigningOut}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-indigo-700"
             >
-              Sign Out
-              <LogOut size={16} />
+              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              {isSigningOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
             </button>
           </div>
         </aside>
@@ -149,7 +157,7 @@ export default function AdminSidebar({
   return (
     <aside
       className={`hidden h-full shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 md:flex md:flex-col ${
-        collapsed ? 'w-[72px]' : 'w-60'
+        collapsed ? 'w-18' : 'w-60'
       }`}
     >
       <div className="flex items-center justify-between px-5 pt-6 pb-4">
@@ -168,10 +176,10 @@ export default function AdminSidebar({
       </div>
 
       <div className={`flex items-center gap-3 px-4 pb-5 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-300 to-pink-400 flex items-center justify-center overflow-hidden shrink-0">
-          <span className="text-white text-sm font-semibold">A</span>
+        <div className="w-9 h-9 rounded-full bg-linear-to-br from-orange-300 to-pink-400 flex items-center justify-center overflow-hidden shrink-0">
+          <span className="text-white text-sm font-semibold">{initial}</span>
         </div>
-        {!collapsed && <span className="text-sm font-semibold text-gray-800">Admin101</span>}
+        {!collapsed && <span className="text-sm font-semibold text-gray-800">{displayName}</span>}
         {!collapsed && (
           <Link href="/users/admin/settings" className="ml-auto text-gray-400 hover:text-gray-600 transition-colors">
             <Settings size={16} />
@@ -215,10 +223,11 @@ export default function AdminSidebar({
       <div className="p-4">
         <button
           onClick={handleSignOut}
+          disabled={isSigningOut}
           className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors duration-150"
         >
-          {!collapsed && 'Sign Out'}
-          <LogOut size={16} />
+          {!collapsed && (isSigningOut ? 'Signing out...' : 'Sign Out')}
+          {isSigningOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
         </button>
       </div>
     </aside>

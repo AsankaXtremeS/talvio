@@ -9,9 +9,12 @@ import { createHash } from "crypto";
 import { prisma } from "../../config/db";
 import { sendPasswordResetEmail } from "../../utils/email";
 import { env } from "../../config/env";
-
-const JWT_SECRET = env.JWT_SECRET;
-const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
+import {
+  generateAccessToken as generateAccessJwt,
+  generateRefreshToken as generateRefreshJwt,
+  verifyRefreshToken,
+} from "../../utils/jwt";
+import { OAuthProviderPayload } from "../../config/passport";
 
 // OAUTH STATE SECRET is used to sign the state parameter for OAuth flows to prevent CSRF attacks.
 const OAUTH_STATE_SECRET = `${env.JWT_SECRET}_oauth_state`;
@@ -19,16 +22,22 @@ const OAUTH_STATE_SECRET = `${env.JWT_SECRET}_oauth_state`;
 type OAuthProvider = "google" | "linkedin";
 type OAuthRole = "STUDENT" | "PROFESSIONAL";
 
-// Interfaces for pending employers and OAuth profiles
-interface OAuthProfile {
-  providerUserId: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-}
+const normalizeEmail = (email: string) => String(email || "").trim().toLowerCase();
+
+const assertOAuthRoleCompatibility = (existingRole: string, requestedRole: OAuthRole) => {
+  if (existingRole === requestedRole) return;
+
+  if (existingRole === "STUDENT" || existingRole === "PROFESSIONAL") {
+    throw new Error(
+      `This Google account is already registered as ${existingRole}. Please continue with ${existingRole} or use a different Google account.`
+    );
+  }
+
+  throw new Error("This Google account is already linked to a restricted account type.");
+};
 
 const generateAccessToken = (userId: string, role: string) => {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: "15m" });
+  return generateAccessJwt({ userId, role });
 };
 
 const hashToken = (token: string) => {
@@ -36,7 +45,7 @@ const hashToken = (token: string) => {
 };
 
 const generateRefreshToken = async (userId: string) => {
-  const token = jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+  const token = generateRefreshJwt({ userId });
   const hashedToken = hashToken(token);
 
   await authRepository.createRefreshToken({
@@ -80,167 +89,58 @@ const parseOAuthState = (state: string): { provider: OAuthProvider; role: OAuthR
   }
   return { provider: payload.provider, role: payload.role };
 };
-
-const getCallbackUrl = (provider: OAuthProvider) => `${env.BACKEND_URL}/api/auth/oauth/${provider}/callback`;
-
-const buildGoogleAuthUrl = (state: string) => {
-  if (!env.GOOGLE_CLIENT_ID) throw new Error("Google OAuth is not configured on server");
-  const params = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID,
-    redirect_uri: getCallbackUrl("google"),
-    response_type: "code",
-    scope: "openid email profile",
-    state,
-    access_type: "offline",
-    prompt: "consent",
-  });
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-};
-
-const buildLinkedInAuthUrl = (state: string) => {
-  if (!env.LINKEDIN_CLIENT_ID) throw new Error("LinkedIn OAuth is not configured on server");
-  const params = new URLSearchParams({
-    client_id: env.LINKEDIN_CLIENT_ID,
-    redirect_uri: getCallbackUrl("linkedin"),
-    response_type: "code",
-    scope: "openid profile email",
-    state,
-  });
-  return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
-};
-
-const exchangeGoogleCode = async (code: string): Promise<{ profile: OAuthProfile; accessToken: string; refreshToken?: string; expiresIn?: number }> => {
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-    throw new Error("Google OAuth is not configured on server");
-  }
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: getCallbackUrl("google"),
-      grant_type: "authorization_code",
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const body = await tokenRes.text();
-    throw new Error(`Google token exchange failed: ${body}`);
-  }
-
-  const tokenData = (await tokenRes.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
-
-  const profileRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  });
-
-  if (!profileRes.ok) {
-    const body = await profileRes.text();
-    throw new Error(`Google user info failed: ${body}`);
-  }
-
-  const profileData = (await profileRes.json()) as {
-    sub: string;
-    email?: string;
-    given_name?: string;
-    family_name?: string;
-    name?: string;
-  };
-
-  if (!profileData.sub || !profileData.email) {
-    throw new Error("Google OAuth response is missing required profile fields");
-  }
-
-  const [firstFromName, ...rest] = (profileData.name || "").trim().split(" ").filter(Boolean);
-  const fallbackLast = rest.join(" ") || undefined;
-
-  return {
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    expiresIn: tokenData.expires_in,
-    profile: {
-      providerUserId: profileData.sub,
-      email: profileData.email,
-      firstName: profileData.given_name || firstFromName,
-      lastName: profileData.family_name || fallbackLast,
-    },
-  };
-};
-
-const exchangeLinkedInCode = async (code: string): Promise<{ profile: OAuthProfile; accessToken: string; refreshToken?: string; expiresIn?: number }> => {
-  if (!env.LINKEDIN_CLIENT_ID || !env.LINKEDIN_CLIENT_SECRET) {
-    throw new Error("LinkedIn OAuth is not configured on server");
-  }
-
-  const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: env.LINKEDIN_CLIENT_ID,
-      client_secret: env.LINKEDIN_CLIENT_SECRET,
-      redirect_uri: getCallbackUrl("linkedin"),
-      grant_type: "authorization_code",
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const body = await tokenRes.text();
-    throw new Error(`LinkedIn token exchange failed: ${body}`);
-  }
-
-  const tokenData = (await tokenRes.json()) as {
-    access_token: string;
-    expires_in?: number;
-    refresh_token?: string;
-  };
-
-  const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  });
-
-  if (!profileRes.ok) {
-    const body = await profileRes.text();
-    throw new Error(`LinkedIn user info failed: ${body}`);
-  }
-
-  const profileData = (await profileRes.json()) as {
-    sub: string;
-    email?: string;
-    given_name?: string;
-    family_name?: string;
-    name?: string;
-  };
-
-  if (!profileData.sub || !profileData.email) {
-    throw new Error("LinkedIn OAuth response is missing required profile fields");
-  }
-
-  const [firstFromName, ...rest] = (profileData.name || "").trim().split(" ").filter(Boolean);
-  const fallbackLast = rest.join(" ") || undefined;
-
-  return {
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    expiresIn: tokenData.expires_in,
-    profile: {
-      providerUserId: profileData.sub,
-      email: profileData.email,
-      firstName: profileData.given_name || firstFromName,
-      lastName: profileData.family_name || fallbackLast,
-    },
-  };
-};
 //OAuth ends here
 
 export const authService = {
+  async getCurrentUser(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      preferences: {
+        locale: "en",
+        theme: "light",
+      },
+      permissions: [user.role],
+      employerProfile: user.employerProfile
+        ? {
+            companyName: user.employerProfile.companyName,
+            verificationStatus: user.employerProfile.verificationStatus,
+            rejectionReason: user.employerProfile.rejectionReason,
+          }
+        : null,
+    };
+  },
+
+  async upgradeCurrentUserRole(userId: string, targetRole: "PROFESSIONAL") {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.role === "EMPLOYER" || user.role === "ADMIN") {
+      throw new Error("This account type cannot be changed.");
+    }
+
+    if (user.role === targetRole) {
+      return this.getCurrentUser(userId);
+    }
+
+    if (user.role !== "STUDENT" || targetRole !== "PROFESSIONAL") {
+      throw new Error("Only Undergraduate to Professional upgrade is allowed.");
+    }
+
+    await authRepository.updateUserRole(userId, targetRole);
+    return this.getCurrentUser(userId);
+  },
+
   async registerUser(data: any) {
     const normalizedEmail = String(data.email || "").trim().toLowerCase();
     const existing = await authRepository.findUserByEmail(normalizedEmail);
@@ -356,7 +256,7 @@ export const authService = {
     // Revoke old refresh token (rotation)
     await authRepository.revokeRefreshToken(stored.token);
 
-    const payload = jwt.verify(token, JWT_REFRESH_SECRET) as any;
+    const payload = verifyRefreshToken(token) as any;
     // Issue new refresh token
     const newRefreshToken = await generateRefreshToken(payload.userId);
 
@@ -440,20 +340,18 @@ export const authService = {
 
 
   //Oauth methods here
-  getOAuthAuthorizationUrl(provider: OAuthProvider, role: string) {
+  createOAuthState(provider: OAuthProvider, role: string) {
     const validatedRole = validateOAuthRole(role);
-    const state = createOAuthState(provider, validatedRole);
-
-    if (provider === "google") {
-      return buildGoogleAuthUrl(state);
-    }
-
-    return buildLinkedInAuthUrl(state);
+    return createOAuthState(provider, validatedRole);
   },
 
-  async handleOAuthCallback(provider: OAuthProvider, code: string, state: string) {
-    if (!code || !state) {
-      throw new Error("Missing OAuth code or state");
+  async completeOAuthCallback(
+    provider: OAuthProvider,
+    state: string,
+    oauthPayload: OAuthProviderPayload
+  ) {
+    if (!state) {
+      throw new Error("Missing OAuth state");
     }
 
     const parsedState = parseOAuthState(state);
@@ -461,29 +359,35 @@ export const authService = {
       throw new Error("OAuth provider mismatch in callback");
     }
 
-    const providerData =
-      provider === "google"
-        ? await exchangeGoogleCode(code)
-        : await exchangeLinkedInCode(code);
+    if (!oauthPayload.providerUserId || !oauthPayload.email) {
+      throw new Error("OAuth response is missing required profile fields");
+    }
+
+    const normalizedEmail = normalizeEmail(oauthPayload.email);
 
     const providerEnum = provider === "google" ? "GOOGLE" : "LINKEDIN";
 
     const existingAuth = await authRepository.findAuthAccount(
       providerEnum,
-      providerData.profile.providerUserId
+      oauthPayload.providerUserId
     );
 
     let user = existingAuth?.user ?? null;
 
+    if (user) {
+      assertOAuthRoleCompatibility(user.role, parsedState.role);
+    }
+
     if (!user) {
-      const existingByEmail = await authRepository.findUserByEmail(providerData.profile.email);
+      const existingByEmail = await authRepository.findUserByEmail(normalizedEmail);
       if (existingByEmail) {
+        assertOAuthRoleCompatibility(existingByEmail.role, parsedState.role);
         user = existingByEmail;
       } else {
         const createdUser = await authRepository.createUser({
-          firstName: providerData.profile.firstName,
-          lastName: providerData.profile.lastName,
-          email: providerData.profile.email,
+          firstName: oauthPayload.firstName,
+          lastName: oauthPayload.lastName,
+          email: normalizedEmail,
           password: null,
           role: parsedState.role,
           isVerified: true,
@@ -499,14 +403,25 @@ export const authService = {
       await authRepository.createAuthAccount({
         userId: user.id,
         provider: providerEnum,
-        providerUserId: providerData.profile.providerUserId,
+        providerUserId: oauthPayload.providerUserId,
+        accessToken: oauthPayload.accessToken || null,
+        refreshToken: oauthPayload.refreshToken || null,
+        expiresAt: oauthPayload.expiresIn
+          ? new Date(Date.now() + oauthPayload.expiresIn * 1000)
+          : undefined,
       });
     } else {
-      await authRepository.updateAuthAccountTokens(providerEnum, providerData.profile.providerUserId, {
-        accessToken: null,
-        refreshToken: null,
-        expiresAt: null,
-      });
+      await authRepository.updateAuthAccountTokens(
+        providerEnum,
+        oauthPayload.providerUserId,
+        {
+          accessToken: oauthPayload.accessToken || null,
+          refreshToken: oauthPayload.refreshToken || null,
+          expiresAt: oauthPayload.expiresIn
+            ? new Date(Date.now() + oauthPayload.expiresIn * 1000)
+            : null,
+        }
+      );
     }
 
     if (!user) {

@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { authService } from "./auth.service";
+import passport, { OAuthProviderPayload } from "../../config/passport";
 import {
   validateRegisterUser,
   validateRegisterEmployer,
@@ -392,17 +393,36 @@ export const getPendingEmployers = async (req: Request, res: Response) => {
 // Public endpoint to initiate OAuth flow with Google or LinkedIn.
 // Expects: provider in URL params, role in query (STUDENT or PROFESSIONAL)
 // Redirects to provider's authorization URL
-export const oauthStart = async (req: Request, res: Response) => {
+const getOAuthProvider = (providerParam: string | string[] | undefined): "google" | "linkedin" => {
+  const rawProvider = Array.isArray(providerParam) ? providerParam[0] : providerParam;
+  const provider = String(rawProvider || "").toLowerCase();
+  if (provider !== "google" && provider !== "linkedin") {
+    throw new Error("Unsupported OAuth provider");
+  }
+  return provider;
+};
+
+export const oauthStart = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const provider = String(req.params.provider || "").toLowerCase();
+    const provider = getOAuthProvider(req.params.provider);
     const role = String(req.query.role || "").toUpperCase();
 
-    if (provider !== "google" && provider !== "linkedin") {
-      return res.status(400).json({ message: "Unsupported OAuth provider" });
+    const state = authService.createOAuthState(provider, role);
+    const scope = ["openid", "email", "profile"];
+
+    const authOptions: Record<string, unknown> = {
+      scope,
+      session: false,
+      state,
+    };
+
+    // Force Google to show account selection instead of silently reusing a signed-in account.
+    if (provider === "google") {
+      authOptions.prompt = "select_account";
+      authOptions.accessType = "offline";
     }
 
-    const authorizationUrl = authService.getOAuthAuthorizationUrl(provider, role);
-    return res.redirect(authorizationUrl);
+    return passport.authenticate(provider, authOptions)(req, res, next);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "OAuth initialization failed";
     console.error("oauthStart error:", err);
@@ -410,26 +430,83 @@ export const oauthStart = async (req: Request, res: Response) => {
   }
 };
 
-export const oauthCallback = async (req: Request, res: Response) => {
+export const oauthCallback = async (req: Request, res: Response, next: NextFunction) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   try {
-    const provider = String(req.params.provider || "").toLowerCase();
-    const code = String(req.query.code || "");
+    const provider = getOAuthProvider(req.params.provider);
     const state = String(req.query.state || "");
 
-    if (provider !== "google" && provider !== "linkedin") {
-      return res.redirect(`${frontendUrl}/login?error=Unsupported%20OAuth%20provider`);
-    }
+    return passport.authenticate(
+      provider,
+      { session: false },
+      async (err: unknown, oauthPayload?: OAuthProviderPayload) => {
+        if (err || !oauthPayload) {
+          const authError = err instanceof Error ? err.message : "OAuth callback failed";
+          console.error("oauthCallback passport error:", err);
+          return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(authError)}`);
+        }
 
-    const { accessToken, refreshToken } = await authService.handleOAuthCallback(provider, code, state);
+        try {
+          const { accessToken, refreshToken } = await authService.completeOAuthCallback(
+            provider,
+            state,
+            oauthPayload
+          );
 
-    res.cookie("accessToken", accessToken, buildAuthCookieOptions(req, ACCESS_COOKIE_MAX_AGE));
-    res.cookie("refreshToken", refreshToken, buildAuthCookieOptions(req, REFRESH_COOKIE_MAX_AGE));
+          res.cookie("accessToken", accessToken, buildAuthCookieOptions(req, ACCESS_COOKIE_MAX_AGE));
+          res.cookie("refreshToken", refreshToken, buildAuthCookieOptions(req, REFRESH_COOKIE_MAX_AGE));
 
-    return res.redirect(`${frontendUrl}/oauth/callback`);
+          return res.redirect(`${frontendUrl}/oauth/callback`);
+        } catch (callbackError: unknown) {
+          const message = callbackError instanceof Error ? callbackError.message : "OAuth callback failed";
+          console.error("oauthCallback error:", callbackError);
+          return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
+        }
+      }
+    )(req, res, next);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "OAuth callback failed";
     console.error("oauthCallback error:", err);
     return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
+  }
+};
+
+// CURRENT SESSION USER
+// Protected endpoint for reading the authenticated user's own profile.
+// Identity is derived from auth middleware (token/cookie), not URL or request body.
+export const me = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await authService.getCurrentUser(userId);
+    return res.json({ user });
+  } catch (err: any) {
+    console.error("me error:", err);
+    return res.status(400).json({ message: err?.message || "Failed to load session user." });
+  }
+};
+
+// UPDATE CURRENT USER ROLE
+// Protected endpoint: role change is applied to the authenticated user only.
+export const updateMyRole = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const targetRole = String(req.body?.targetRole || "").toUpperCase();
+    if (targetRole !== "PROFESSIONAL") {
+      return res.status(400).json({ message: "Only PROFESSIONAL target role is supported." });
+    }
+
+    const user = await authService.upgradeCurrentUserRole(userId, "PROFESSIONAL");
+    return res.json({ message: "Role upgraded successfully.", user });
+  } catch (err: any) {
+    console.error("updateMyRole error:", err);
+    return res.status(400).json({ message: err?.message || "Failed to update role." });
   }
 };
