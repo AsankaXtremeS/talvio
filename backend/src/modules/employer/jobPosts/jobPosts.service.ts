@@ -22,16 +22,23 @@ const buildHttpError = (message: string, statusCode: number): ServiceError => {
 interface JobPostDTO {
   id: string;
   title: string;
-  type: JobPost["type"];
-  status: JobPost["status"];
-  description: string | null;
-  requirements: string | null;
-  closingDate: string | null;
-  createdAt: string;
-  updatedAt: string;
+  type: "Job" | "Internship";
+  status: "Draft" | "Active" | "Closed";
+  description: string;
+  requirements: string;
+  additionalInformation: string;
+  skills: string;
+  workMode: "On site" | "Remote" | "Hybrid";
+  employmentType: "Full-time" | "Part-time" | "Contract";
+  closingDate: string;
+  location: string;
+  salaryMin?: string;
+  salaryMax?: string;
   company: {
     name: string;
   };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface JobPostListResponse {
@@ -44,32 +51,43 @@ interface JobPostListResponse {
   };
 }
 
-const mapToDTO = (post: {
-  id: string;
-  title: string;
-  type: JobPost["type"];
-  status: JobPost["status"];
-  description: string | null;
-  requirements: string | null;
-  closingDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  employer?: {
-    companyName: string;
-  } | null;
-}): JobPostDTO => ({
+const mapToDTO = (post: any): JobPostDTO => ({
   id: post.id,
   title: post.title,
-  type: post.type,
-  status: post.status,
-  description: post.description,
-  requirements: post.requirements,
-  closingDate: post.closingDate ? post.closingDate.toISOString() : null,
-  createdAt: post.createdAt.toISOString(),
-  updatedAt: post.updatedAt.toISOString(),
+  type: post.type === "JOB" ? "Job" : "Internship",
+  status:
+    post.status === "ACTIVE"
+      ? "Active"
+      : post.status === "CLOSED"
+      ? "Closed"
+      : "Draft",
+  description: post.description ?? "",
+  requirements: Array.isArray(post.requirements) && post.requirements.length > 0 ? post.requirements[0] : "",
+  additionalInformation: Array.isArray(post.responsibilities) && post.responsibilities.length > 0 ? post.responsibilities.join(", ") : "",
+  skills: Array.isArray(post.skillsRequired) && post.skillsRequired.length > 0 ? post.skillsRequired.join(", ") : "",
+  workMode:
+    post.workMode === "REMOTE"
+      ? "Remote"
+      : post.workMode === "HYBRID"
+      ? "Hybrid"
+      : post.workMode === "ON_SITE"
+      ? "On site"
+      : "On site",
+  employmentType:
+    post.employmentType === "FULL_TIME"
+      ? "Full-time"
+      : post.employmentType === "PART_TIME"
+      ? "Part-time"
+      : post.employmentType === "CONTRACT"
+      ? "Contract"
+      : "Full-time",
+  closingDate: post.closingDate ? post.closingDate.toISOString().slice(0, 10) : "",
+  location: post.location ?? "",
   company: {
     name: post.employer?.companyName ?? "",
   },
+  createdAt: post.createdAt ? post.createdAt.toISOString() : undefined,
+  updatedAt: post.updatedAt ? post.updatedAt.toISOString() : undefined,
 });
 
 const resolveApprovedEmployerId = async (userId: string): Promise<string> => {

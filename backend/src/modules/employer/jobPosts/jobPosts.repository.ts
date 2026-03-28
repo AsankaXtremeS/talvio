@@ -4,6 +4,7 @@
 
 import { prisma } from "../../../config/db";
 import { CreateJobPostInput, UpdateJobPostInput } from "./jobPosts.validation";
+import { JobType, WorkMode, EmploymentType, PostStatus } from "@prisma/client";
 
 let closingDateSchemaChecked = false;
 let closingDateSchemaCheckPromise: Promise<void> | null = null;
@@ -116,6 +117,14 @@ export const jobsRepository = {
           status: true,
           description: true,
           requirements: true,
+          responsibilities: true,
+          skillsRequired: true,
+          workMode: true,
+          employmentType: true,
+          stipendType: true,
+          location: true,
+          duration: true,
+          experienceLevel: true,
           closingDate: true,
           createdAt: true,
           updatedAt: true,
@@ -182,15 +191,49 @@ export const jobsRepository = {
   async create(employerId: string, data: CreateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
+    // Map frontend fields to backend schema (Prisma enums)
     const createPayload = {
       title: data.title,
-      type: data.type,
+      type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
       description: data.description,
-      requirements: data.requirements,
+      requirements: data.requirements ? [data.requirements] : [],
+      responsibilities: data.additionalInformation
+        ? data.additionalInformation.split(/\r?\n|,/).map((item: string) => item.trim()).filter(Boolean)
+        : [],
+      skillsRequired: data.skills
+        ? data.skills.split(/[\s,]+/).map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      workMode:
+        data.workMode === "Remote"
+          ? WorkMode.REMOTE
+          : data.workMode === "Hybrid"
+          ? WorkMode.HYBRID
+          : data.workMode === "On site"
+          ? WorkMode.ON_SITE
+          : undefined,
+      employmentType:
+        data.employmentType === "Full-time"
+          ? EmploymentType.FULL_TIME
+          : data.employmentType === "Part-time"
+          ? EmploymentType.PART_TIME
+          : data.employmentType === "Contract"
+          ? EmploymentType.CONTRACT
+          : undefined,
+      stipendType: undefined,
+      location: data.location,
+      duration: undefined,
+      experienceLevel: undefined,
       closingDate: data.closingDate ? new Date(data.closingDate) : null,
-      status: data.status ?? "DRAFT",  // Default to DRAFT if not specified
+      status:
+        data.status === "Active"
+          ? PostStatus.ACTIVE
+          : data.status === "Draft"
+          ? PostStatus.DRAFT
+          : data.status === "Closed"
+          ? PostStatus.CLOSED
+          : PostStatus.DRAFT,
       employerId,
-    } as any;
+    };
 
     try {
       return await prisma.jobPost.create({ data: createPayload });
@@ -223,13 +266,55 @@ export const jobsRepository = {
       },
       data: {
         ...(data.title !== undefined && { title: data.title }),
-        ...(data.type !== undefined && { type: data.type }),
+        ...(data.type !== undefined && {
+          type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
+        }),
         ...(data.description !== undefined && { description: data.description }),
-        ...(data.requirements !== undefined && { requirements: data.requirements }),
+        ...(data.requirements !== undefined && { requirements: data.requirements ? [data.requirements] : [] }),
+        ...(data.additionalInformation !== undefined && {
+          responsibilities: data.additionalInformation
+            ? data.additionalInformation.split(/\r?\n|,/).map((item: string) => item.trim()).filter(Boolean)
+            : [],
+        }),
+        ...(data.skills !== undefined && {
+          skillsRequired: data.skills
+            ? data.skills.split(/[\s,]+/).map((s: string) => s.trim()).filter(Boolean)
+            : [],
+        }),
+        ...(data.workMode !== undefined && {
+          workMode:
+            data.workMode === "Remote"
+              ? WorkMode.REMOTE
+              : data.workMode === "Hybrid"
+              ? WorkMode.HYBRID
+              : data.workMode === "On site"
+              ? WorkMode.ON_SITE
+              : undefined,
+        }),
+        ...(data.employmentType !== undefined && {
+          employmentType:
+            data.employmentType === "Full-time"
+              ? EmploymentType.FULL_TIME
+              : data.employmentType === "Part-time"
+              ? EmploymentType.PART_TIME
+              : data.employmentType === "Contract"
+              ? EmploymentType.CONTRACT
+              : undefined,
+        }),
+        ...(data.location !== undefined && { location: data.location }),
         ...(data.closingDate !== undefined && {
           closingDate: data.closingDate ? new Date(data.closingDate) : null,
         }),
-        ...(data.status !== undefined && { status: data.status }),
+        ...(data.status !== undefined && {
+          status:
+            data.status === "Active"
+              ? PostStatus.ACTIVE
+              : data.status === "Draft"
+              ? PostStatus.DRAFT
+              : data.status === "Closed"
+              ? PostStatus.CLOSED
+              : PostStatus.DRAFT,
+        }),
       },
     });
   },
