@@ -70,8 +70,11 @@ export default function CandidateShell({ children }: CandidateShellProps) {
     }
   };
 
+  // --- AUTH & ROLE CHECK DISABLED FOR DESIGN REVIEW ---
+  // return (
+  //   <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
+  //     <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
   return (
-    <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
       <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
         <aside
           className={`
@@ -183,6 +186,6 @@ export default function CandidateShell({ children }: CandidateShellProps) {
 
         <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
       </div>
-    </RoleGate>
+    // </RoleGate>
   );
 }
