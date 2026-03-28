@@ -1,16 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { JobPost } from "@/types/employer/jobPost.types";
 import JobPostForm from "@/components/employer/job-posts/JobPostForm";
-
-// Mock data — remove when backend is ready
-const MOCK_POSTS: Record<string, JobPost> = {
-  "1": { id: "1", title: "Frontend Developer", department: "Engineering", type: "Job",        closedDate: "2024-04-26", status: "Draft"  },
-  "2": { id: "2", title: "UI/UX Designer",     department: "Design",      type: "Internship", closedDate: "2024-04-26", status: "Active" },
-};
+import { getJobPostById } from "@/lib/employer/jobPosts.service";
 
 export default function EditJobPostPage() {
   const params = useParams<{ postId?: string | string[] }>();
@@ -19,18 +14,37 @@ export default function EditJobPostPage() {
     return Array.isArray(raw) ? raw[0] : raw;
   }, [params]);
 
-  const post = useMemo<JobPost | null>(() => {
-    if (!postId) {
-      return null;
-    }
+  const [post, setPost] = useState<JobPost | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    return MOCK_POSTS[postId] ?? null;
+  // ── Fetch real post data from backend ──
+  useEffect(() => {
+    if (!postId) return;
+
+    const fetchPost = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await getJobPostById(postId);
+        setPost(data);
+      } catch (err: unknown) {
+        console.error("Failed to load job post:", err);
+        setError("Job post not found.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
   }, [postId]);
 
-  if (!post) {
-    return (
-      <div className="p-8 text-sm text-gray-400">Loading...</div>
-    );
+  if (loading) {
+    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+  }
+
+  if (error || !post) {
+    return <div className="p-8 text-sm text-red-400">{error || "Post not found."}</div>;
   }
 
   return (
@@ -43,15 +57,16 @@ export default function EditJobPostPage() {
         postId={post.id}
         initialData={{
           title:          post.title,
-          department:     post.department,
           type:           post.type,
-          closedDate:     post.closedDate,
+          closingDate:    post.closingDate,
           status:         post.status,
           location:       post.location ?? "",
           salaryMin:      post.salaryMin?.toString() ?? "",
           salaryMax:      post.salaryMax?.toString() ?? "",
           description:    post.description ?? "",
           requirements:   post.requirements ?? "",
+          additionalInformation: post.additionalInformation ?? "",
+          skills:         (post.skills ?? []).join(", "),
           workMode:       post.workMode ?? "On site",
           employmentType: post.employmentType ?? "Full-time",
         }}
