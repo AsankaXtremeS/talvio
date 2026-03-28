@@ -426,20 +426,36 @@ function toBackendFormat(data: Partial<JobPostFormData>): Record<string, unknown
   if (data.requirements !== undefined) result.requirements = data.requirements;
   if (data.additionalInformation !== undefined) result.additionalInformation = data.additionalInformation;
   if (data.skills !== undefined) {
-    result.skills = data.skills
-      .split(",")
+    // Accept comma or space separated, normalize to comma-separated string
+    const skillsArr = data.skills
+      .split(/[,\s]+/)
       .map((skill) => skill.trim())
       .filter(Boolean);
+    result.skills = skillsArr.join(", ");
   }
+  if (data.location !== undefined) result.location = data.location;
+  if (data.salaryMin !== undefined) result.salaryMin = data.salaryMin;
+  if (data.salaryMax !== undefined) result.salaryMax = data.salaryMax;
 
-  // Convert status "Active" → "ACTIVE"
+
+  // Send status as title case (e.g., "Active", "Draft", "Closed")
   if (data.status) {
-    result.status = data.status.toUpperCase();
+    result.status = data.status;
   }
 
-  // Convert type "Job" → "JOB", "Internship" → "INTERNSHIP"
+  // Send type as title case (e.g., "Job", "Internship")
   if (data.type) {
-    result.type = data.type.toUpperCase();
+    result.type = data.type;
+  }
+
+  // Send workMode as title case (e.g., "On site", "Remote", "Hybrid")
+  if (data.workMode) {
+    result.workMode = data.workMode;
+  }
+
+  // Send employmentType as title case (e.g., "Full-time", "Part-time", "Contract")
+  if (data.employmentType) {
+    result.employmentType = data.employmentType;
   }
 
   // Send closingDate only when non-empty; empty string fails backend datetime validation.

@@ -234,6 +234,34 @@ export default function JobPostForm({
                 placeholder="Moratuwa, Sri Lanka"
                 value={form.location}
                 onChange={(e) => setField("location", e.target.value)}
+                name="location"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+            <div className="md:col-span-6">
+              <label className={labelCls}>Minimum Salary</label>
+              <input
+                className={inputCls}
+                placeholder="e.g. 50000"
+                value={form.salaryMin}
+                onChange={(e) => setField("salaryMin", e.target.value)}
+                name="salaryMin"
+                type="number"
+                min="0"
+              />
+            </div>
+            <div className="md:col-span-6">
+              <label className={labelCls}>Maximum Salary</label>
+              <input
+                className={inputCls}
+                placeholder="e.g. 100000"
+                value={form.salaryMax}
+                onChange={(e) => setField("salaryMax", e.target.value)}
+                name="salaryMax"
+                type="number"
+                min="0"
               />
             </div>
           </div>
@@ -293,7 +321,7 @@ export default function JobPostForm({
                 type="button"
                 onClick={handleMakeDraft}
                 disabled={draftLoading || loading}
-                className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-w-55 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FileText size={16} />
                 {draftLoading ? "Saving Draft..." : "Make as Draft"}
@@ -304,7 +332,7 @@ export default function JobPostForm({
               type="button"
               onClick={handleSubmit}
               disabled={loading || draftLoading}
-              className="flex min-w-[220px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              className="flex min-w-55 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
             >
               {loading ? "Posting..." : isEdit ? "Update" : "Preview"}
               <LogOut size={16} />

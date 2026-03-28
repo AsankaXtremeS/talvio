@@ -210,6 +210,8 @@ export const createJobPost = async (req: Request, res: Response) => {
     // Validate request body with Zod schema — ensures type safety
     const bodyResult = createJobPostSchema.safeParse(req.body);
     if (!bodyResult.success) {
+      // Log validation errors for debugging
+      console.error("Job post validation failed:", JSON.stringify(bodyResult.error.flatten().fieldErrors, null, 2));
       return res.status(400).json({
         message: "Validation failed",
         // flatten() gives a clean { fieldName: [errorMessages] } object
