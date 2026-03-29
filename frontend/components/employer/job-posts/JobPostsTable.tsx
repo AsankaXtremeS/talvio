@@ -164,7 +164,7 @@ function StatusDropdown({
                 backgroundColor: status === "Closed" ? "rgba(198, 29, 32, 0.12)" : "transparent",
               }}
             >
-              <span>Closed</span>
+              <span>Close</span>
               {status === "Closed" && <Check size={13} style={{ color: "#C61D20" }} />}
             </button>
           )}
@@ -176,6 +176,14 @@ function StatusDropdown({
 
 export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange, deletingId, closingId }: JobPostsTableProps) {
   const router = useRouter();
+
+  // Sort posts by createdAt descending (latest first)
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (!a.createdAt && !b.createdAt) return 0;
+    if (!a.createdAt) return 1;
+    if (!b.createdAt) return -1;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
 
   const formatDate = (date: string) => {
     if (!date) return "-";
@@ -191,7 +199,6 @@ export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange,
       {/* Table header row */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
-
       </div>
 
       <table className="w-full">
@@ -205,14 +212,14 @@ export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange,
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
-          {posts.length === 0 ? (
+          {sortedPosts.length === 0 ? (
             <tr>
               <td colSpan={5} className="px-4 py-12 text-sm text-center text-gray-400">
                 No job posts found. Click &quot;Post New Job&quot; to get started.
               </td>
             </tr>
           ) : (
-            posts.map((post) => (
+            sortedPosts.map((post) => (
               <tr
                 key={post.id}
                 className="transition-colors hover:bg-gray-50"

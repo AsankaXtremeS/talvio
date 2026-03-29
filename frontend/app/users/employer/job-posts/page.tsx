@@ -8,6 +8,7 @@ import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
 import { deleteJobPost, getJobPosts, getJobPostStats, setJobPostStatus } from "@/lib/employer/jobPosts.service";
+import Popup from "@/components/admin/layout/Popup";
 
 type ToastState = {
   type: "success" | "error";
@@ -37,6 +38,15 @@ export default function JobPostsPage() {
   const [toast, setToast] = useState<ToastState>(null);
   const [pendingClose, setPendingClose] = useState<PendingCloseState>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
+  const [popup, setPopup] = useState<{
+    open: boolean;
+    message: string;
+    success?: boolean;
+  }>({
+    open: false,
+    message: "",
+    success: false,
+  });
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -98,7 +108,18 @@ export default function JobPostsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const postTitle = posts.find((post) => post.id === id)?.title || "this job post";
+    const post = posts.find((item) => item.id === id);
+    const postTitle = post?.title || "this job post";
+
+    if (post?.status === "Active") {
+      setPopup({
+        open: true,
+        message: "Active job posts cannot be deleted. Please close the post first.",
+        success: false,
+      });
+      return;
+    }
+
     setPendingDelete({ id, title: postTitle });
   };
 
@@ -121,10 +142,11 @@ export default function JobPostsPage() {
       });
     } catch (err: unknown) {
       console.error("Failed to delete job post:", err);
-      setError("Failed to delete job post. Please try again.");
+      const message = err instanceof Error ? err.message : "Failed to delete job post. Please try again.";
+      setError(message);
       setToast({
         type: "error",
-        message: "Failed to delete job post.",
+        message,
       });
     } finally {
       setDeletingId(null);
@@ -136,13 +158,7 @@ export default function JobPostsPage() {
     setClosingId(id);
 
     try {
-      const targetStatus =
-        nextStatus === "Closed"
-          ? "CLOSED"
-          : nextStatus === "Active"
-            ? "ACTIVE"
-            : "DRAFT";
-      const updatedPost = await setJobPostStatus(id, targetStatus);
+      const updatedPost = await setJobPostStatus(id, nextStatus);
       setPosts((prev) =>
         prev.map((post) =>
           post.id === id ? updatedPost : post
@@ -185,6 +201,13 @@ export default function JobPostsPage() {
 
   return (
     <div className="flex flex-col h-full p-8 pt-2 overflow-hidden">
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
+
       {toast && (
         <div className="fixed right-6 top-6 z-50">
           <div

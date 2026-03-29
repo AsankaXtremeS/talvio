@@ -62,8 +62,6 @@ const sanitizeRegistrationError = (message?: string, fallback?: string) => {
   return fallback || "Registration failed. Please try again.";
 };
 
-
-
 // REGISTER STUDENT / PROFESSIONAL
 // Public endpoint for registering a new student or professional user.
 // Expects: { firstName, lastName, email, password, confirmPassword, role }

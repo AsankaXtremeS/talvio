@@ -2,7 +2,7 @@
 // Owns business rules: employer verification, ownership checks, pagination,
 // and response shaping for controllers.
 
-import { JobPost, VerificationStatus } from "@prisma/client";
+import { PostStatus, VerificationStatus } from "@prisma/client";
 import { jobsRepository } from "./jobPosts.repository";
 import { JobPostQueryInput, CreateJobPostInput, UpdateJobPostInput } from "./jobPosts.validation";
 
@@ -25,6 +25,7 @@ interface JobPostDTO {
   type: "Job" | "Internship";
   status: "Draft" | "Active" | "Closed";
   description: string;
+  responsibilities: string;
   requirements: string;
   additionalInformation: string;
   skills: string;
@@ -32,8 +33,6 @@ interface JobPostDTO {
   employmentType: "Full-time" | "Part-time" | "Contract";
   closingDate: string;
   location: string;
-  salaryMin?: string;
-  salaryMax?: string;
   company: {
     name: string;
   };
@@ -62,9 +61,30 @@ const mapToDTO = (post: any): JobPostDTO => ({
       ? "Closed"
       : "Draft",
   description: post.description ?? "",
-  requirements: Array.isArray(post.requirements) && post.requirements.length > 0 ? post.requirements[0] : "",
-  additionalInformation: Array.isArray(post.responsibilities) && post.responsibilities.length > 0 ? post.responsibilities.join(", ") : "",
-  skills: Array.isArray(post.skillsRequired) && post.skillsRequired.length > 0 ? post.skillsRequired.join(", ") : "",
+  responsibilities:
+    typeof post.responsibilities === "string"
+      ? post.responsibilities
+      : "",
+  requirements:
+    typeof post.requirements === "string"
+      ? post.requirements
+      : Array.isArray(post.requirements) && post.requirements.length > 0
+      ? post.requirements.map((item: unknown) => String(item)).join("\n")
+      : typeof post.qualifications === "string"
+      ? post.qualifications
+      : "",
+  additionalInformation:
+    typeof post.additionalInformation === "string"
+      ? post.additionalInformation
+      : Array.isArray(post.responsibilities) && post.responsibilities.length > 0
+      ? post.responsibilities.join(", ")
+      : "",
+  skills:
+    typeof post.skills === "string"
+      ? post.skills
+      : Array.isArray(post.skillsRequired) && post.skillsRequired.length > 0
+      ? post.skillsRequired.join(", ")
+      : "",
   workMode:
     post.workMode === "REMOTE"
       ? "Remote"
@@ -243,6 +263,10 @@ export const jobsService = {
     if (!existing) {
       // Either post doesn't exist or employer doesn't own it
       throw buildHttpError("Job post not found", 404);
+    }
+
+    if (existing.status === PostStatus.ACTIVE) {
+      throw buildHttpError("Active job posts cannot be deleted. Please close the post first.", 409);
     }
 
     // Permanently delete the post from database

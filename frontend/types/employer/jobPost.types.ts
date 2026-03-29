@@ -15,11 +15,10 @@ export interface JobPost {
   status: JobStatus;
   location?: string;
   description?: string;
+  responsibilities?: string;
   requirements?: string;
   applicantsCount?: number;
   companyName?: string;
-  salaryMin?: number;
-  salaryMax?: number;
   workMode?: "On site" | "Remote" | "Hybrid";
   employmentType?: "Full-time" | "Part-time" | "Contract";
   additionalInformation?: string;
@@ -36,9 +35,8 @@ export interface JobPostFormData {
   type: JobType;
   closingDate: string;
   location: string;
-  salaryMin: string;
-  salaryMax: string;
   description: string;
+  responsibilities: string;
   requirements: string;
   additionalInformation: string;
   skills: string;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJobPost } from "@/lib/employer/jobPosts.service";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
+import Popup from "@/components/admin/layout/Popup";
 
 import {
   ArrowLeft,
@@ -17,13 +18,19 @@ import {
   MapPin,
 } from "lucide-react";
 
-const buildExtrasStorageKey = (id: string) => `employerJobPostExtras:${id}`;
-
 export default function JobPostPreviewPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<JobPostFormData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [popup, setPopup] = useState<{
+    open: boolean;
+    message: string;
+    success?: boolean;
+  }>({
+    open: false,
+    message: "",
+    success: false,
+  });
 
   useEffect(() => {
     const raw = sessionStorage.getItem("employerJobPostPreviewDraft");
@@ -45,7 +52,7 @@ export default function JobPostPreviewPage() {
     if (!draft) return;
 
     setLoading(true);
-    setError("");
+    setPopup((prev) => ({ ...prev, open: false }));
 
     try {
       const payload: JobPostFormData = {
@@ -53,20 +60,24 @@ export default function JobPostPreviewPage() {
         status: "Active",
       };
 
-      const createdPost = await createJobPost(payload);
-      localStorage.setItem(
-        buildExtrasStorageKey(createdPost.id),
-        JSON.stringify({
-          additionalInformation: payload.additionalInformation,
-          skills: payload.skills,
-        })
-      );
+      await createJobPost(payload);
       sessionStorage.removeItem("employerJobPostPreviewDraft");
-      router.push("/users/employer/job-posts");
+      setPopup({
+        open: true,
+        message: "Job posted successfully! Your opportunity is now visible to candidates.",
+        success: true,
+      });
     } catch (err: unknown) {
       console.error(err);
-      const message = err instanceof Error ? err.message : "Failed to publish job post. Please try again.";
-      setError(message);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to publish job post. Please try again.";
+      setPopup({
+        open: true,
+        message,
+        success: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -83,6 +94,18 @@ export default function JobPostPreviewPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-[#EEF4FB] p-4 md:p-8">
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => {
+          setPopup((prev) => ({ ...prev, open: false }));
+          if (popup.success) {
+            router.push("/users/employer/job-posts");
+          }
+        }}
+      />
+
       <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-100 bg-white px-8 py-8 shadow-sm md:px-12 md:py-10">
         <header className="mb-6">
           <h1 className="text-[22px] font-bold text-black">{draft.title}</h1>
@@ -114,39 +137,42 @@ export default function JobPostPreviewPage() {
         </div>
 
         <div className="space-y-5">
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <Briefcase size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Job Description</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{draft.description || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <ListChecks size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Responsibilities</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{draft.description || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <GraduationCap size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Qualifications</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{draft.requirements || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <Info size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Additional Information</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">
-              {draft.additionalInformation || "-"}
-            </p>
-          </section>
+          {draft.description && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <Briefcase size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Job Description</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{draft.description}</p>
+            </section>
+          )}
+          {draft.responsibilities && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <ListChecks size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Responsibilities</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{draft.responsibilities}</p>
+            </section>
+          )}
+          {draft.requirements && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <GraduationCap size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Qualifications</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{draft.requirements}</p>
+            </section>
+          )}
+          {draft.additionalInformation && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <Info size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Additional Information</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{draft.additionalInformation}</p>
+            </section>
+          )}
 
           <section>
             <div className="mb-1.5 flex items-center gap-2 text-gray-800">
@@ -169,12 +195,6 @@ export default function JobPostPreviewPage() {
             )}
           </section>
         </div>
-
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">
-            {error}
-          </div>
-        )}
 
         <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-6">
           <button

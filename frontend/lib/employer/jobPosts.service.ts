@@ -241,9 +241,8 @@ function buildOfflinePost(data: JobPostFormData): JobPost {
     status: data.status,
     location: data.location,
     description: data.description,
+    responsibilities: data.responsibilities,
     requirements: data.requirements,
-    salaryMin: toOptionalNumber(data.salaryMin),
-    salaryMax: toOptionalNumber(data.salaryMax),
     workMode: data.workMode,
     employmentType: data.employmentType,
     additionalInformation: data.additionalInformation,
@@ -271,9 +270,10 @@ function applyFormDataToPost(post: JobPost, data: Partial<JobPostFormData>): Job
     ...(data.status !== undefined ? { status: data.status } : {}),
     ...(data.location !== undefined ? { location: data.location } : {}),
     ...(data.description !== undefined ? { description: data.description } : {}),
+    ...(data.responsibilities !== undefined
+      ? { responsibilities: data.responsibilities }
+      : {}),
     ...(data.requirements !== undefined ? { requirements: data.requirements } : {}),
-    ...(data.salaryMin !== undefined ? { salaryMin: toOptionalNumber(data.salaryMin) } : {}),
-    ...(data.salaryMax !== undefined ? { salaryMax: toOptionalNumber(data.salaryMax) } : {}),
     ...(data.workMode !== undefined ? { workMode: data.workMode } : {}),
     ...(data.employmentType !== undefined ? { employmentType: data.employmentType } : {}),
     ...(data.additionalInformation !== undefined
@@ -300,31 +300,25 @@ function getOfflinePostById(id: string): JobPost | null {
   return posts.find((post) => post.id === id) ?? null;
 }
 
-function toOptionalNumber(value: string | undefined): number | undefined {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
 function persistPostExtras(postId: string, data: Partial<JobPostFormData>): void {
   if (typeof window === "undefined") return;
 
   const payload = {
     location: data.location ?? "",
-    salaryMin: data.salaryMin ?? "",
-    salaryMax: data.salaryMax ?? "",
     workMode: data.workMode ?? "",
     employmentType: data.employmentType ?? "",
+    requirements: data.requirements ?? "",
+    responsibilities: data.responsibilities ?? "",
     additionalInformation: data.additionalInformation ?? "",
     skills: data.skills ?? "",
   };
 
   if (
     !payload.location &&
-    !payload.salaryMin &&
-    !payload.salaryMax &&
     !payload.workMode &&
     !payload.employmentType &&
+    !payload.requirements &&
+    !payload.responsibilities &&
     !payload.additionalInformation &&
     !payload.skills
   ) {
@@ -343,10 +337,10 @@ function mergeStoredExtras(post: JobPost): JobPost {
   try {
     const parsed = JSON.parse(raw) as {
       location?: string;
-      salaryMin?: string;
-      salaryMax?: string;
       workMode?: string;
       employmentType?: string;
+      requirements?: string;
+      responsibilities?: string;
       additionalInformation?: string;
       skills?: string;
     };
@@ -368,10 +362,10 @@ function mergeStoredExtras(post: JobPost): JobPost {
     return {
       ...post,
       location: post.location ?? parsed.location ?? "",
-      salaryMin: post.salaryMin ?? toOptionalNumber(parsed.salaryMin),
-      salaryMax: post.salaryMax ?? toOptionalNumber(parsed.salaryMax),
       workMode: mergedWorkMode,
       employmentType: mergedEmploymentType,
+      requirements: post.requirements ?? parsed.requirements ?? "",
+      responsibilities: post.responsibilities ?? parsed.responsibilities ?? "",
       additionalInformation: parsed.additionalInformation ?? "",
       skills: (parsed.skills ?? "")
         .split(",")
@@ -423,6 +417,7 @@ function toBackendFormat(data: Partial<JobPostFormData>): Record<string, unknown
 
   if (data.title !== undefined) result.title = data.title;
   if (data.description !== undefined) result.description = data.description;
+  if (data.responsibilities !== undefined) result.responsibilities = data.responsibilities;
   if (data.requirements !== undefined) result.requirements = data.requirements;
   if (data.additionalInformation !== undefined) result.additionalInformation = data.additionalInformation;
   if (data.skills !== undefined) {
@@ -434,8 +429,6 @@ function toBackendFormat(data: Partial<JobPostFormData>): Record<string, unknown
     result.skills = skillsArr.join(", ");
   }
   if (data.location !== undefined) result.location = data.location;
-  if (data.salaryMin !== undefined) result.salaryMin = data.salaryMin;
-  if (data.salaryMax !== undefined) result.salaryMax = data.salaryMax;
 
 
   // Send status as title case (e.g., "Active", "Draft", "Closed")
@@ -634,7 +627,7 @@ export async function updateJobPost(
 export async function closeJobPost(id: string): Promise<JobPost> {
   const res = await fetchWithAuth(apiUrl(`/api/employer/job-posts/${id}`), {
     method: "PATCH",
-    body: JSON.stringify({ status: "CLOSED" }),  // Backend expects uppercase
+    body: JSON.stringify({ status: "Closed" }),
   });
   
   // Check for database unavailability (503) and update offline store
@@ -668,19 +661,19 @@ export async function closeJobPost(id: string): Promise<JobPost> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SET JOB POST STATUS — Updates a job post status to ACTIVE/DRAFT/CLOSED.
-// Input: Post ID and status ("ACTIVE", "DRAFT", or "CLOSED" in uppercase).
+// SET JOB POST STATUS — Updates a job post status to Draft/Active/Closed.
+// Input: Post ID and status ("Draft", "Active", or "Closed").
 // Returns: Updated JobPost.
 // On 503 (database unavailable): Updates locally in offline store.
 // Used by dropdown in JobPostsTable component to change status.
 // ═══════════════════════════════════════════════════════════════════════════════
 export async function setJobPostStatus(
   id: string,
-  status: "DRAFT" | "ACTIVE" | "CLOSED"
+  status: "Draft" | "Active" | "Closed"
 ): Promise<JobPost> {
   const res = await fetchWithAuth(apiUrl(`/api/employer/job-posts/${id}`), {
     method: "PATCH",
-    body: JSON.stringify({ status }),  // Already in uppercase from component
+    body: JSON.stringify({ status }),
   });
 
   // Check for database unavailability (503) and update offline store
@@ -691,13 +684,9 @@ export async function setJobPostStatus(
       throw new Error("Job post not found");
     }
 
-    // Map uppercase status to frontend format: "ACTIVE" → "Active"
-    const mappedStatus: JobPost["status"] =
-      status === "ACTIVE" ? "Active" : status === "CLOSED" ? "Closed" : "Draft";
-
     const updatedOffline = {
       ...current[index],
-      status: mappedStatus,
+      status,
       updatedAt: new Date().toISOString(),
     };
     current[index] = updatedOffline;

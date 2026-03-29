@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useRouter } from "next/navigation";
 import { FileText, LogOut } from "lucide-react";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
 import { createJobPost, updateJobPost } from "@/lib/employer/jobPosts.service";
-import JobPostedSuccessfully from "./JobPostedSuccessfully";
+import Popup from "@/components/admin/layout/Popup";
 
 interface JobPostFormProps {
   initialData?: Partial<JobPostFormData>;
@@ -18,9 +20,8 @@ const EMPTY: JobPostFormData = {
   type: "Job",
   closingDate: "",
   location: "",
-  salaryMin: "",
-  salaryMax: "",
   description: "",
+  responsibilities: "",
   requirements: "",
   additionalInformation: "",
   skills: "",
@@ -53,7 +54,15 @@ export default function JobPostForm({
   const [loading, setLoading] = useState(false);
   const [draftLoading, setDraftLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [popup, setPopup] = useState<{
+    open: boolean;
+    message: string;
+    success?: boolean;
+  }>({
+    open: false,
+    message: "",
+    success: false,
+  });
   const isEdit = Boolean(postId);
 
   useEffect(() => {
@@ -77,12 +86,51 @@ export default function JobPostForm({
     }));
   };
 
+  // Helper for DatePicker: convert string to Date and back
+  const closingDateValue = form.closingDate ? new Date(form.closingDate) : null;
+
   const handleSubmit = async () => {
     setError("");
 
+    // Required fields check
     if (!form.title || !form.location || !form.description) {
       setError("Please fill in the required fields before posting.");
       return;
+    }
+
+    // Min/max length validation for required textareas
+    const requiredFieldsToValidate = [
+      { key: "description", label: "Job Description" },
+      { key: "requirements", label: "Qualifications" },
+    ];
+    for (const { key, label } of requiredFieldsToValidate) {
+      const value = form[key as keyof typeof form] as string;
+      if (value.length < 20) {
+        setError(`${label} must be at least 20 characters.`);
+        return;
+      }
+      if (value.length > 700) {
+        setError(`${label} must be at most 700 characters.`);
+        return;
+      }
+    }
+    // Optional fields: validate only if not empty
+    const optionalFieldsToValidate = [
+      { key: "responsibilities", label: "Responsibilities" },
+      { key: "additionalInformation", label: "Additional Information" },
+    ];
+    for (const { key, label } of optionalFieldsToValidate) {
+      const value = form[key as keyof typeof form] as string;
+      if (value && value.length > 0) {
+        if (value.length < 20) {
+          setError(`${label} must be at least 20 characters if provided.`);
+          return;
+        }
+        if (value.length > 700) {
+          setError(`${label} must be at most 700 characters.`);
+          return;
+        }
+      }
     }
 
     if (!isEdit) {
@@ -108,11 +156,26 @@ export default function JobPostForm({
         await createJobPost(payload);
       }
 
-      setShowSuccessModal(true);
+      setPopup({
+        open: true,
+        message: isEdit
+          ? "Job post updated successfully! Your latest changes are now live."
+          : "Job post created successfully!",
+        success: true,
+      });
       onSuccess?.();
     } catch (err) {
       console.error(err);
-      setError("Something went wrong. Please try again.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.";
+      setError(message);
+      setPopup({
+        open: true,
+        message,
+        success: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -143,6 +206,18 @@ export default function JobPostForm({
 
   return (
     <>
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => {
+          setPopup((prev) => ({ ...prev, open: false }));
+          if (popup.success) {
+            router.push("/users/employer/job-posts");
+          }
+        }}
+      />
+
       <div className="h-full overflow-y-auto rounded-2xl bg-white px-12 py-10 shadow-sm">
         <div className="mb-6">
           <h2 className="text-[22px] font-bold text-black">
@@ -239,33 +314,6 @@ export default function JobPostForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
-            <div className="md:col-span-6">
-              <label className={labelCls}>Minimum Salary</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. 50000"
-                value={form.salaryMin}
-                onChange={(e) => setField("salaryMin", e.target.value)}
-                name="salaryMin"
-                type="number"
-                min="0"
-              />
-            </div>
-            <div className="md:col-span-6">
-              <label className={labelCls}>Maximum Salary</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. 100000"
-                value={form.salaryMax}
-                onChange={(e) => setField("salaryMax", e.target.value)}
-                name="salaryMax"
-                type="number"
-                min="0"
-              />
-            </div>
-          </div>
-
           <div>
             <label className={labelCls}>Job Description</label>
             <textarea
@@ -278,6 +326,16 @@ export default function JobPostForm({
 
           <div>
             <label className={labelCls}>Qualifications</label>
+            <textarea
+              className={`${textareaCls} min-h-25`}
+              placeholder="List the key responsibilities for this role..."
+              value={form.responsibilities}
+              onChange={(e) => setField("responsibilities", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Additional Information</label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List required experience and education..."
@@ -308,11 +366,17 @@ export default function JobPostForm({
 
           <div className="max-w-md">
             <label className={labelCls}>Closing Date</label>
-            <input
-              type="date"
+            <DatePicker
+              selected={closingDateValue}
+              onChange={(date: Date | null) => setField("closingDate", date ? date.toISOString().slice(0, 10) : "")}
               className={inputCls}
-              value={form.closingDate}
-              onChange={(e) => setField("closingDate", e.target.value)}
+              placeholderText="Select closing date"
+              dateFormat="yyyy-MM-dd"
+              minDate={new Date()}
+              isClearable
+              showMonthDropdown
+              showYearDropdown
+              dropdownMode="select"
             />
           </div>
           <div className="flex items-center justify-end gap-3 pt-3">
@@ -341,17 +405,6 @@ export default function JobPostForm({
         </div>
       </div>
 
-      <JobPostedSuccessfully
-        isOpen={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          router.push("/users/employer/job-posts");
-        }}
-        onViewPost={() => {
-          setShowSuccessModal(false);
-          router.push("/users/employer/job-posts");
-        }}
-      />
     </>
   );
 }

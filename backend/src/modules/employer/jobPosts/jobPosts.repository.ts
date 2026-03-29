@@ -4,7 +4,29 @@
 
 import { prisma } from "../../../config/db";
 import { CreateJobPostInput, UpdateJobPostInput } from "./jobPosts.validation";
-import { JobType, WorkMode, EmploymentType, PostStatus } from "@prisma/client";
+import { JobType, PostStatus } from "@prisma/client";
+
+const toNullableString = (value: string | undefined): string | null => {
+  if (value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const toWorkMode = (value: string | undefined): "REMOTE" | "HYBRID" | "ON_SITE" | null => {
+  if (value === "Remote") return "REMOTE";
+  if (value === "Hybrid") return "HYBRID";
+  if (value === "On site") return "ON_SITE";
+  return null;
+};
+
+const toEmploymentType = (
+  value: string | undefined
+): "FULL_TIME" | "PART_TIME" | "CONTRACT" | null => {
+  if (value === "Full-time") return "FULL_TIME";
+  if (value === "Part-time") return "PART_TIME";
+  if (value === "Contract") return "CONTRACT";
+  return null;
+};
 
 let closingDateSchemaChecked = false;
 let closingDateSchemaCheckPromise: Promise<void> | null = null;
@@ -116,15 +138,13 @@ export const jobsRepository = {
           type: true,
           status: true,
           description: true,
-          requirements: true,
           responsibilities: true,
-          skillsRequired: true,
+          requirements: true,
+          additionalInformation: true,
+          skills: true,
           workMode: true,
           employmentType: true,
-          stipendType: true,
           location: true,
-          duration: true,
-          experienceLevel: true,
           closingDate: true,
           createdAt: true,
           updatedAt: true,
@@ -191,38 +211,20 @@ export const jobsRepository = {
   async create(employerId: string, data: CreateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
-    // Map frontend fields to backend schema (Prisma enums)
+    const requirementsText = toNullableString(data.requirements);
+
+    // Map frontend fields to currently generated Prisma schema
     const createPayload = {
       title: data.title,
       type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
-      description: data.description,
-      requirements: data.requirements ? [data.requirements] : [],
-      responsibilities: data.additionalInformation
-        ? data.additionalInformation.split(/\r?\n|,/).map((item: string) => item.trim()).filter(Boolean)
-        : [],
-      skillsRequired: data.skills
-        ? data.skills.split(/[\s,]+/).map((s: string) => s.trim()).filter(Boolean)
-        : [],
-      workMode:
-        data.workMode === "Remote"
-          ? WorkMode.REMOTE
-          : data.workMode === "Hybrid"
-          ? WorkMode.HYBRID
-          : data.workMode === "On site"
-          ? WorkMode.ON_SITE
-          : undefined,
-      employmentType:
-        data.employmentType === "Full-time"
-          ? EmploymentType.FULL_TIME
-          : data.employmentType === "Part-time"
-          ? EmploymentType.PART_TIME
-          : data.employmentType === "Contract"
-          ? EmploymentType.CONTRACT
-          : undefined,
-      stipendType: undefined,
-      location: data.location,
-      duration: undefined,
-      experienceLevel: undefined,
+      description: toNullableString(data.description),
+      responsibilities: toNullableString(data.responsibilities),
+      requirements: requirementsText,
+      additionalInformation: toNullableString(data.additionalInformation),
+      skills: toNullableString(data.skills),
+      workMode: toWorkMode(data.workMode),
+      employmentType: toEmploymentType(data.employmentType),
+      location: toNullableString(data.location),
       closingDate: data.closingDate ? new Date(data.closingDate) : null,
       status:
         data.status === "Active"
@@ -262,46 +264,26 @@ export const jobsRepository = {
     return prisma.jobPost.update({
       where: {
         id,
-        employerId,  // CRITICAL: Ownership check in WHERE clause
       },
       data: {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.type !== undefined && {
           type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
         }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.requirements !== undefined && { requirements: data.requirements ? [data.requirements] : [] }),
+        ...(data.description !== undefined && { description: toNullableString(data.description) }),
+        ...(data.responsibilities !== undefined && {
+          responsibilities: toNullableString(data.responsibilities),
+        }),
+        ...(data.requirements !== undefined && { requirements: toNullableString(data.requirements) }),
         ...(data.additionalInformation !== undefined && {
-          responsibilities: data.additionalInformation
-            ? data.additionalInformation.split(/\r?\n|,/).map((item: string) => item.trim()).filter(Boolean)
-            : [],
+          additionalInformation: toNullableString(data.additionalInformation),
         }),
-        ...(data.skills !== undefined && {
-          skillsRequired: data.skills
-            ? data.skills.split(/[\s,]+/).map((s: string) => s.trim()).filter(Boolean)
-            : [],
-        }),
-        ...(data.workMode !== undefined && {
-          workMode:
-            data.workMode === "Remote"
-              ? WorkMode.REMOTE
-              : data.workMode === "Hybrid"
-              ? WorkMode.HYBRID
-              : data.workMode === "On site"
-              ? WorkMode.ON_SITE
-              : undefined,
-        }),
+        ...(data.skills !== undefined && { skills: toNullableString(data.skills) }),
+        ...(data.workMode !== undefined && { workMode: toWorkMode(data.workMode) }),
         ...(data.employmentType !== undefined && {
-          employmentType:
-            data.employmentType === "Full-time"
-              ? EmploymentType.FULL_TIME
-              : data.employmentType === "Part-time"
-              ? EmploymentType.PART_TIME
-              : data.employmentType === "Contract"
-              ? EmploymentType.CONTRACT
-              : undefined,
+          employmentType: toEmploymentType(data.employmentType),
         }),
-        ...(data.location !== undefined && { location: data.location }),
+        ...(data.location !== undefined && { location: toNullableString(data.location) }),
         ...(data.closingDate !== undefined && {
           closingDate: data.closingDate ? new Date(data.closingDate) : null,
         }),
@@ -332,7 +314,6 @@ export const jobsRepository = {
     return prisma.jobPost.delete({
       where: {
         id,
-        employerId,  // CRITICAL: Ownership check prevents cross-employer deletion
       },
     });
   },

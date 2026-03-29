@@ -21,6 +21,8 @@ interface Props {
 const buildExtrasStorageKey = (id: string) => `employerJobPostExtras:${id}`;
 
 type LocalExtras = {
+  requirements?: string;
+  responsibilities?: string;
   additionalInformation?: string;
   skills?: string;
 };
@@ -48,6 +50,8 @@ export default function JobPostDetailPage({ params }: Props) {
             const extras = JSON.parse(rawExtras) as LocalExtras;
             merged = {
               ...data,
+              requirements: data.requirements || extras.requirements || "",
+              responsibilities: data.responsibilities || extras.responsibilities || "",
               additionalInformation: data.additionalInformation || extras.additionalInformation || "",
               skills:
                 data.skills && data.skills.length > 0
@@ -163,37 +167,42 @@ export default function JobPostDetailPage({ params }: Props) {
         </div>
 
         <div className="space-y-5">
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <Briefcase size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Job Description</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{post.description || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <ListChecks size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Responsibilities</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{post.description || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <GraduationCap size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Qualifications</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{post.requirements || "-"}</p>
-          </section>
-
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <Info size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Additional Information</h2>
-            </div>
-            <p className="text-[14px] leading-7 text-gray-700">{post.additionalInformation || "-"}</p>
-          </section>
+          {post.description && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <Briefcase size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Job Description</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{post.description}</p>
+            </section>
+          )}
+          {post.responsibilities && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <ListChecks size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Responsibilities</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{post.responsibilities}</p>
+            </section>
+          )}
+          {post.requirements && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <GraduationCap size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Qualifications</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{post.requirements}</p>
+            </section>
+          )}
+          {post.additionalInformation && (
+            <section>
+              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
+                <Info size={15} className="text-gray-700" />
+                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Additional Information</h2>
+              </div>
+              <p className="text-[14px] leading-7 text-gray-700">{post.additionalInformation}</p>
+            </section>
+          )}
 
           <section>
             <div className="mb-1.5 flex items-center gap-2 text-gray-800">
