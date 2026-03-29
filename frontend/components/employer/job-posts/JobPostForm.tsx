@@ -325,7 +325,7 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Responsibilities</label>
+            <label className={labelCls}>Qualifications</label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List the key responsibilities for this role..."
@@ -335,7 +335,7 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Qualifications</label>
+            <label className={labelCls}>Additional Information</label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List required experience and education..."

@@ -17,8 +17,11 @@ model User {
   updatedAt           DateTime             @updatedAt
   firstName           String?
   lastName            String?
+
   authAccounts        AuthAccount[]
   employerProfile     EmployerProfile?
+  candidateProfile    CandidateProfile?
+
   passwordResetTokens PasswordResetToken[]
   refreshTokens       RefreshToken[]
   verificationTokens  VerificationToken[]
@@ -32,6 +35,7 @@ model AuthAccount {
   refreshToken   String?
   expiresAt      DateTime?
   createdAt      DateTime     @default(now())
+
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -44,6 +48,7 @@ model RefreshToken {
   isRevoked Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -53,6 +58,7 @@ model VerificationToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -62,6 +68,7 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -74,7 +81,15 @@ model EmployerProfile {
   registrationFileName String
   verificationStatus   VerificationStatus @default(PENDING)
   rejectionReason      String?
+
+  companyDescription   String?
+  companyLogoUrl       String?
+  companyWebsite       String?
+  companyLocation      String?
+
   createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobPosts             JobPost[]
 }
@@ -102,6 +117,143 @@ model JobPost {
   @@index([employerId])
   @@index([status])
 }
+
+model JobPost {
+  id               String          @id @default(uuid())
+  title            String
+  type             JobType
+  description      String?
+  requirements     String[]
+  responsibilities String[]
+  skillsRequired   String[]
+
+  workMode         WorkMode?
+  employmentType   EmploymentType?
+  stipendType      StipendType?
+  location         String?
+  duration         String?
+  experienceLevel  ExperienceLevel?
+
+  closingDate      DateTime?
+  status           PostStatus      @default(DRAFT)
+
+  employerId       String
+  employer         EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  applications     Application[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([employerId])
+  @@index([status])
+  @@index([status, createdAt])
+  @@index([workMode, type])
+}
+
+model CandidateProfile {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+
+  headline     String?
+  location     String?
+  skills       String[]      @default([])
+  bio          String?
+  linkedinUrl  String?
+  githubUrl    String?
+  portfolioUrl String?
+
+  cvPath       String?
+  cvFileName   String?
+  cvText       String?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+model Application {
+  id                   String            @id @default(uuid())
+  candidateProfileId   String
+  jobPostId            String
+
+  cvPath               String
+  cvFileName           String?
+  cvText               String?
+  coverLetter          String?
+
+  aiScore              Int?
+  skillsMatchScore     Int?
+  experienceMatchScore Int?
+  educationMatchScore  Int?
+  keywordsMatchScore   Int?
+
+  matchedSkills        String[]          @default([])
+  missingSkills        String[]          @default([])
+
+  aiSummary            String?
+
+  applicationStatus    ApplicationStatus @default(PENDING)
+
+  scoredAt             DateTime?
+  appliedAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  candidateProfile     CandidateProfile  @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  jobPost              JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  cvSuggestion         CvSuggestion?
+  generatedCoverLetter GeneratedCoverLetter?
+
+  @@unique([candidateProfileId, jobPostId])
+  @@index([jobPostId, aiScore])
+  @@index([aiScore])
+  @@index([candidateProfileId, appliedAt])
+  @@index([applicationStatus])
+}
+
+model CvSuggestion {
+  id                   String      @id @default(uuid())
+  applicationId        String      @unique
+
+  overallScore         Int
+  summaryScore         Int
+  summaryFeedback      String[]    @default([])
+
+  skillsScore          Int
+  skillsFeedback       String[]    @default([])
+
+  experienceScore      Int
+  experienceFeedback   String[]    @default([])
+
+  educationScore       Int
+  educationFeedback    String[]    @default([])
+
+  missingKeywords      String[]    @default([])
+  strengthsToHighlight String[]    @default([])
+
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  application          Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedCoverLetter {
+  id            String      @id @default(uuid())
+  applicationId String      @unique
+  content       String
+
+  generatedAt   DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum Role {
   STUDENT
