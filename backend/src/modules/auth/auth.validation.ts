@@ -55,11 +55,12 @@ export const validateLogin = (data: any) => {
     throw new Error("Email and password required");
   }
 
-  data.email = String(data.email).trim().toLowerCase();
-
-  if (!validator.isEmail(data.email)) {
+  const normalizedEmail = String(data.email).trim().toLowerCase();
+  if (!validator.isEmail(normalizedEmail)) {
     throw new Error("Invalid email format");
   }
+
+  data.email = normalizedEmail;
 };
 
 export const validateResetPassword = (newPassword: string) => {

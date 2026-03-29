@@ -66,8 +66,9 @@ export async function apiClient<T>(
         throw new Error('Session expired');
       }
 
+      const responseData = error.response?.data as { message?: string } | undefined;
       const errorMessage =
-        error.response?.data?.message || error.message || 'Request failed';
+        responseData?.message || error.message || 'Request failed';
       throw new Error(errorMessage);
     } else {
       if (error instanceof Error) {

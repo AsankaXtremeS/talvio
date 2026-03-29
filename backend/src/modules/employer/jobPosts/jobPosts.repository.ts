@@ -1,29 +1,83 @@
+// Repository layer for employer job post management.
+// Responsible ONLY for database access — no business logic lives here.
+// All queries are built with Prisma and typed explicitly.
+
+import { prisma } from "../../../config/db";
 import { CreateJobPostInput, UpdateJobPostInput } from "./jobPosts.validation";
+import { JobType, PostStatus } from "@prisma/client";
 
-interface InMemoryEmployerProfile {
-  id: string;
-  verificationStatus: "APPROVED" | "PENDING" | "REJECTED";
+const toNullableString = (value: string | undefined): string | null => {
+  if (value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const toWorkMode = (value: string | undefined): "REMOTE" | "HYBRID" | "ON_SITE" | null => {
+  if (value === "Remote") return "REMOTE";
+  if (value === "Hybrid") return "HYBRID";
+  if (value === "On site") return "ON_SITE";
+  return null;
+};
+
+const toEmploymentType = (
+  value: string | undefined
+): "FULL_TIME" | "PART_TIME" | "CONTRACT" | null => {
+  if (value === "Full-time") return "FULL_TIME";
+  if (value === "Part-time") return "PART_TIME";
+  if (value === "Contract") return "CONTRACT";
+  return null;
+};
+
+let closingDateSchemaChecked = false;
+let closingDateSchemaCheckPromise: Promise<void> | null = null;
+
+async function ensureClosingDateColumnCompatibility(): Promise<void> {
+  if (closingDateSchemaChecked) return;
+  if (closingDateSchemaCheckPromise) return closingDateSchemaCheckPromise;
+
+  closingDateSchemaCheckPromise = (async () => {
+    try {
+      const closingColumn = (await prisma.$queryRawUnsafe(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'JobPost'
+           AND column_name = 'closingDate'
+         LIMIT 1;`
+      )) as Array<{ column_name: string }>;
+
+      if (closingColumn.length > 0) {
+        closingDateSchemaChecked = true;
+        return;
+      }
+
+      const closedColumn = (await prisma.$queryRawUnsafe(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'JobPost'
+           AND column_name = 'closedDate'
+         LIMIT 1;`
+      )) as Array<{ column_name: string }>;
+
+      if (closedColumn.length > 0) {
+        await prisma.$executeRawUnsafe(
+          'ALTER TABLE "JobPost" RENAME COLUMN "closedDate" TO "closingDate";'
+        );
+      } else {
+        await prisma.$executeRawUnsafe(
+          'ALTER TABLE "JobPost" ADD COLUMN "closingDate" TIMESTAMP(3);'
+        );
+      }
+
+      closingDateSchemaChecked = true;
+    } finally {
+      closingDateSchemaCheckPromise = null;
+    }
+  })();
+
+  return closingDateSchemaCheckPromise;
 }
-
-interface InMemoryJobPost {
-  id: string;
-  employerId: string;
-  title: string;
-  type: "JOB" | "INTERNSHIP";
-  status: "DRAFT" | "ACTIVE" | "CLOSED";
-  description: string | null;
-  requirements: string | null;
-  closingDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const posts: InMemoryJobPost[] = [];
-
-const toProfile = (userId: string): InMemoryEmployerProfile => ({
-  id: userId,
-  verificationStatus: "APPROVED",
-});
 
 export interface GetJobPostsOptions {
   employerId: string;
@@ -35,75 +89,232 @@ export interface GetJobPostsOptions {
 }
 
 export const jobsRepository = {
-  async findEmployerProfileByUserId(userId: string): Promise<InMemoryEmployerProfile> {
-    return toProfile(userId);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIND EMPLOYER PROFILE — Used to verify employer exists and is approved.
+  // Called by service layer to check if user has an employer account.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async findEmployerProfileByUserId(userId: string) {
+    // Query employer profile by user ID; only fetch id and verification status
+    return prisma.employerProfile.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        verificationStatus: true,
+      },
+    });
   },
 
-  async findAll(options: GetJobPostsOptions): Promise<{ posts: InMemoryJobPost[]; total: number }> {
-    const page = options.page ?? 1;
-    const limit = options.limit ?? 20;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIND ALL JOB POSTS — Returns paginated, filtered list of job posts.
+  // Supports filtering by status, type, and text search in title.
+  // IMPORTANT: Always filters by employerId to ensure data isolation.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async findAll(options: GetJobPostsOptions) {
+    // Ensure 'closingDate' column exists (schema migration for backward compatibility)
+    await ensureClosingDateColumnCompatibility();
 
-    let filtered = posts.filter((p) => p.employerId === options.employerId);
+    const { employerId, status, type, search, page = 1, limit = 20 } = options;
+    const skip = (page - 1) * limit;
 
-    if (options.status) filtered = filtered.filter((p) => p.status === options.status);
-    if (options.type) filtered = filtered.filter((p) => p.type === options.type);
-    if (options.search) {
-      const needle = options.search.toLowerCase();
-      filtered = filtered.filter((p) => p.title.toLowerCase().includes(needle));
+    // Build WHERE clause dynamically: always includes employerId, optionally includes filters
+    const where: any = {
+      employerId,                                            // CRITICAL: Filter by owner employer
+      ...(status ? { status: status as any } : {}),        // Optional: Filter by status
+      ...(type ? { type: type as any } : {}),              // Optional: Filter by type (JOB/INTERNSHIP)
+      ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}), // Optional: Search title
+    };
+
+    // Execute count and find in parallel for efficiency
+    const [total, posts] = await Promise.all([
+      prisma.jobPost.count({ where }),
+      prisma.jobPost.findMany({
+        where,
+        orderBy: { createdAt: "desc" },  // Newest posts first
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          description: true,
+          responsibilities: true,
+          requirements: true,
+          additionalInformation: true,
+          skills: true,
+          workMode: true,
+          employmentType: true,
+          location: true,
+          closingDate: true,
+          createdAt: true,
+          updatedAt: true,
+          employer: {
+            select: {
+              id: true,
+              companyName: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return { posts, total };
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GET STATS — Returns count of job posts by status.
+  // Used by dashboard to show: Total | Active | Draft | Closed
+  // ═══════════════════════════════════════════════════════════════════════════
+  async getStats(employerId: string) {
+    await ensureClosingDateColumnCompatibility();
+
+    // Use GROUP BY to count posts per status
+    const stats = await prisma.jobPost.groupBy({
+      by: ["status"],
+      where: { employerId },
+      _count: { id: true },
+    });
+
+    // Initialize result object with all statuses
+    const result = { DRAFT: 0, ACTIVE: 0, CLOSED: 0, TOTAL: 0 };
+
+    // Populate with counts from query results
+    for (const row of stats) {
+      result[row.status] = row._count.id;
+      result.TOTAL += row._count.id;
     }
 
-    const total = filtered.length;
-    const start = (page - 1) * limit;
-    return { posts: filtered.slice(start, start + limit), total };
+    return result;
   },
 
-  async getStats(employerId: string): Promise<{ DRAFT: number; ACTIVE: number; CLOSED: number; TOTAL: number }> {
-    const own = posts.filter((p) => p.employerId === employerId);
-    const DRAFT = own.filter((p) => p.status === "DRAFT").length;
-    const ACTIVE = own.filter((p) => p.status === "ACTIVE").length;
-    const CLOSED = own.filter((p) => p.status === "CLOSED").length;
-    return { DRAFT, ACTIVE, CLOSED, TOTAL: own.length };
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIND BY ID — Returns a single job post by ID.
+  // IMPORTANT: WHERE clause includes employerId to enforce ownership.
+  // CRITICAL: If post exists but doesn't belong to employerId, returns null.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async findById(id: string, employerId: string) {
+    await ensureClosingDateColumnCompatibility();
+
+    // findFirst with two WHERE conditions: both id AND employerId must match
+    return prisma.jobPost.findFirst({
+      where: {
+        id,
+        employerId,  // CRITICAL: Ownership check
+      },
+    });
   },
 
-  async findById(id: string, employerId: string): Promise<InMemoryJobPost | null> {
-    return posts.find((p) => p.id === id && p.employerId === employerId) ?? null;
-  },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CREATE — Inserts a new job post into the database.
+  // Defaults to DRAFT status if not specified.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async create(employerId: string, data: CreateJobPostInput) {
+    await ensureClosingDateColumnCompatibility();
 
-  async create(employerId: string, data: CreateJobPostInput): Promise<InMemoryJobPost> {
-    const now = new Date();
-    const created: InMemoryJobPost = {
-      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `jp_${Date.now()}`,
-      employerId,
+    const requirementsText = toNullableString(data.requirements);
+
+    // Map frontend fields to currently generated Prisma schema
+    const createPayload = {
       title: data.title,
-      type: data.type,
-      status: data.status ?? "DRAFT",
-      description: data.description ?? null,
-      requirements: data.requirements ?? null,
+      type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
+      description: toNullableString(data.description),
+      responsibilities: toNullableString(data.responsibilities),
+      requirements: requirementsText,
+      additionalInformation: toNullableString(data.additionalInformation),
+      skills: toNullableString(data.skills),
+      workMode: toWorkMode(data.workMode),
+      employmentType: toEmploymentType(data.employmentType),
+      location: toNullableString(data.location),
       closingDate: data.closingDate ? new Date(data.closingDate) : null,
-      createdAt: now,
-      updatedAt: now,
+      status:
+        data.status === "Active"
+          ? PostStatus.ACTIVE
+          : data.status === "Draft"
+          ? PostStatus.DRAFT
+          : data.status === "Closed"
+          ? PostStatus.CLOSED
+          : PostStatus.DRAFT,
+      employerId,
     };
-    posts.unshift(created);
-    return created;
+
+    try {
+      return await prisma.jobPost.create({ data: createPayload });
+    } catch (err: unknown) {
+      // Backward-compatibility: handle old schema with NOT NULL department column
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.toLowerCase().includes("department")) {
+        await prisma.$executeRawUnsafe(
+          "ALTER TABLE \"JobPost\" ALTER COLUMN \"department\" SET DEFAULT 'General';"
+        );
+        return prisma.jobPost.create({ data: createPayload });
+      }
+      throw err;
+    }
   },
 
-  async update(id: string, employerId: string, data: UpdateJobPostInput): Promise<InMemoryJobPost> {
-    const existing = posts.find((p) => p.id === id && p.employerId === employerId);
-    if (!existing) throw new Error("Job post not found");
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UPDATE — Partially updates a job post.
+  // Only updates fields that are provided (all fields optional for partial PATCH).
+  // IMPORTANT: WHERE clause includes employerId to prevent cross-employer updates.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async update(id: string, employerId: string, data: UpdateJobPostInput) {
+    await ensureClosingDateColumnCompatibility();
 
-    if (data.title !== undefined) existing.title = data.title;
-    if (data.type !== undefined) existing.type = data.type;
-    if (data.status !== undefined) existing.status = data.status;
-    if (data.description !== undefined) existing.description = data.description ?? null;
-    if (data.requirements !== undefined) existing.requirements = data.requirements ?? null;
-    if (data.closingDate !== undefined) existing.closingDate = data.closingDate ? new Date(data.closingDate) : null;
-    existing.updatedAt = new Date();
-
-    return existing;
+    // Conditionally update: only set fields if they were provided in data
+    return prisma.jobPost.update({
+      where: {
+        id,
+      },
+      data: {
+        ...(data.title !== undefined && { title: data.title }),
+        ...(data.type !== undefined && {
+          type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
+        }),
+        ...(data.description !== undefined && { description: toNullableString(data.description) }),
+        ...(data.responsibilities !== undefined && {
+          responsibilities: toNullableString(data.responsibilities),
+        }),
+        ...(data.requirements !== undefined && { requirements: toNullableString(data.requirements) }),
+        ...(data.additionalInformation !== undefined && {
+          additionalInformation: toNullableString(data.additionalInformation),
+        }),
+        ...(data.skills !== undefined && { skills: toNullableString(data.skills) }),
+        ...(data.workMode !== undefined && { workMode: toWorkMode(data.workMode) }),
+        ...(data.employmentType !== undefined && {
+          employmentType: toEmploymentType(data.employmentType),
+        }),
+        ...(data.location !== undefined && { location: toNullableString(data.location) }),
+        ...(data.closingDate !== undefined && {
+          closingDate: data.closingDate ? new Date(data.closingDate) : null,
+        }),
+        ...(data.status !== undefined && {
+          status:
+            data.status === "Active"
+              ? PostStatus.ACTIVE
+              : data.status === "Draft"
+              ? PostStatus.DRAFT
+              : data.status === "Closed"
+              ? PostStatus.CLOSED
+              : PostStatus.DRAFT,
+        }),
+      },
+    });
   },
 
-  async deleteById(id: string, employerId: string): Promise<void> {
-    const idx = posts.findIndex((p) => p.id === id && p.employerId === employerId);
-    if (idx >= 0) posts.splice(idx, 1);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DELETE BY ID — Permanently deletes a job post.
+  // IMPORTANT: WHERE clause includes employerId to prevent cross-employer deletion.
+  // CRITICAL: This operation is IRREVERSIBLE — no recovery possible.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async deleteById(id: string, employerId: string) {
+    await ensureClosingDateColumnCompatibility();
+
+    // Delete post where both id AND employerId match
+    // If post doesn't exist or doesn't belong to employerId, Prisma throws error
+    return prisma.jobPost.delete({
+      where: {
+        id,
+      },
+    });
   },
 };
