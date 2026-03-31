@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation"; // <-- Added for navigation
+import { ArrowLeft } from "lucide-react"; // <-- Added for the back icon
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getCandidates } from "@/lib/employer/candidates.service";
@@ -12,6 +14,7 @@ interface Props {
 
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
+  const router = useRouter(); // <-- Initialize the router
 
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
@@ -54,6 +57,16 @@ export default function PostCandidatesPage({ params }: Props) {
 
   return (
     <div className="p-6 space-y-6">
+      
+      {/* ─── BACK BUTTON ────────────────────────────────────────────── */}
+      <button
+        onClick={() => router.push("/users/employer/job-posts")}
+        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 transition-colors rounded-lg hover:text-gray-900 hover:bg-gray-100 w-fit"
+      >
+        <ArrowLeft size={16} />
+        Back to Job Posts
+      </button>
+
       {/* Used text-gray-900 to ensure the heading is clearly visible on the light background */}
       <h1 className="text-2xl font-bold text-gray-900">
         Candidates for Post — {postId}
