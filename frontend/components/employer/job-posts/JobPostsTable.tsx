@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Bot } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { JobPost } from "@/types/employer/jobPost.types";
 
 interface JobPostsTableProps {
   posts: JobPost[];
   onEdit: (id: string) => void;
+  onViewCandidates: (id: string) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, nextStatus: "Draft" | "Active" | "Closed") => void;
   deletingId?: string | null;
@@ -121,7 +122,6 @@ function StatusDropdown({
 
       {open && (
         <div className="absolute left-0 z-50 mt-1.5 min-w-[140px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-          {/* Draft option - only show if status is Draft */}
           {isDraft && (
             <button
               type="button"
@@ -137,7 +137,6 @@ function StatusDropdown({
             </button>
           )}
 
-          {/* Active option - show if status is Active or Closed */}
           {(status === "Active" || status === "Closed") && (
             <button
               type="button"
@@ -153,7 +152,6 @@ function StatusDropdown({
             </button>
           )}
 
-          {/* Closed option - show if status is Active or Closed */}
           {(status === "Active" || status === "Closed") && (
             <button
               type="button"
@@ -174,7 +172,15 @@ function StatusDropdown({
   );
 }
 
-export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange, deletingId, closingId }: JobPostsTableProps) {
+export default function JobPostsTable({
+  posts,
+  onEdit,
+  onViewCandidates,
+  onDelete,
+  onStatusChange,
+  deletingId,
+  closingId,
+}: JobPostsTableProps) {
   const router = useRouter();
 
   // Sort posts by createdAt descending (latest first)
@@ -196,7 +202,6 @@ export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange,
 
   return (
     <div className="overflow-visible bg-white border border-gray-100 rounded-2xl ">
-      {/* Table header row */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
       </div>
@@ -220,26 +225,19 @@ export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange,
             </tr>
           ) : (
             sortedPosts.map((post) => (
-              <tr
-                key={post.id}
-                className="transition-colors hover:bg-gray-50"
-              >
-                {/* Title */}
+              <tr key={post.id} className="transition-colors hover:bg-gray-50">
                 <td className="px-4 py-4 text-sm font-medium text-gray-800">
                   {post.title}
                 </td>
 
-                {/* Type */}
                 <td className="px-4 py-4 text-sm text-gray-500">
                   {post.type}
                 </td>
 
-                {/* Closing Date */}
                 <td className="px-4 py-4 text-sm text-gray-500">
                   {formatDate(post.closingDate)}
                 </td>
 
-                {/* Status dropdown */}
                 <td className="px-4 py-4">
                   <StatusDropdown
                     postId={post.id}
@@ -249,34 +247,43 @@ export default function JobPostsTable({ posts, onEdit, onDelete, onStatusChange,
                   />
                 </td>
 
-                {/* Actions */}
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-center gap-2">
+                    {/* AI Matches & View - Show only if NOT Draft */}
                     {post.status !== "Draft" && (
-                      <button
-                        onClick={() =>
-                          router.push(`/users/employer/job-posts/${post.id}`)
-                        }
-                        className="px-4 py-1.5 rounded-lg border border-indigo-400 text-indigo-600
-                                   text-xs font-semibold hover:bg-indigo-50 transition-colors"
-                      >
-                        View
-                      </button>
+                      <>
+                        <button
+                          onClick={() => onViewCandidates(post.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400 text-emerald-500 bg-white text-xs font-semibold hover:bg-emerald-50 transition-colors"
+                          title="View AI Shortlist"
+                        >
+                          <Bot size={14} />
+                          AI Matches
+                        </button>
+                        <button
+                          onClick={() => router.push(`/users/employer/job-posts/${post.id}`)}
+                          className="px-4 py-1.5 rounded-lg border border-indigo-400 text-indigo-500 bg-white text-xs font-semibold hover:bg-indigo-50 transition-colors"
+                        >
+                          View
+                        </button>
+                      </>
                     )}
+
+                    {/* Edit - Show only if NOT Closed */}
                     {post.status !== "Closed" && (
                       <button
                         onClick={() => onEdit(post.id)}
-                        className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-600
-                                   text-xs font-semibold hover:bg-gray-50 transition-colors"
+                        className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-500 bg-white text-xs font-semibold hover:bg-gray-50 transition-colors"
                       >
                         Edit
                       </button>
                     )}
+
+                    {/* Delete - Always show */}
                     <button
                       onClick={() => onDelete(post.id)}
                       disabled={deletingId === post.id}
-                      className="px-4 py-1.5 rounded-lg border border-red-300 text-red-600
-                                 text-xs font-semibold hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      className="px-4 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deletingId === post.id ? "Deleting..." : "Delete"}
                     </button>

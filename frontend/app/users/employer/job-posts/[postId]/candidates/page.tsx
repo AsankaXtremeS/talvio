@@ -12,6 +12,7 @@ interface Props {
 
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
+
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
@@ -53,13 +54,18 @@ export default function PostCandidatesPage({ params }: Props) {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Candidates for Post — {postId}</h1>
+      {/* Used text-gray-900 to ensure the heading is clearly visible on the light background */}
+      <h1 className="text-2xl font-bold text-gray-900">
+        Candidates for Post — {postId}
+      </h1>
+      
       <CandidateFilterBar
         status={status}
         onStatusChange={setStatus}
         query={query}
         onQueryChange={setQuery}
       />
+      
       <CandidatesGrid
         candidates={filteredCandidates}
         onViewProfile={(id) => {

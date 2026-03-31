@@ -58,23 +58,23 @@ export default function JobPostsPage() {
   // ── Fetch posts + stats from backend ──
   useEffect(() => {
     const fetchData = async () => {
-  setLoading(true);
-  setError("");
-  try {
-    console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
-    const [postsData, statsData] = await Promise.all([
-      getJobPosts(),
-      getJobPostStats(),
-    ]);
-    setPosts(postsData);
-    setStats(statsData);
-  } catch (err: unknown) {
-    console.error("Failed to load job posts:", err);
-    setError("Failed to load job posts. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+      setLoading(true);
+      setError("");
+      try {
+        console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
+        const [postsData, statsData] = await Promise.all([
+          getJobPosts(),
+          getJobPostStats(),
+        ]);
+        setPosts(postsData);
+        setStats(statsData);
+      } catch (err: unknown) {
+        console.error("Failed to load job posts:", err);
+        setError("Failed to load job posts. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchData();
   }, []);
@@ -103,8 +103,14 @@ export default function JobPostsPage() {
       );
   }, [posts, search, status, jobRole, sort]);
 
+  // Navigate to Edit page
   const handleEdit = (id: string) => {
     router.push(`/users/employer/job-posts/${id}/edit`);
+  };
+
+  // Navigate to the AI Shortlisted Candidates page for this specific job
+  const handleViewCandidates = (id: string) => {
+    router.push(`/users/employer/job-posts/${id}/candidates`);
   };
 
   const handleDelete = async (id: string) => {
@@ -285,7 +291,6 @@ export default function JobPostsPage() {
 
       {/* ── Fixed header section ── */}
       <div className="shrink-0">
-        {/* ── Filter bar ── */}
         <FilterBar
           search={search}   onSearchChange={setSearch}
           status={status}   onStatusChange={setStatus}
@@ -294,7 +299,6 @@ export default function JobPostsPage() {
           period={period}   onPeriodChange={setPeriod}
         />
 
-        {/* ── Page header ── */}
         <div className="flex items-center justify-between mt-6 mb-5">
           <h1 className="flex items-center gap-2.5 text-3xl font-bold text-indigo-500">
             <Briefcase size={26} className="text-indigo-500" />
@@ -335,6 +339,7 @@ export default function JobPostsPage() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}
+            onViewCandidates={handleViewCandidates}
             deletingId={deletingId}
             closingId={closingId}
           />
