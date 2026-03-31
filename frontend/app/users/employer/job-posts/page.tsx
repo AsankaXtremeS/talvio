@@ -31,12 +31,6 @@ export default function JobPostsPage() {
   const [sort,    setSort]    = useState("Newest");
   const [period,  setPeriod]  = useState("This Week");
 
-  // Uncomment when backend is ready:
-  // useEffect(() => {
-  //   setLoading(true);
-  //   getJobPosts().then(setPosts).finally(() => setLoading(false));
-  // }, []);
-
   // ── Derived stats ──
   const totalPosts    = posts.length;
   const activePosts   = posts.filter((p) => p.status === "Active").length;
@@ -59,16 +53,20 @@ export default function JobPostsPage() {
       );
   }, [posts, search, status, jobRole, sort]);
 
+  // Navigate to Edit page
   const handleEdit = (id: string) => {
     router.push(`/users/employer/job-posts/${id}/edit`);
   };
 
+  // Navigate to the AI Shortlisted Candidates page for this specific job
+  const handleViewCandidates = (id: string) => {
+    router.push(`/users/employer/job-posts/${id}/candidates`);
+  };
+
   return (
     <div className="flex flex-col h-full p-8 pt-2 overflow-hidden">
-
       {/* ── Fixed header section (filter + title + stats) ── */}
       <div className="shrink-0">
-        {/* ── Filter bar (top) ── */}
         <FilterBar
           search={search}       onSearchChange={setSearch}
           status={status}       onStatusChange={setStatus}
@@ -77,7 +75,6 @@ export default function JobPostsPage() {
           period={period}       onPeriodChange={setPeriod}
         />
 
-        {/* ── Page header ── */}
         <div className="flex items-center justify-between mt-6 mb-5">
           <h1 className="flex items-center gap-2.5 text-3xl font-bold text-indigo-500">
             <Briefcase size={26} className="text-indigo-500" />
@@ -93,7 +90,6 @@ export default function JobPostsPage() {
           </button>
         </div>
 
-        {/* ── Stats row ── */}
         <StatsRow
           totalPosts={totalPosts}
           active={activePosts}
@@ -109,7 +105,11 @@ export default function JobPostsPage() {
             Loading...
           </div>
         ) : (
-          <JobPostsTable posts={filtered} onEdit={handleEdit} />
+          <JobPostsTable 
+            posts={filtered} 
+            onEdit={handleEdit} 
+            onViewCandidates={handleViewCandidates} 
+          />
         )}
       </div>
     </div>
