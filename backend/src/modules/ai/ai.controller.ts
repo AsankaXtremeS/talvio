@@ -1,18 +1,17 @@
-import { Request, Response } from "express";
-import { aiService } from "./ai.service";
-import { aiRepository } from "./ai.repository";
 import { ApplicationStatus } from "@prisma/client";
+import { Request, Response } from "express";
+import { aiRepository } from "./ai.repository";
+import { aiService } from "./ai.service";
 
 /**
  * Safely extract route param as string
  */
-const getParam = (value: string | string[] | undefined, name: string): string => {
+const getParam = (
+  value: string | string[] | undefined,
+  name: string
+): string => {
   const val = Array.isArray(value) ? value[0] : value;
-
-  if (!val) {
-    throw new Error(`Missing required param: ${name}`);
-  }
-
+  if (!val) throw new Error(`Missing required param: ${name}`);
   return val;
 };
 
@@ -31,8 +30,10 @@ export const applyForJob = async (req: Request, res: Response) => {
     const jobPostId = getParam(req.params.jobPostId, "jobPostId");
     const file = req.file;
 
-    // If the candidate has already applied to this job, return success idempotently.
-    let candidateProfile = await aiRepository.findCandidateProfileByUserId(userId);
+    // Return early if already applied (idempotent)
+    let candidateProfile =
+      await aiRepository.findCandidateProfileByUserId(userId);
+
     if (candidateProfile) {
       const existing = await aiRepository.findApplicationByCandidateAndJob(
         candidateProfile.id,
@@ -54,17 +55,15 @@ export const applyForJob = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "CV file is required" });
     }
 
-    // Extract CV text
     const cvText = await aiService.extractCvText(file.path);
 
-    // Save profile
     candidateProfile = await aiRepository.upsertCandidateProfile(userId, {
       cvPath: file.path,
       cvFileName: file.originalname,
       cvText,
     });
 
-    // Prevent duplicate application
+    // Double-check for race condition between upload + profile creation
     const existing = await aiRepository.findApplicationByCandidateAndJob(
       candidateProfile.id,
       jobPostId
@@ -80,7 +79,6 @@ export const applyForJob = async (req: Request, res: Response) => {
       });
     }
 
-    // Get job post
     const jobPost = await aiRepository.findJobPostById(jobPostId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found" });
@@ -88,7 +86,6 @@ export const applyForJob = async (req: Request, res: Response) => {
 
     const jobDescription = buildJobDescription(jobPost);
 
-    // Create application
     const application = await aiRepository.createApplication({
       candidateProfileId: candidateProfile.id,
       jobPostId,
@@ -97,10 +94,8 @@ export const applyForJob = async (req: Request, res: Response) => {
       cvText,
     });
 
-    // Score CV
     const score = await aiService.scoreCv(cvText, jobDescription);
 
-    // Save score
     await aiRepository.saveScore(application.id, {
       aiScore: score.overallScore,
       skillsMatchScore: score.skillsMatchScore,
@@ -117,7 +112,6 @@ export const applyForJob = async (req: Request, res: Response) => {
       applicationId: application.id,
       score,
     });
-
   } catch (err: any) {
     console.error("applyForJob error:", err);
     return res.status(500).json({ message: err.message });
@@ -142,22 +136,28 @@ export const getCvSuggestions = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "CV text missing" });
     }
 
+    // FIX 5 — DB-FIRST CHECK: return existing suggestions without hitting AI
+    if (application.cvSuggestion) {
+      return res.status(200).json(application.cvSuggestion);
+    }
+
     const jobPost = await aiRepository.findJobPostById(application.jobPostId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found" });
     }
 
     const jobDescription = buildJobDescription(jobPost);
-
     const suggestions = await aiService.getCvSuggestions(
       application.cvText,
       jobDescription
     );
 
-    const saved = await aiRepository.upsertCvSuggestion(applicationId, suggestions);
+    const saved = await aiRepository.upsertCvSuggestion(
+      applicationId,
+      suggestions
+    );
 
     return res.status(200).json(saved);
-
   } catch (err: any) {
     console.error("getCvSuggestions error:", err);
     return res.status(500).json({ message: err.message });
@@ -172,6 +172,7 @@ export const getCvSuggestions = async (req: Request, res: Response) => {
 export const generateCoverLetter = async (req: Request, res: Response) => {
   try {
     const applicationId = getParam(req.params.applicationId, "applicationId");
+    const { regenerate } = req.query; // ?regenerate=true forces a fresh generation
 
     const application = await aiRepository.findApplicationById(applicationId);
     if (!application) {
@@ -182,13 +183,21 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "CV text missing" });
     }
 
+    // FIX 5 — DB-FIRST CHECK: return stored cover letter without touching AI
+    // unless the client explicitly requests regeneration via ?regenerate=true
+    if (application.generatedCoverLetter?.content && regenerate !== "true") {
+      return res.status(200).json({
+        coverLetter: application.generatedCoverLetter.content,
+        cached: true,
+      });
+    }
+
     const jobPost = await aiRepository.findJobPostById(application.jobPostId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found" });
     }
 
     const jobDescription = buildJobDescription(jobPost);
-
     const content = await aiService.generateCoverLetter(
       application.cvText,
       jobDescription
@@ -201,8 +210,8 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       coverLetter: saved.content,
+      cached: false,
     });
-
   } catch (err: any) {
     console.error("generateCoverLetter error:", err);
     return res.status(500).json({ message: err.message });
@@ -217,28 +226,32 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 export const getRankedApplicants = async (req: Request, res: Response) => {
   try {
     const jobPostId = getParam(req.params.jobPostId, "jobPostId");
-
     const applicants = await aiRepository.findRankedApplicants(jobPostId);
 
     return res.status(200).json({
       total: applicants.length,
-      applicants: applicants.map((a) => ({
-        applicationId: a.id,
-        aiScore: a.aiScore,
-        applicationStatus: a.applicationStatus,
-        appliedAt: a.appliedAt,
-        matchedSkills: a.matchedSkills,
-        missingSkills: a.missingSkills,
-        summary: a.aiSummary,
-        candidate: {
-          name: `${a.candidateProfile.user.firstName ?? ""} ${a.candidateProfile.user.lastName ?? ""}`.trim(),
-          email: a.candidateProfile.user.email,
-          headline: a.candidateProfile.headline,
-          skills: a.candidateProfile.skills,
-        },
-      })),
-    });
+      applicants: applicants.map((a) => {
+        const firstName = a.candidateProfile?.user?.firstName ?? "";
+        const lastName = a.candidateProfile?.user?.lastName ?? "";
+        const email = a.candidateProfile?.user?.email ?? "";
 
+        return {
+          applicationId: a.id,
+          aiScore: a.aiScore,
+          applicationStatus: a.applicationStatus,
+          appliedAt: a.appliedAt,
+          matchedSkills: a.matchedSkills,
+          missingSkills: a.missingSkills,
+          summary: a.aiSummary,
+          candidate: {
+            name: `${firstName} ${lastName}`.trim(),
+            email,
+            headline: a.candidateProfile?.headline ?? "",
+            skills: a.candidateProfile?.skills ?? [],
+          },
+        };
+      }),
+    });
   } catch (err: any) {
     console.error("getRankedApplicants error:", err);
     return res.status(500).json({ message: err.message });
@@ -255,7 +268,7 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
     const applicationId = getParam(req.params.applicationId, "applicationId");
     const { status } = req.body as { status: ApplicationStatus };
 
-    const validStatuses = ["PENDING", "REVIEWED", "SHORTLISTED", "REJECTED", "HIRED"];
+    const validStatuses = Object.values(ApplicationStatus);
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -263,13 +276,15 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
       });
     }
 
-    const updated = await aiRepository.updateApplicationStatus(applicationId, status);
+    const updated = await aiRepository.updateApplicationStatus(
+      applicationId,
+      status
+    );
 
     return res.status(200).json({
       applicationId: updated.id,
       applicationStatus: updated.applicationStatus,
     });
-
   } catch (err: any) {
     console.error("updateApplicationStatus error:", err);
     return res.status(500).json({ message: err.message });
@@ -281,9 +296,8 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildJobDescription(jobPost: any): string {
-  const parts: string[] = [];
+  const parts: string[] = [`Job Title: ${jobPost.title}`];
 
-  parts.push(`Job Title: ${jobPost.title}`);
   if (jobPost.description) parts.push(`Description: ${jobPost.description}`);
   if (jobPost.skillsRequired?.length)
     parts.push(`Skills: ${jobPost.skillsRequired.join(", ")}`);
