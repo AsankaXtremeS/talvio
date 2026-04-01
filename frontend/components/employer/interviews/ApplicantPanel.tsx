@@ -1,6 +1,10 @@
 import { CheckCircle2 } from 'lucide-react';
 
-export default function ApplicantPanel() {
+interface ApplicantPanelProps {
+  candidateId?: string;
+}
+
+export default function ApplicantPanel({ candidateId }: ApplicantPanelProps) {
   return (
     <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl">
       <div className="flex items-start justify-between mb-4">
@@ -22,6 +26,9 @@ export default function ApplicantPanel() {
         </span>
       </div>
 
+      <p className="mb-2 text-xs text-gray-400">
+        Candidate ID: {candidateId ?? "unknown"}
+      </p>
       <p className="mb-4 text-sm text-gray-500">
         5 years experience · Applied 2 days ago
       </p>
