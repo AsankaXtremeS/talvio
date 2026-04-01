@@ -5,16 +5,7 @@ import { DashboardJob } from "./RecommendationRow";
 const STORAGE_KEY = "candidateAppliedJobIds";
 
 const RECOMMENDED_JOBS: DashboardJob[] = [
-  {
-    id: "1",
-    title: "Frontend Developer Intern",
-    company: "Google",
-    location: "Mountain view, CA",
-    postedAgo: "2 days ago",
-    matchPercent: 92,
-    tags: ["Remote", "Full time", "Paid", "6 months"],
-    companyLogoUrl: "google",
-  },
+  
   {
     id: "2",
     title: "Data Analyst Intern",

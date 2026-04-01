@@ -14,7 +14,7 @@ export default function StatCardGrid({ cards }: StatCardGridProps) {
       {cards.map((card) => (
         <div
           key={card.title}
-          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-[#A78BFA] via-[#8AA5FF] to-[#86A7FF] px-4 py-3 text-white shadow-sm"
+          className="rounded-xl border border-indigo-200 bg-indigo-500 px-4 py-3 text-white shadow-sm"
         >
           <div className="flex items-center justify-between text-[11px] font-medium text-white/90">
             <span>{card.title}</span>
