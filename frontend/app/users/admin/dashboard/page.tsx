@@ -69,7 +69,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="flex min-h-full w-full flex-col overflow-visible">
+    <div className="flex min-h-full w-full flex-col overflow-visible [&_button:not(:disabled)]:cursor-pointer">
       <AdminTopbar
         showSearch={false}
         filters={
