@@ -87,18 +87,21 @@ async function main() {
         firstName: 'Test',
         lastName: 'Student',
         isVerified: true,
-        candidateProfile: {
-          create: {
-            headline: 'Computer Science Undergraduate',
-            location: 'Colombo, Sri Lanka',
-            skills: ['JavaScript', 'React', 'Node.js', 'Python'],
-            bio: 'Passionate CS undergraduate looking for internship opportunities.',
-            linkedinUrl: 'https://linkedin.com/in/teststudent',
-            githubUrl: 'https://github.com/teststudent',
-          },
-        },
       },
     });
+
+    await prisma.candidateProfile.create({
+      data: {
+        userId: student.id,
+        headline: 'Computer Science Undergraduate',
+        location: 'Colombo, Sri Lanka',
+        skills: ['JavaScript', 'React', 'Node.js', 'Python'],
+        bio: 'Passionate CS undergraduate looking for internship opportunities.',
+        linkedinUrl: 'https://linkedin.com/in/teststudent',
+        githubUrl: 'https://github.com/teststudent',
+      },
+    });
+
     console.log('Student user created:', student.email);
     console.log('Email:', studentEmail);
     console.log('Password:', studentPassword);
@@ -121,19 +124,22 @@ async function main() {
         firstName: 'Test',
         lastName: 'Professional',
         isVerified: true,
-        candidateProfile: {
-          create: {
-            headline: 'Senior Software Engineer',
-            location: 'Kandy, Sri Lanka',
-            skills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'AWS'],
-            bio: 'Experienced software engineer with 5+ years in full stack development.',
-            linkedinUrl: 'https://linkedin.com/in/testprofessional',
-            githubUrl: 'https://github.com/testprofessional',
-            portfolioUrl: 'https://testprofessional.dev',
-          },
-        },
       },
     });
+
+    await prisma.candidateProfile.create({
+      data: {
+        userId: professional.id,
+        headline: 'Senior Software Engineer',
+        location: 'Kandy, Sri Lanka',
+        skills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'AWS'],
+        bio: 'Experienced software engineer with 5+ years in full stack development.',
+        linkedinUrl: 'https://linkedin.com/in/testprofessional',
+        githubUrl: 'https://github.com/testprofessional',
+        portfolioUrl: 'https://testprofessional.dev',
+      },
+    });
+
     console.log('Professional user created:', professional.email);
     console.log('Email:', professionalEmail);
     console.log('Password:', professionalPassword);

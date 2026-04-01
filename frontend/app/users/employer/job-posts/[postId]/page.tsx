@@ -1,15 +1,21 @@
 "use client";
+
 import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Briefcase,
   CalendarDays,
   Code2,
-  Clock3,
+  Clock,
   GraduationCap,
   Building2,
   Info,
   ListChecks,
   MapPin,
+  Users,
+  Edit,
+  Bot
 } from "lucide-react";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import { JobPost } from "@/types/employer/jobPost.types";
@@ -28,12 +34,15 @@ type LocalExtras = {
 };
 
 export default function JobPostDetailPage({ params }: Props) {
+  const router = useRouter();
   const { postId } = use(params);
 
+  // ── State ──
   const [post, setPost] = useState<JobPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // ── Data Fetching ──
   useEffect(() => {
     let isMounted = true;
 
@@ -88,13 +97,27 @@ export default function JobPostDetailPage({ params }: Props) {
   }, [postId]);
 
   if (loading) {
-    return <div className="p-8 text-sm text-gray-500">Loading job post...</div>;
+    return (
+      <div className="flex-1 min-h-screen bg-[#F4F6FB] p-8 flex items-center justify-center">
+        <div className="text-sm text-gray-500">Loading job post details...</div>
+      </div>
+    );
   }
 
   if (error || !post) {
-    return <div className="p-8 text-sm text-red-500">{error || "Job post not found."}</div>;
+    return (
+      <div className="flex-1 min-h-screen bg-[#F4F6FB] p-8 flex flex-col items-center justify-center gap-4">
+        <div className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-100">
+          {error || "Job post not found."}
+        </div>
+        <button onClick={() => router.back()} className="text-sm text-indigo-600 hover:underline">
+          Go back
+        </button>
+      </div>
+    );
   }
 
+  // ── Formatting ──
   const closingDateLabel = post.closingDate
     ? new Date(`${post.closingDate}T00:00:00`).toLocaleDateString("en-US", {
         month: "short",
@@ -102,128 +125,230 @@ export default function JobPostDetailPage({ params }: Props) {
         year: "numeric",
       })
     : "Not specified";
-  const createdDateLabel = post.createdAt
-    ? new Date(post.createdAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "Not available";
-  const updatedDateLabel = post.updatedAt
-    ? new Date(post.updatedAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "Not available";
+
   const skillsList = post.skills ?? [];
+  const reqList = post.requirements ? post.requirements.split('\n').filter(r => r.trim() !== '') : [];
+  const respList = post.responsibilities ? post.responsibilities.split('\n').filter(r => r.trim() !== '') : [];
 
   return (
-    <div className="h-full overflow-y-auto bg-[#EEF4FB] p-4 md:p-8">
-      <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-100 bg-white px-8 py-8 shadow-sm md:px-12 md:py-10">
-        <header className="mb-6">
-          <h1 className="text-[22px] font-bold text-black">{post.title}</h1>
-          <p className="mt-1 text-[14px] text-blue-600">
-            Published job post details.
+    <div className="flex-1 min-h-screen bg-[#F4F6FB] p-8 overflow-auto">
+      
+      {/* ── Top Navigation ── */}
+      <button 
+        onClick={() => router.push('/users/employer/job-posts')}
+        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors mb-6"
+      >
+        <ArrowLeft size={16} /> Back to Job Posts
+      </button>
+
+      {/* ── Page Header ── */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+              post.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+              post.status === 'Draft' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+              'bg-red-50 text-red-600 border-red-200'
+            }`}>
+              {post.status}
+            </span>
+          </div>
+          <p className="text-gray-500 text-sm flex items-center gap-2">
+            Post ID: {postId} {post.companyName ? `• ${post.companyName}` : ''}
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-[14px] font-medium">
-            <span className="rounded-full bg-blue-600 px-4 py-1.5 text-white">
-              {post.type || "-"}
-            </span>
-            <span className="rounded-full bg-emerald-600 px-4 py-1.5 text-white">
-              {post.status || "-"}
-            </span>
-            {post.location ? (
-              <>
-                <span className="mx-1 text-gray-400">|</span>
-                <div className="flex items-center text-gray-700">
-                  <MapPin size={16} className="mr-1" />
-                  {post.location}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push(`/users/employer/job-posts/${postId}/edit`)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold shadow-sm"
+          >
+            <Edit size={16} /> Edit Job
+          </button>
+          {post.status !== "Draft" && (
+            <button 
+              onClick={() => router.push(`/users/employer/job-posts/${postId}/candidates`)}
+              className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-semibold shadow-sm"
+            >
+              <Bot size={16} /> View AI Matches
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* ── Left Column: Job Content (Takes up 2/3 width) ── */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-8">
+            
+            {/* Description */}
+            {post.description && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <Briefcase size={18} className="text-indigo-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Job Description</h2>
                 </div>
-              </>
-            ) : null}
-          </div>
-        </header>
+                <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {post.description}
+                </p>
+              </section>
+            )}
 
-        <hr className="mb-6 border-gray-100" />
+            {/* Responsibilities */}
+            {respList.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <ListChecks size={18} className="text-indigo-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Responsibilities</h2>
+                </div>
+                <ul className="space-y-3">
+                  {respList.map((resp, index) => (
+                    <li key={index} className="flex items-start gap-3 text-[15px] text-gray-600">
+                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+                      <span>{resp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-        <div className="mb-6 grid grid-cols-1 gap-3 text-[14px] text-gray-700 md:grid-cols-2">
-          <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-            <Building2 size={15} className="text-gray-500" />
-            <span>Company: {post.companyName || "Not available"}</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-            <CalendarDays size={15} className="text-gray-500" />
-            <span>Closing Date: {closingDateLabel}</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-            <Clock3 size={15} className="text-gray-500" />
-            <span>Created: {createdDateLabel}</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-            <Clock3 size={15} className="text-gray-500" />
-            <span>Updated: {updatedDateLabel}</span>
+            {/* Qualifications/Requirements */}
+            {reqList.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <GraduationCap size={18} className="text-indigo-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Qualifications & Requirements</h2>
+                </div>
+                <ul className="space-y-3">
+                  {reqList.map((req, index) => (
+                    <li key={index} className="flex items-start gap-3 text-[15px] text-gray-600">
+                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      <span>{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Additional Info */}
+            {post.additionalInformation && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <Info size={18} className="text-indigo-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Additional Information</h2>
+                </div>
+                <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {post.additionalInformation}
+                </p>
+              </section>
+            )}
+
           </div>
         </div>
 
-        <div className="space-y-5">
-          {post.description && (
-            <section>
-              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-                <Briefcase size={15} className="text-gray-700" />
-                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Job Description</h2>
+        {/* ── Right Column: Metadata & Stats (Takes up 1/3 width) ── */}
+        <div className="space-y-6">
+          
+          {/* Quick Info Card */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-900 mb-5">At a Glance</h3>
+            
+            <div className="space-y-5">
+              
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                  <Clock size={16} />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium">Employment Type</p>
+                  <p className="font-semibold text-gray-900 mt-0.5">{post.employmentType || post.type || "Full-time"}</p>
+                </div>
               </div>
-              <p className="text-[14px] leading-7 text-gray-700">{post.description}</p>
-            </section>
-          )}
-          {post.responsibilities && (
-            <section>
-              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-                <ListChecks size={15} className="text-gray-700" />
-                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Responsibilities</h2>
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                  <Building2 size={16} />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium">Workplace Mode</p>
+                  <p className="font-semibold text-gray-900 mt-0.5">{post.workMode || "On site"}</p>
+                </div>
               </div>
-              <p className="text-[14px] leading-7 text-gray-700">{post.responsibilities}</p>
-            </section>
-          )}
-          {post.requirements && (
-            <section>
-              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-                <GraduationCap size={15} className="text-gray-700" />
-                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Qualifications</h2>
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                  <MapPin size={16} />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium">Location</p>
+                  <p className="font-semibold text-gray-900 mt-0.5">{post.location || "Not specified"}</p>
+                </div>
               </div>
-              <p className="text-[14px] leading-7 text-gray-700">{post.requirements}</p>
-            </section>
-          )}
-          {post.additionalInformation && (
-            <section>
-              <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-                <Info size={15} className="text-gray-700" />
-                <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Additional Information</h2>
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                  <CalendarDays size={16} />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium">Closing Date</p>
+                  <p className="font-semibold text-gray-900 mt-0.5">{closingDateLabel}</p>
+                </div>
               </div>
-              <p className="text-[14px] leading-7 text-gray-700">{post.additionalInformation}</p>
-            </section>
+
+            </div>
+
+            {/* Skills Section inside sidebar */}
+            {skillsList.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <Code2 size={16} className="text-gray-900" />
+                  <h3 className="font-bold text-gray-900">Required Skills</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {skillsList.map((skill) => (
+                    <span
+                      key={skill}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Applicant Stats Card (Only show if not Draft) */}
+          {post.status !== "Draft" && (
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
+              <Users size={120} className="absolute -bottom-6 -right-6 text-white/10" />
+              
+              <h3 className="font-bold text-indigo-100 mb-6 relative z-10">Candidate Pipeline</h3>
+              
+              <div className="grid grid-cols-2 gap-4 relative z-10">
+                <div>
+                  <p className="text-indigo-200 text-xs font-medium mb-1">Total Applicants</p>
+                  <p className="text-3xl font-bold">{post.applicantsCount || 0}</p>
+                </div>
+                <div>
+                  <p className="text-indigo-200 text-xs font-medium mb-1">AI Shortlisted</p>
+                  <p className="text-3xl font-bold">0</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => router.push(`/users/employer/job-posts/${postId}/candidates`)}
+                className="w-full mt-6 py-2.5 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-xl transition-colors backdrop-blur-sm"
+              >
+                Review Pipeline →
+              </button>
+            </div>
           )}
 
-          <section>
-            <div className="mb-1.5 flex items-center gap-2 text-gray-800">
-              <Code2 size={15} className="text-gray-700" />
-              <h2 className="text-[13px] font-semibold tracking-wide text-gray-700">Skills</h2>
-            </div>
-            {skillsList.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {skillsList.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1.5 text-[13px] font-medium text-gray-700"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[14px] leading-7 text-gray-700">-</p>
-            )}
-          </section>
         </div>
       </div>
     </div>

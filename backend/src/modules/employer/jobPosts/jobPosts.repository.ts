@@ -12,6 +12,16 @@ const toNullableString = (value: string | undefined): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const toStringArray = (value: string | undefined | null): string[] => {
+  if (value === undefined || value === null) return [];
+  const normalized = String(value).trim();
+  if (normalized.length === 0) return [];
+  return normalized
+    .split(/\r?\n|,/) 
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 const toWorkMode = (value: string | undefined): "REMOTE" | "HYBRID" | "ON_SITE" | null => {
   if (value === "Remote") return "REMOTE";
   if (value === "Hybrid") return "HYBRID";
@@ -218,8 +228,9 @@ export const jobsRepository = {
       title: data.title,
       type: data.type === "Job" ? JobType.JOB : JobType.INTERNSHIP,
       description: toNullableString(data.description),
-      responsibilities: toNullableString(data.responsibilities),
-      requirements: requirementsText,
+      responsibilities: toStringArray(data.responsibilities),
+      requirements: toStringArray(data.requirements),
+      skillsRequired: toStringArray(data.skills),
       additionalInformation: toNullableString(data.additionalInformation),
       skills: toNullableString(data.skills),
       workMode: toWorkMode(data.workMode),
@@ -260,10 +271,11 @@ export const jobsRepository = {
   async update(id: string, employerId: string, data: UpdateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
-    // Conditionally update: only set fields if they were provided in data
-    return prisma.jobPost.update({
+    // Use updateMany to allow filtering by employerId alongside id for security
+    return prisma.jobPost.updateMany({
       where: {
         id,
+        employerId, // CRITICAL: Now securely checking ownership
       },
       data: {
         ...(data.title !== undefined && { title: data.title }),
@@ -272,13 +284,16 @@ export const jobsRepository = {
         }),
         ...(data.description !== undefined && { description: toNullableString(data.description) }),
         ...(data.responsibilities !== undefined && {
-          responsibilities: toNullableString(data.responsibilities),
+          responsibilities: toStringArray(data.responsibilities),
         }),
-        ...(data.requirements !== undefined && { requirements: toNullableString(data.requirements) }),
+        ...(data.requirements !== undefined && { requirements: toStringArray(data.requirements) }),
+        ...(data.skills !== undefined && {
+          skillsRequired: toStringArray(data.skills),
+          skills: toNullableString(data.skills),
+        }),
         ...(data.additionalInformation !== undefined && {
           additionalInformation: toNullableString(data.additionalInformation),
         }),
-        ...(data.skills !== undefined && { skills: toNullableString(data.skills) }),
         ...(data.workMode !== undefined && { workMode: toWorkMode(data.workMode) }),
         ...(data.employmentType !== undefined && {
           employmentType: toEmploymentType(data.employmentType),
@@ -309,11 +324,11 @@ export const jobsRepository = {
   async deleteById(id: string, employerId: string) {
     await ensureClosingDateColumnCompatibility();
 
-    // Delete post where both id AND employerId match
-    // If post doesn't exist or doesn't belong to employerId, Prisma throws error
-    return prisma.jobPost.delete({
+    // Use deleteMany to allow filtering by employerId alongside id for security
+    return prisma.jobPost.deleteMany({
       where: {
         id,
+        employerId, // CRITICAL: Now securely checking ownership
       },
     });
   },
