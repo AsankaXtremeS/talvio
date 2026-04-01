@@ -30,6 +30,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
+  const isApplyJobPage = pathname.includes("/users/candidate/dashboard/apply_job");
 
   const navItems = [
     {
@@ -81,6 +82,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
             relative flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100
             transition-all duration-300 ease-in-out shrink-0 overflow-hidden
             ${collapsed ? "w-18" : "w-60"}
+            ${isApplyJobPage ? "pointer-events-none select-none" : ""}
             h-full p-4
           `}
         >
@@ -170,7 +172,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors duration-150 justify-center"
+              className="w-full cursor-pointer disabled:cursor-not-allowed flex items-center gap-3 px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors duration-150 justify-center"
             >
               <span className="flex items-center justify-center w-full gap-2">
                 {isSigningOut ? (
