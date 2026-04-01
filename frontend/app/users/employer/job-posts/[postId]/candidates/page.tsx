@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation"; // <-- Added for navigation
-import { ArrowLeft } from "lucide-react"; // <-- Added for the back icon
+import { useRouter } from "next/navigation"; 
+import { ArrowLeft } from "lucide-react"; 
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getCandidates } from "@/lib/employer/candidates.service";
@@ -14,7 +14,7 @@ interface Props {
 
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
-  const router = useRouter(); // <-- Initialize the router
+  const router = useRouter(); 
 
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
@@ -79,13 +79,16 @@ export default function PostCandidatesPage({ params }: Props) {
         onQueryChange={setQuery}
       />
       
+      {/* ─── UPDATED GRID ROUTING ───────────────────────────────────── */}
       <CandidatesGrid
         candidates={filteredCandidates}
         onViewProfile={(id) => {
-          console.log("View profile", id);
+          // Navigates to the Candidate's Profile page
+          router.push(`/users/employer/candidates/${id}`);
         }}
         onSchedule={(id) => {
-          console.log("Schedule interview", id);
+          // Navigates to the Schedule Interview page (keeping postId in the URL)
+          router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
       />
     </div>
