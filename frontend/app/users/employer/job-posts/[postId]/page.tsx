@@ -8,13 +8,11 @@ import {
   CalendarDays,
   Code2,
   Clock,
-  Clock3,
   GraduationCap,
   Building2,
   Info,
   ListChecks,
   MapPin,
-  DollarSign,
   Users,
   Edit,
   Bot

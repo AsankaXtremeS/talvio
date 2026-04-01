@@ -195,7 +195,7 @@ export default function CandidateRecommendationsPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient<{ jobs: any[] }>("/api/candidate/jobs");
+        const data = await apiClient<{ jobs: Job[] }>("/api/candidate/jobs");
 
         const formatted: Job[] = data.jobs.map((job) => ({
           id: job.id,
