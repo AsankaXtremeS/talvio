@@ -27,6 +27,15 @@ interface Job {
   duration: string;
   stipend: string;
   workMode: string;
+
+  // API source fields used in mapping
+  companyLocation?: string;
+  createdAt?: string;
+  employmentType?: string;
+  stipendType?: string;
+  companyWebsite?: string;
+  description?: string;
+  type?: string;
 }
 
 /* 
@@ -202,21 +211,21 @@ export default function CandidateRecommendationsPage() {
           title: job.title,
           company: job.company,
           location: job.location || job.companyLocation || "Location not specified",
-          postedAgo: new Date(job.createdAt).toLocaleDateString(),
+          postedAgo: new Date(job.createdAt ?? Date.now()).toLocaleDateString(),
           matchPercent: 0,
           tags: [
             job.workMode,
             job.employmentType,
             job.stipendType,
             job.duration,
-          ].filter(Boolean),
+          ].filter(Boolean) as string[],
           companyLogoUrl: job.companyLogoUrl || "",
           companyDescription: job.companyDescription || "",
           companyProfileUrl: job.companyWebsite || "",
           aboutRole: job.description || "",
           responsibilities: job.responsibilities || [],
           requirements: job.requirements || [],
-          role: job.type,
+          role: job.type || job.role || "JOB",
           duration: job.duration || "",
           stipend: job.stipendType || "",
           workMode: job.workMode || "",
