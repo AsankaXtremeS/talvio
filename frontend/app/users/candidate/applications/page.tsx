@@ -434,7 +434,7 @@ export default function CandidateApplicationsPage() {
                   </div>
 
                   <button
-                    onClick={() => router.push(`/users/candidate/dashboard/apply_job?jobId=${job.id}`)}
+                    onClick={() => router.push(`/users/candidate/dashboard?jobId=${job.id}`)}
                     className="rounded-xl bg-[#4F46E5] px-6 py-2 text-sm font-bold text-white hover:bg-[#4338CA]"
                   >
                     Apply now
