@@ -13,13 +13,13 @@ import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 
 export default function EmployerProfilePage() {
   return (
-    <div className="min-h-screen bg-[#eef5ff] p-4">
-      <div className="mx-auto max-w-[1120px] rounded-[28px] border border-[#dbe7ff] bg-white p-6 shadow-sm">
+    <div className="min-h-screen bg-[#eef5ff] px-4 pb-4 pt-0 sm:px-6">
+      <div className="mx-auto max-w-305 rounded-[28px] border border-[#dbe7ff] bg-white p-6">
         <div className="flex flex-col gap-5">
           {/* Top section */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
             <div className="flex gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#101828] text-sm font-bold text-white shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#101828] text-sm font-bold text-white">
                 R
               </div>
 
@@ -38,7 +38,7 @@ export default function EmployerProfilePage() {
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     href="/users/employer/profile/edit"
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                    className="flex items-center gap-2 rounded-xl bg-linear-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-95"
                   >
                     <Pencil className="h-4 w-4" />
                     Edit Page
@@ -57,21 +57,21 @@ export default function EmployerProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-gray-100 shadow-sm">
+            <div className="overflow-hidden rounded-3xl border border-gray-100">
               <Image
                 src="/images/company/Rackspace.jpg"
                 alt="Company"
                 width={500}
                 height={300}
-                className="h-[230px] w-full object-cover"
+                className="h-57.5 w-full object-cover"
               />
             </div>
           </div>
 
           {/* Bottom section */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
             {/* Left column */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 self-start">
               <div className="rounded-3xl border border-[#e5e7eb] p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <h2 className="mb-4 text-2xl font-bold text-[#2563eb]">Details</h2>
 
@@ -126,37 +126,7 @@ export default function EmployerProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-[#e5e7eb] p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                <h2 className="mb-4 text-2xl font-bold text-[#2563eb]">Social Links</h2>
-
-                <div className="flex gap-3">
-                  <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white shadow-sm transition hover:scale-105"
-                  >
-                    <FaLinkedinIn size={20} />
-                  </a>
-
-                  <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white shadow-sm transition hover:scale-105"
-                  >
-                    <FaFacebookF size={20} />
-                  </a>
-
-                  <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white shadow-sm transition hover:scale-105"
-                  >
-                    <FaXTwitter size={18} />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Right column */}
-            <div className="flex flex-col gap-5">
-              <div className="rounded-3xl border border-[#e5e7eb] p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-3xl border border-[#e5e7eb] p-5">
                 <h2 className="mb-4 text-2xl font-bold text-[#2563eb]">Specialties</h2>
                 <p className="text-[15px] leading-8 text-[#475467]">
                   Enterprise API Management, Identity & Access Management (IAM),
@@ -165,7 +135,37 @@ export default function EmployerProfilePage() {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-[#e5e7eb] bg-gradient-to-b from-white to-[#fafcff] p-5 shadow-[0_8px_30px_rgba(16,24,40,0.06)]">
+              <div className="rounded-3xl border border-[#e5e7eb] p-5">
+                <h2 className="mb-4 text-2xl font-bold text-[#2563eb]">Social Links</h2>
+
+                <div className="flex gap-3">
+                  <a
+                    href="#"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white transition hover:scale-105"
+                  >
+                    <FaLinkedinIn size={20} />
+                  </a>
+
+                  <a
+                    href="#"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white transition hover:scale-105"
+                  >
+                    <FaFacebookF size={20} />
+                  </a>
+
+                  <a
+                    href="#"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white transition hover:scale-105"
+                  >
+                    <FaXTwitter size={18} />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="flex flex-col gap-5 self-start">
+              <div className="rounded-3xl border border-[#e5e7eb] bg-linear-to-b from-white to-[#fafcff] p-5">
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-[#2563eb]">
                     Recent Job Openings
@@ -176,7 +176,7 @@ export default function EmployerProfilePage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="group rounded-2xl border border-[#e9eef7] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(37,99,235,0.09)]">
+                  <div className="group rounded-2xl bg-[#f4f8ff] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
@@ -214,7 +214,7 @@ export default function EmployerProfilePage() {
                     </div>
                   </div>
 
-                  <div className="group rounded-2xl border border-[#e9eef7] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(37,99,235,0.09)]">
+                  <div className="group rounded-2xl bg-[#f4f8ff] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
