@@ -100,31 +100,33 @@ model EmployerProfile {
 }
 
 model JobPost {
-  id               String          @id @default(uuid())
-  title            String
-  type             JobType
-  description      String?
-  requirements     String[]
-  responsibilities String[]
-  skillsRequired   String[]
+  id                    String          @id @default(uuid())
+  title                 String
+  type                  JobType
+  description           String?
+  requirements          String[]
+  responsibilities      String[]
+  skillsRequired        String[]
+  additionalInformation String?
+  skills                String?
 
-  workMode         WorkMode?
-  employmentType   EmploymentType?
-  stipendType      StipendType?
-  location         String?
-  duration         String?
-  experienceLevel  ExperienceLevel?
+  workMode              WorkMode?
+  employmentType        EmploymentType?
+  stipendType           StipendType?
+  location              String?
+  duration              String?
+  experienceLevel       ExperienceLevel?
 
-  closingDate      DateTime?
-  status           PostStatus      @default(DRAFT)
+  closingDate           DateTime?
+  status                PostStatus      @default(DRAFT)
 
-  employerId       String
-  employer         EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  employerId            String
+  employer              EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
-  applications     Application[]
+  applications          Application[]
 
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   @@index([employerId])
   @@index([status])

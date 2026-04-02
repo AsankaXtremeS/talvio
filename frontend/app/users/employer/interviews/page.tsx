@@ -93,7 +93,7 @@ export default function InterviewsDashboardPage() {
             {scheduledInterviews.map((interview) => (
               <div 
                 key={interview.id} 
-                className="relative flex flex-col gap-3 p-5 transition-shadow bg-white border border-gray-100 shadow-sm rounded-2xl hover:shadow-md"
+                className="relative flex flex-col gap-3 rounded-2xl border border-[#dbe7ff] bg-white p-5"
               >
                 {/* Options Menu Button */}
                 <button 
@@ -106,7 +106,7 @@ export default function InterviewsDashboardPage() {
 
                 {/* Dropdown Menu */}
                 {openMenuId === interview.id && (
-                  <div className="absolute right-4 top-14 z-30 w-48 py-2 bg-white rounded-xl shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-4 top-14 z-30 w-48 rounded-xl border border-[#dbe7ff] bg-white py-2 duration-100 animate-in fade-in zoom-in-95">
                     <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                       View Candidate
                     </button>
@@ -134,7 +134,7 @@ export default function InterviewsDashboardPage() {
                 {/* Middle: Candidate Pill */}
                 <div className="flex items-center gap-2.5 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
                   {/* Avatar Circle */}
-                  <div className="flex items-center justify-center shrink-0 w-6 h-6 text-[10px] font-bold text-indigo-700 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-100 to-purple-100 text-[10px] font-bold text-indigo-700">
                     {interview.initials}
                   </div>
                   <span className="text-[15px] font-medium text-gray-900">
@@ -157,7 +157,7 @@ export default function InterviewsDashboardPage() {
 
           {/* RIGHT COLUMN: Calendar View */}
           <div className="lg:col-span-1">
-            <div className="p-6 bg-white border border-gray-100 shadow-sm rounded-2xl">
+            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-6">
               
               {/* Calendar Header */}
               <div className="flex items-center justify-between mb-6">
@@ -194,7 +194,7 @@ export default function InterviewsDashboardPage() {
                       onClick={() => setSelectedDate(day)}
                       className={`
                         w-8 h-8 mx-auto flex items-center justify-center rounded-full text-sm font-medium relative transition-colors
-                        ${isSelected ? "bg-indigo-600 text-white shadow-sm" : "text-gray-700 hover:bg-gray-100"}
+                        ${isSelected ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"}
                       `}
                     >
                       {day}
@@ -202,7 +202,7 @@ export default function InterviewsDashboardPage() {
                       {/* 🚀 Updated: Green Line Indicator instead of Blue Dot */}
                       {hasInterview && (
                         <span 
-                          className={`absolute w-3.5 h-[3px] rounded-full bottom-0.5 
+                          className={`absolute bottom-0.5 h-0.75 w-3.5 rounded-full 
                             ${isSelected ? "bg-white/90" : "bg-indigo-500"}
                           `}
                         ></span>

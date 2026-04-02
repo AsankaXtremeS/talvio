@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   return (
-    <div className="flex-1 bg-[#E9F3FD] min-h-screen p-7 overflow-auto">
+    <div className="flex-1 bg-[#E9F3FD] min-h-screen overflow-auto p-7 [&_button:not(:disabled)]:cursor-pointer">
       <div className="sticky top-0 z-30 bg-[#E9F3FD] pt-0 -mt-7 pb-2">
         <div className="bg-white rounded-2xl px-7 py-5 mb-3 flex items-center justify-between shadow-sm">
           <div>
