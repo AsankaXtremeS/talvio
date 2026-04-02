@@ -8,7 +8,7 @@ interface UpcomingInterviewCardProps {
 export default function UpcomingInterviewCard({ nearestInterviewDateLabel, nearestInterviewTimeLabel }: UpcomingInterviewCardProps) {
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h2 className="text-2xl font-bold text-gray-900">Upcoming interview</h2>
+      <h2 className="text-xl font-bold text-gray-900">Upcoming interview</h2>
       <div className="mt-5 flex items-start gap-3 text-gray-600">
         <CalendarFold size={36} className="text-gray-400" />
         <div>
