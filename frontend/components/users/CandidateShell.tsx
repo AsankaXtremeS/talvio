@@ -30,7 +30,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
-  const isApplyJobPage = pathname.includes("/users/candidate/dashboard/apply_job");
+  const isApplyJobPage = false;
 
   const navItems = [
     {
