@@ -70,8 +70,8 @@ export default function UpcomingInterviewsWidget() {
 	       calendarRows.push(row);
        }
 
-       return (
-	       <div className="bg-white rounded-2xl p-5 shadow-sm">
+	       return (
+		       <div className="bg-white rounded-2xl p-5 shadow-sm h-full">
 		       <div className="flex items-center justify-between mb-4">
 			       <h2 className="font-semibold text-gray-800">Upcoming Interviews</h2>
 			       <div className="relative">

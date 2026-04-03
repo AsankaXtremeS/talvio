@@ -26,7 +26,7 @@ const jobs: Job[] = [
 
 export default function JobsPreviewWidget() {
 	return (
-		<div className="bg-white rounded-2xl p-5 shadow-sm">
+		<div className="bg-white rounded-2xl p-5 shadow-sm h-full">
 			<div className="flex items-center justify-between mb-4">
 				<h2 className="font-semibold text-gray-800">Jobs</h2>
 				<button className="text-sm text-indigo-600 font-medium hover:underline">View all</button>
