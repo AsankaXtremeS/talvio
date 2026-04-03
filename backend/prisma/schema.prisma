@@ -95,30 +95,6 @@ model EmployerProfile {
 }
 
 model JobPost {
-  id                    String          @id @default(uuid())
-  title                 String
-  department            String          @default("General")
-  type                  JobType
-  description           String?
-  responsibilities      String?
-  requirements          String?
-  additionalInformation String?
-  skills                String?
-  workMode              WorkMode?
-  employmentType        EmploymentType?
-  location              String?
-  closingDate           DateTime?
-  status                PostStatus      @default(DRAFT)
-  employerId            String
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  employer              EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
-
-  @@index([employerId])
-  @@index([status])
-}
-
-model JobPost {
   id               String          @id @default(uuid())
   title            String
   type             JobType
@@ -126,6 +102,8 @@ model JobPost {
   requirements     String[]
   responsibilities String[]
   skillsRequired   String[]
+  additionalInformation String?
+  skills           String?
 
   workMode         WorkMode?
   employmentType   EmploymentType?
@@ -289,6 +267,26 @@ enum WorkMode {
   ON_SITE
   REMOTE
   HYBRID
+}
+
+enum StipendType {
+  PAID
+  UNPAID
+  NEGOTIABLE
+}
+
+enum ExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
+  HIRED
 }
 
 enum PostStatus {

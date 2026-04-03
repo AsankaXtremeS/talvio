@@ -134,10 +134,10 @@ export default function EditEmployerProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#eef5ff] p-4 pb-12">
-      <div className="mx-auto max-w-[1120px]">
+    <div className="min-h-screen bg-[#eef5ff] px-4 pb-12 pt-4 sm:px-6">
+      <div className="mx-auto max-w-305">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/users/employer/profile"
             className="flex items-center gap-2 text-sm font-medium text-[#667085] transition hover:text-[#2563eb]"
@@ -146,18 +146,18 @@ export default function EditEmployerProfilePage() {
             Back to Profile
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={handleCancel}
-              className="rounded-xl border border-[#e5e7eb] bg-white px-5 py-2.5 text-sm font-semibold text-[#667085] transition hover:bg-gray-50"
+              className="w-full rounded-xl border border-[#e5e7eb] bg-white px-5 py-2.5 text-sm font-semibold text-[#667085] transition hover:bg-gray-50 sm:w-auto"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-70"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#7c3aed] to-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-95 disabled:opacity-70 sm:w-auto"
             >
               {isSaving ? (
                 <>
@@ -194,7 +194,7 @@ export default function EditEmployerProfilePage() {
 
         {/* Main Form */}
         <form onSubmit={handleSubmit}>
-          <div className="rounded-[28px] border border-[#dbe7ff] bg-white p-6 shadow-sm">
+          <div className="rounded-[28px] border border-[#dbe7ff] bg-white p-5 sm:p-6 lg:p-8">
             <div className="mb-6 border-b border-[#e5e7eb] pb-6">
               <h1 className="text-2xl font-bold text-[#111827]">
                 Edit Company Profile
@@ -204,20 +204,20 @@ export default function EditEmployerProfilePage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6 lg:gap-7">
               {/* Logo & Cover Image Section */}
-              <section className="rounded-3xl border border-[#e5e7eb] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="rounded-3xl border border-[#e5e7eb] p-5 sm:p-6">
                 <h2 className="mb-5 text-xl font-bold text-[#2563eb]">
                   Brand Identity
                 </h2>
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid items-start gap-6 lg:grid-cols-2">
                   {/* Logo Upload */}
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-[#111827]">
                       Company Logo
                     </label>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-start gap-4">
                       <div className="relative">
                         {logoPreview ? (
                           <div className="relative h-20 w-20 overflow-hidden rounded-2xl">
@@ -229,11 +229,11 @@ export default function EditEmployerProfilePage() {
                             />
                           </div>
                         ) : (
-                          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#101828] text-2xl font-bold text-white shadow-sm">
+                          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#101828] text-2xl font-bold text-white">
                             {formData.initial}
                           </div>
                         )}
-                        <label className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#2563eb] text-white shadow-lg transition hover:bg-[#1d4ed8]">
+                        <label className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#2563eb] text-white transition hover:bg-[#1d4ed8]">
                           <Camera className="h-4 w-4" />
                           <input
                             type="file"
@@ -281,7 +281,7 @@ export default function EditEmployerProfilePage() {
                   </label>
                   <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-[#e5e7eb] transition hover:border-[#2563eb]">
                     {coverPreview || formData.coverImage ? (
-                      <div className="relative h-[200px] w-full">
+                      <div className="relative h-50 w-full">
                         <Image
                           src={coverPreview || formData.coverImage}
                           alt="Cover preview"
@@ -316,7 +316,7 @@ export default function EditEmployerProfilePage() {
                         </div>
                       </div>
                     ) : (
-                      <label className="flex h-[200px] cursor-pointer flex-col items-center justify-center gap-3">
+                      <label className="flex h-50 cursor-pointer flex-col items-center justify-center gap-3">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef5ff]">
                           <Upload className="h-6 w-6 text-[#2563eb]" />
                         </div>
@@ -341,7 +341,7 @@ export default function EditEmployerProfilePage() {
               </section>
 
               {/* Basic Info Section */}
-              <section className="rounded-3xl border border-[#e5e7eb] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="rounded-3xl border border-[#e5e7eb] p-5 sm:p-6">
                 <h2 className="mb-5 text-xl font-bold text-[#2563eb]">
                   Basic Information
                 </h2>
@@ -400,12 +400,12 @@ export default function EditEmployerProfilePage() {
               </section>
 
               {/* Company Details Section */}
-              <section className="rounded-3xl border border-[#e5e7eb] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="rounded-3xl border border-[#e5e7eb] p-5 sm:p-6">
                 <h2 className="mb-5 text-xl font-bold text-[#2563eb]">
                   Company Details
                 </h2>
 
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
                       <Briefcase className="h-4 w-4 text-[#2563eb]" />
@@ -498,7 +498,7 @@ export default function EditEmployerProfilePage() {
               </section>
 
               {/* Specialties Section */}
-              <section className="rounded-3xl border border-[#e5e7eb] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="rounded-3xl border border-[#e5e7eb] p-5 sm:p-6">
                 <h2 className="mb-5 text-xl font-bold text-[#2563eb]">
                   Specialties
                 </h2>
@@ -545,12 +545,12 @@ export default function EditEmployerProfilePage() {
               </section>
 
               {/* Social Links Section */}
-              <section className="rounded-3xl border border-[#e5e7eb] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <section className="rounded-3xl border border-[#e5e7eb] p-5 sm:p-6">
                 <h2 className="mb-5 text-xl font-bold text-[#2563eb]">
                   Social Links
                 </h2>
 
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
                       <div className="flex h-5 w-5 items-center justify-center rounded bg-[#0A66C2]">
@@ -610,17 +610,17 @@ export default function EditEmployerProfilePage() {
                   </p>
                   <div className="flex gap-3">
                     {formData.linkedIn && (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white shadow-sm">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white">
                         <FaLinkedinIn size={20} />
                       </div>
                     )}
                     {formData.facebook && (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white shadow-sm">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white">
                         <FaFacebookF size={20} />
                       </div>
                     )}
                     {formData.twitter && (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white shadow-sm">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white">
                         <FaXTwitter size={18} />
                       </div>
                     )}
@@ -636,7 +636,7 @@ export default function EditEmployerProfilePage() {
               </section>
 
               {/* Danger Zone */}
-              <section className="rounded-3xl border border-red-200 bg-red-50/50 p-6">
+              <section className="rounded-3xl border border-red-200 bg-red-50/50 p-5 sm:p-6">
                 <h2 className="mb-2 text-xl font-bold text-red-600">
                   Danger Zone
                 </h2>
@@ -658,7 +658,7 @@ export default function EditEmployerProfilePage() {
           </div>
 
           {/* Bottom Action Bar (Mobile) */}
-          <div className="fixed bottom-0 left-0 right-0 border-t border-[#e5e7eb] bg-white p-4 shadow-lg lg:hidden">
+          <div className="fixed bottom-0 left-0 right-0 border-t border-[#e5e7eb] bg-white p-4 lg:hidden">
             <div className="flex gap-3">
               <button
                 type="button"
@@ -670,7 +670,7 @@ export default function EditEmployerProfilePage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#7c3aed] to-[#2563eb] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:opacity-70"
               >
                 {isSaving ? (
                   <>
