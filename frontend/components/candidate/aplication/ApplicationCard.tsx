@@ -38,7 +38,7 @@ export default function ApplicationCard({
     if (onApply) {
       onApply(job.id);
     } else {
-      router.push(`/users/candidate/dashboard/apply_job?jobId=${job.id}`);
+      router.push(`/users/candidate/dashboard?jobId=${job.id}&from=applications`);
     }
   };
 
