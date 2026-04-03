@@ -2,6 +2,7 @@
 
 import { useRef, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterModal";
 import {
 	CalendarDays,
 	FileText,
@@ -108,6 +109,8 @@ export default function CandidateApplyForumPage() {
 	const [fileError, setFileError] = useState<string>("");
 	const [isResumeDragActive, setIsResumeDragActive] = useState(false);
 	const [isCoverLetterDragActive, setIsCoverLetterDragActive] = useState(false);
+	const [showAIModal, setShowAIModal] = useState(false);
+	const [aiCoverLetter, setAiCoverLetter] = useState<string>("");
 
 	const selectedJob = useMemo(() => JOBS.find((job) => job.id === jobId) ?? JOBS[0], [jobId]);
 
@@ -299,13 +302,19 @@ export default function CandidateApplyForumPage() {
 
 							<div className="flex flex-col items-center justify-center px-4 text-center">
 								<Sparkles size={34} className="text-slate-400" />
-								<button className="mt-3 text-[18px] font-semibold text-indigo-600 hover:underline">
-									Generate with AI
+								<button
+    								onClick={() => setShowAIModal(true)}
+    								className="mt-3 text-[18px] font-semibold text-indigo-600 hover:underline"
+								>
+    								Generate with AI
 								</button>
 							</div>
 						</div>
 						{coverLetterFileName ? (
-							<p className="mt-2 text-[14px] text-slate-600">Uploaded: {coverLetterFileName}</p>
+    						<p className="mt-2 text-[14px] text-slate-600">Uploaded: {coverLetterFileName}</p>
+						) : null}
+						{aiCoverLetter && !coverLetterFileName ? (
+    						<p className="mt-2 text-[14px] text-green-600 font-medium">✓ AI Cover Letter ready</p>
 						) : null}
 					</div>
 
@@ -325,6 +334,16 @@ export default function CandidateApplyForumPage() {
 						</button>
 					</div>
 					{fileError ? <p className="mt-3 text-[13px] text-red-600">{fileError}</p> : null}
+					{showAIModal && (
+    					<AICoverLetterModal
+        					jobTitle={selectedJob.title}
+        					onDone={(text) => {
+            					setAiCoverLetter(text);
+            					setCoverLetterFileName("AI Generated");
+        					}}
+        					onClose={() => setShowAIModal(false)}
+    					/>
+					)}
 				</div>
 			</div>
 		</div>
