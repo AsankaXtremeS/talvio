@@ -8,6 +8,7 @@ import RecommendationsFilterBar from "@/components/candidate/recommendations/Rec
 import JobCard from "@/components/candidate/recommendations/JobCards";
 import JobViewModal from "@/components/candidate/recommendations/JobViewModel";
 import { apiClient } from "@/lib/apiClient";
+import Loading from "@/app/loading";
 
 interface Job {
   id: string;
@@ -296,9 +297,7 @@ export default function CandidateRecommendationsPage() {
       <div className="flex-1 min-h-0 overflow-y-auto px-7 pb-7">
         {/* Loading state */}
         {loading && (
-          <div className="flex items-center justify-center py-20">
-            <p className="text-gray-400 text-sm">Loading...</p>
-          </div>
+          <Loading />
         )}
 
         {/* Error state */}
