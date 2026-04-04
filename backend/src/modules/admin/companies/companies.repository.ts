@@ -69,6 +69,11 @@ export const companiesRepository = {
               companyName: true,
               verificationStatus: true,
               createdAt: true,
+              _count: {
+                select: {
+                  jobPosts: true,
+                },
+              },
             },
           },
         },
@@ -103,6 +108,11 @@ export const companiesRepository = {
             companyName: true,
             verificationStatus: true,
             createdAt: true,
+            _count: {
+              select: {
+                jobPosts: true,
+              },
+            },
           },
         },
       },
