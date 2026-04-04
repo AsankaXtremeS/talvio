@@ -12,6 +12,7 @@ interface CompaniesApiItem {
 	id: string;
 	companyName: string;
 	email: string;
+	postCount: number;
 	joinedAt: string;
 }
 
@@ -65,7 +66,7 @@ const mapCompany = (item: CompaniesApiItem): Company => ({
 	id: item.id,
 	name: item.companyName,
 	email: item.email,
-	postCount: 0,
+	postCount: item.postCount,
 	joinedAt: formatJoinedDate(item.joinedAt),
 	logoText: initialsFromName(item.companyName),
 });
