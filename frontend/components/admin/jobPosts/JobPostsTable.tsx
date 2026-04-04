@@ -43,7 +43,7 @@ export default function JobPostsTable({
           <thead>
             <tr className="border-b border-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Job Title</th>
-              <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Department</th>
+              <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Job Type</th>
               <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Company</th>
               <th className="px-4 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Email</th>
               <th className="px-4 py-3 text-center text-xs font-medium tracking-wide text-gray-400 uppercase">Actions</th>
@@ -65,7 +65,7 @@ export default function JobPostsTable({
             {posts.map((post) => (
               <tr key={post.id} className="border-b border-gray-100 last:border-0 transition-colors hover:bg-gray-50/60">
                 <td className="px-6 py-4 text-sm font-semibold text-gray-900">{post.jobTitle}</td>
-                <td className="px-4 py-4 text-sm text-gray-500">{post.category}</td>
+                <td className="px-4 py-4 text-sm text-gray-500">{post.type === 'Internship' ? 'Internship' : 'Job'}</td>
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <div
