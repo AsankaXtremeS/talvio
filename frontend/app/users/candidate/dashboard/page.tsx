@@ -8,6 +8,7 @@ import DashboardHeader from "@/components/candidate/dashboard/DashboardHeader";
 import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
 import RecommendationList from "@/components/candidate/dashboard/RecommendationList";
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
+import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
 
 const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
@@ -290,6 +291,7 @@ export default function CandidateDashboardPage() {
   const [coverLetterFileName, setCoverLetterFileName] = useState("");
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const coverLetterInputRef = useRef<HTMLInputElement>(null);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const {
     search,
@@ -323,6 +325,11 @@ export default function CandidateDashboardPage() {
       return;
     }
     submitApplication(selectedJob.id);
+  };
+
+  const handleAIDone = (generatedCoverLetter: string) => {
+    setCoverLetter(generatedCoverLetter);
+    setShowAIModal(false);
   };
 
   return (
@@ -490,7 +497,7 @@ export default function CandidateDashboardPage() {
                       <p className="text-xs text-gray-400">Drag and drop</p>
                       <p className="text-sm font-semibold text-indigo-600">Browse</p>
                     </button>
-                    <button onClick={handleGenerateCoverLetter} className="flex flex-col items-center justify-center gap-1.5 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
+                    <button onClick={() => setShowAIModal(true)} className="flex flex-col items-center justify-center gap-1.5 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
                       <Sparkles size={20} className="text-indigo-300" />
                       <p className="text-xs text-gray-400">Skip the writing</p>
                       <p className="text-sm font-semibold text-indigo-600">Generate with AI</p>
@@ -508,6 +515,14 @@ export default function CandidateDashboardPage() {
             )}
           </div>
         </div>
+      )}
+      {selectedJob && activeModal === "apply" && showAIModal && (
+        <AICoverLetterModal
+          jobTitle={selectedJob.title}
+          candidateName={user?.name || "Your Name"}
+          onDone={handleAIDone}
+          onClose={() => setShowAIModal(false)}
+        />
       )}
     </div>
   );

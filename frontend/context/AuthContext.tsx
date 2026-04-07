@@ -7,6 +7,7 @@ interface AuthUser {
   id: string;
   role: 'STUDENT' | 'PROFESSIONAL' | 'EMPLOYER' | 'ADMIN';
   email: string;
+  name?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   preferences?: {
