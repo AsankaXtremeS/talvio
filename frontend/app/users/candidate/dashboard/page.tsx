@@ -9,6 +9,7 @@ import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
 import RecommendationList from "@/components/candidate/dashboard/RecommendationList";
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
+import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
 
 const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
   {
@@ -43,6 +44,29 @@ const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
   },
 ];
 
+const ALL_DASHBOARD_JOBS: DashboardJob[] = (() => {
+  const byId = new Map<string, DashboardJob>(
+    MOCK_RECOMMENDED_JOBS.map((job) => [job.id, job]),
+  );
+
+  Object.values(APPLICATION_JOBS).forEach((job) => {
+    if (byId.has(job.id)) return;
+
+    byId.set(job.id, {
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      postedAgo: "Recently posted",
+      matchPercent: 80,
+      tags: [job.workLocation, job.jobType, "Paid", "3 months"],
+      companyLogoUrl: job.company.toLowerCase(),
+    });
+  });
+
+  return Array.from(byId.values());
+})();
+
 const APPLY_MODAL_CONTENT = {
   about: "Help plan and execute campaign ideas that connect with community and growth goals.",
   responsibilities: [
@@ -68,6 +92,7 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
   const jobIdFromQuery = searchParams.get("jobId");
+  const sourceFromQuery = searchParams.get("from");
   const jobs = recommendedJobs.length > 0 ? recommendedJobs : MOCK_RECOMMENDED_JOBS;
 
   const selectedJob = useMemo(() => {
@@ -105,6 +130,12 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
 
   const closeModals = () => {
     setActiveModal("none");
+
+    if (sourceFromQuery === "applications") {
+      router.push("/users/candidate/applications");
+      return;
+    }
+
     router.push("/users/candidate/dashboard");
   };
 
@@ -280,7 +311,7 @@ export default function CandidateDashboardPage() {
     submitApplication,
     handleApplyFromList,
     handleWithdrawApplication,
-  } = useCandidateDashboard(MOCK_RECOMMENDED_JOBS);
+  } = useCandidateDashboard(ALL_DASHBOARD_JOBS);
 
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
 

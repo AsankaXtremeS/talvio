@@ -1,65 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import RoleGate from "@/components/auth/RoleGate";
+import {
+  CandidateSettingsProfile,
+  CandidateSettingsView,
+} from "@/components/candidate/settings";
 import { useAuth } from "@/context/AuthContext";
-import { authService } from "@/lib/auth.service";
-import { getRoleHomeRoute } from "@/lib/roleRoutes";
 
 export default function CandidateSettingsPage() {
-  const router = useRouter();
-  const { user, setUser } = useAuth();
-  const [isUpgrading, setIsUpgrading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+  const displayName = fullName || "John Dob";
 
-  const handleUpgrade = async () => {
-    try {
-      setIsUpgrading(true);
-      setMessage(null);
-      const { user: updatedUser } = await authService.updateMyRole("PROFESSIONAL");
-      setUser(updatedUser);
-      router.replace(getRoleHomeRoute(updatedUser.role));
-    } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : "Failed to update status.");
-    } finally {
-      setIsUpgrading(false);
-    }
-  };
+  const profile = useMemo<CandidateSettingsProfile>(() => {
+    return {
+      fullName: displayName,
+      title: user?.role === "PROFESSIONAL" ? "Frontend Engineer" : "Frontend Developer",
+      location: "Ottawa, ON, Canada",
+      email: user?.email || "example@example.com",
+      phone: "+1123-456-7890",
+      bio: "A motivated web developer with 2 years of experience in React and Next.js.",
+      skills: ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
+      githubUrl: "https://github.com/#name",
+      linkedinUrl: "https://linkedin.com/#name",
+      education: {
+        degree: "Bachelor's of Science",
+        field: "Computer Science",
+        period: "2018-2022",
+      },
+      project: {
+        company: "Shopify",
+        role: "Frontend Developer",
+        period: "Jun 2022-Present",
+        bullets: [
+          "Developed modern responsive web applications using React, Next.js, TypeScript, and Tailwind CSS.",
+          "Collaborated cross-functionally with designers and backend developers to optimize performance.",
+        ],
+      },
+      experience: {
+        company: "Shopify",
+        role: "Frontend Developer",
+        period: "Jun 2022-Present",
+      },
+    };
+  }, [displayName, user?.email, user?.role]);
+
 
   return (
     <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
-      <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900">Candidate Settings</h1>
-        <div className="mt-4 space-y-1 text-sm text-gray-700">
-          <p>Name: {fullName || "Not set"}</p>
-          <p>Email: {user?.email || "-"}</p>
-          <p>Status: {user?.role === "STUDENT" ? "Undergraduate" : "Professional"}</p>
-        </div>
-
-        {user?.role === "STUDENT" ? (
-          <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-            <h2 className="text-sm font-semibold text-indigo-800">Upgrade status to Professional</h2>
-            <p className="mt-1 text-xs text-indigo-700">
-              This will switch your candidate account from internship-focused to jobs-focused mode.
-            </p>
-            <button
-              onClick={handleUpgrade}
-              disabled={isUpgrading}
-              className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {isUpgrading ? "Updating..." : "Switch to Professional"}
-            </button>
-            {message && <p className="mt-2 text-xs text-red-600">{message}</p>}
-          </div>
-        ) : (
-          <div className="mt-6 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
-            Your account is already in Professional status.
-          </div>
-        )}
-      </section>
+      <CandidateSettingsView profile={profile} profileScore={75} />
     </RoleGate>
   );
 }

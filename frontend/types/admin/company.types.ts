@@ -31,10 +31,24 @@ export interface CompanyStats {
 	jobCompanies: number;
 }
 
+export interface PaginationMeta {
+	total: number;
+	page: number;
+	limit: number;
+	totalPages: number;
+}
+
+export interface JobPostListResponse {
+	data: JobPost[];
+	pagination: PaginationMeta;
+}
+
 export type JobPostStats = CompanyStats;
 
 export interface CompanyFilters {
 	search?: string;
 	category?: string;
 	status?: string;
+	page?: number;
+	limit?: number;
 }
