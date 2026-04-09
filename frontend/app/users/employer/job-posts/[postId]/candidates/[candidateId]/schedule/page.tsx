@@ -5,17 +5,16 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, UserSquare } from "lucide-react";
 import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
 import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
+import DateCalendar from "@/components/employer/interviews/DateCalendar";
 import ScheduleForm from "@/components/employer/interviews/ScheduleForm";
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
 import SuccessModal from "@/components/employer/interviews/SuccessModal";
 
-// 1. Define the props to accept both IDs from the URL
 interface Props {
   params: Promise<{ postId: string; candidateId: string }>;
 }
 
 export default function ScheduleInterviewPage({ params }: Props) {
-  // 2. Unwrap the params to get our IDs
   const { postId, candidateId } = use(params);
   const router = useRouter();
 
@@ -40,7 +39,6 @@ export default function ScheduleInterviewPage({ params }: Props) {
             </p>
           </div>
           
-          {/* 3. Wire up the Back button to go exactly back to this job's candidates */}
           <button 
             onClick={() => router.push(`/users/employer/job-posts/${postId}/candidates`)}
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
@@ -51,21 +49,28 @@ export default function ScheduleInterviewPage({ params }: Props) {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post</h2>
-            {/* You can pass the postId here later to fetch the job details! */}
-            <JobPostPanel /> 
+        <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
+            </div>
+            <JobPostPanel />
+            <ApplicantPanel candidateId={candidateId} />
           </div>
+
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">Applicant</h2>
-             {/* You can pass the candidateId here later to fetch the user details! */}
-            <ApplicantPanel />
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
+            <DateCalendar 
+              selectedDate={date} 
+              onDateChange={setDate}
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">Meeting Details</h2>
+            <ScheduleForm date={date} setDate={setDate} />
           </div>
         </div>
-
-        {/* Form and Summary */}
-        <ScheduleForm date={date} setDate={setDate} time={time} setTime={setTime} />
 
         <ReadyToScheduleBar 
           date={date} 

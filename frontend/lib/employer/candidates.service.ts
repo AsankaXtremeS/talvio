@@ -126,6 +126,11 @@ export async function getCandidates(status: CandidateStatus): Promise<CandidateI
 
   // Mock: simulate network delay
   await new Promise((r) => setTimeout(r, 300));
+
+  if (status === "AI Matches") {
+    return MOCK_CANDIDATES.filter((c) => c.status === "Applied" && c.matchScore >= 85);
+  }
+
   return MOCK_CANDIDATES.filter((c) => c.status === status);
 }
 

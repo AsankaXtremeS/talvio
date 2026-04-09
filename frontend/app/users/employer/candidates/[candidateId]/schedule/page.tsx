@@ -1,22 +1,22 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation"; // <-- Import useRouter
+import { useRouter } from "next/navigation";
 import { ChevronLeft, UserSquare } from "lucide-react";
 import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
 import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
+import DateCalendar from "@/components/employer/interviews/DateCalendar";
 import ScheduleForm from "@/components/employer/interviews/ScheduleForm";
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
 import SuccessModal from "@/components/employer/interviews/SuccessModal";
 
-// Add props to accept the dynamic URL parameter
 interface Props {
   params: Promise<{ candidateId: string }>;
 }
 
 export default function ScheduleInterviewPage({ params }: Props) {
-  const { candidateId } = use(params); // <-- Get the specific candidate ID
-  const router = useRouter(); // <-- Initialize router
+  const { candidateId } = use(params);
+  const router = useRouter();
 
   const [date, setDate] = useState("2025-12-24");
   const [time, setTime] = useState("11:30");
@@ -35,11 +35,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <h1 className="text-3xl font-bold text-indigo-500">Schedule Interview</h1>
             </div>
             <p className="ml-12 text-base text-gray-600">
-              Scheduling for Candidate ID: {candidateId} {/* <-- You can pass this ID down to ApplicantPanel! */}
+              Scheduling for Candidate ID: {candidateId}
             </p>
           </div>
           
-          {/* Back Button connected to router */}
           <button 
             onClick={() => router.back()} 
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
@@ -51,18 +50,27 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2">
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post</h2>
+          <div className="space-y-4">
+            <div>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
+            </div>
             <JobPostPanel />
+            <ApplicantPanel candidateId={candidateId} />
           </div>
+
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">Applicant</h2>
-            <ApplicantPanel candidateId={candidateId} /> {/* Pass ID to fetch data later */}
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
+            <DateCalendar 
+              selectedDate={date} 
+              onDateChange={setDate}
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">Meeting Details</h2>
+            <ScheduleForm date={date} setDate={setDate} />
           </div>
         </div>
-
-        {/* Form and Summary */}
-        <ScheduleForm date={date} setDate={setDate} time={time} setTime={setTime} />
 
         <ReadyToScheduleBar 
           date={date} 

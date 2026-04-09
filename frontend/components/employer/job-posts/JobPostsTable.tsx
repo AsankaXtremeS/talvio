@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Bot } from "lucide-react";
+import { Check, ChevronDown, FileUser } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { JobPost } from "@/types/employer/jobPost.types";
 
@@ -255,10 +255,10 @@ export default function JobPostsTable({
                         <button
                           onClick={() => onViewCandidates(post.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400 text-emerald-500 bg-white text-xs font-semibold hover:bg-emerald-50 transition-colors"
-                          title="View AI Shortlist"
+                          title="View Applications"
                         >
-                          <Bot size={14} />
-                          AI Matches
+                          <FileUser size={14} />
+                          Applications
                         </button>
                         <button
                           onClick={() => router.push(`/users/employer/job-posts/${post.id}`)}

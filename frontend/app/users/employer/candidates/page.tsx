@@ -31,14 +31,20 @@ export default function CandidatesPage() {
   /* ── Filtered list — derived from status + search query ── */
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return all.filter(
-      (c) =>
-        c.status === status &&
+    return all.filter((c) => {
+      const matchesStatus =
+        status === "AI Matches"
+          ? c.status === "Applied" && c.matchScore >= 85
+          : c.status === status;
+
+      return (
+        matchesStatus &&
         (!q ||
           c.name.toLowerCase().includes(q) ||
           c.role.toLowerCase().includes(q) ||
           c.skills.some((s) => s.toLowerCase().includes(q)))
-    );
+      );
+    });
   }, [all, status, query]);
 
   /* ── Handlers ── */
@@ -47,7 +53,7 @@ export default function CandidatesPage() {
   };
 
   const handleSchedule = (id: string) => {
-    router.push(`/users/employer/interviews/schedule?candidateId=${id}`);
+    router.push(`/users/employer/candidates/${id}/schedule`);
   };
 
   return (
