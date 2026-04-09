@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
@@ -31,17 +32,15 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
 };
 
 export default function JobPostsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [stats, setStats] = useState<CompanyStats>(emptyStats);
-  const [posts, setPosts] = useState<JobPost[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(search);
+      setPage(1); // Reset page on new search
     }, 300);
 
     return () => {
@@ -51,64 +50,64 @@ export default function JobPostsPage() {
 
   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
 
-  const loadData = useCallback(
-    async (page: number) => {
-      setIsLoading(true);
-      setError(null);
-
+  const { data: statsData } = useQuery({
+    queryKey: ['adminJobPostStats'],
+    queryFn: async () => {
       try {
-        const [statsData, postsResponse] = await Promise.all([
-          companiesService.getJobPostStats(),
-          companiesService.getJobPosts({
-            search: normalizedSearch || undefined,
-            page,
-            limit: PAGE_LIMIT,
-          }),
-        ]);
-
-        setStats(statsData);
-        setPosts(postsResponse.data);
-        setPagination(postsResponse.pagination);
-      } catch (err: unknown) {
-        setError(getErrorMessage(err, 'Failed to load job posts.'));
-      } finally {
-        setIsLoading(false);
+        return await companiesService.getJobPostStats();
+      } catch {
+        return emptyStats;
       }
     },
-    [normalizedSearch],
-  );
+  });
 
-  useEffect(() => {
-    void loadData(1);
-  }, [loadData]);
+  const { data: postsData, isLoading: isPostsLoading, error: postsError } = useQuery({
+    queryKey: ['adminJobPosts', normalizedSearch, page],
+    queryFn: async () => {
+      return await companiesService.getJobPosts({
+        search: normalizedSearch || undefined,
+        page,
+        limit: PAGE_LIMIT,
+      });
+    },
+  });
+
+  const stats = statsData ?? emptyStats;
+  const posts = postsData?.data ?? [];
+  const pagination = postsData?.pagination ?? { ...emptyPagination, page };
+  const isLoading = isPostsLoading;
+  const error = postsError ? getErrorMessage(postsError, 'Failed to load job posts.') : null;
 
   const handlePrevious = useCallback(() => {
-    if (pagination.page <= 1 || isLoading) return;
-    void loadData(pagination.page - 1);
-  }, [isLoading, loadData, pagination.page]);
+    if (page <= 1) return;
+    setPage((p) => p - 1);
+  }, [page]);
 
   const handleNext = useCallback(() => {
-    if (pagination.page >= pagination.totalPages || isLoading) return;
-    void loadData(pagination.page + 1);
-  }, [isLoading, loadData, pagination.page, pagination.totalPages]);
+    if (page >= pagination.totalPages) return;
+    setPage((p) => p + 1);
+  }, [page, pagination.totalPages]);
 
-  const handleRemove = useCallback(
-    async (post: JobPost) => {
-      const confirmed = window.confirm(`Are you sure to remove \"${post.jobTitle}\"?`);
-      if (!confirmed) return;
-
-      try {
-        await companiesService.removeJobPost(post.id);
-
-        const shouldLoadPreviousPage = posts.length === 1 && pagination.page > 1;
-        const targetPage = shouldLoadPreviousPage ? pagination.page - 1 : pagination.page;
-        await loadData(targetPage);
-      } catch (err: unknown) {
-        window.alert(getErrorMessage(err, 'Failed to remove job post.'));
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => companiesService.removeJobPost(id),
+    onSuccess: () => {
+      // If we are deleting the last item on the current page, and we're not on the first page, go back.
+      if (posts.length === 1 && page > 1) {
+        setPage((p) => p - 1);
       }
+      void queryClient.invalidateQueries({ queryKey: ['adminJobPosts'] });
+      void queryClient.invalidateQueries({ queryKey: ['adminJobPostStats'] });
     },
-    [loadData, pagination.page, posts.length],
-  );
+    onError: (err: unknown) => {
+      window.alert(getErrorMessage(err, 'Failed to remove job post.'));
+    },
+  });
+
+  const handleRemove = useCallback((post: JobPost) => {
+    const confirmed = window.confirm(`Are you sure to remove "${post.jobTitle}"?`);
+    if (!confirmed) return;
+    removeMutation.mutate(post.id);
+  }, [removeMutation]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

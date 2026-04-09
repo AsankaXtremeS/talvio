@@ -5,6 +5,7 @@ import "./globals.css"
 import PageTransition from "@/components/layout/PageTransition"
 import GlobalRedirectToast from "@/components/layout/GlobalRedirectToast"
 import { AuthProvider } from "@/context/AuthContext"
+import { QueryProvider } from "@/components/providers/QueryProvider"
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -69,12 +70,14 @@ export default function RootLayout({
   ensureMethod("getEntriesByName", function () { return []; });
 })();`}
         </Script>
-        <AuthProvider>
-          <GlobalRedirectToast />
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <GlobalRedirectToast />
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )

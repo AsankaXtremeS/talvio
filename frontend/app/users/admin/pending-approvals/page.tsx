@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 import PendingApprovalsTable from "@/components/admin/pending-approvals/PendingApprovalsTable";
 import AdminLoadingCard from "@/components/admin/layout/AdminLoadingCard";
@@ -50,60 +51,69 @@ function StatusFilterButtons({
 // Page
 // -------------------------------------------------
 export default function PendingApprovalsPage() {
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<ApprovalStatus>("pending");
-  const [approvals, setApprovals] = useState<PendingApproval[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch by status filter ──
-  useEffect(() => {
-    const load = async () => {
-      setError(null);
-      setIsLoading(true);
-      try {
-        const employers = await authService.getEmployers(statusFilter);
-        const data: PendingApproval[] = employers
-          .map((employer) => ({
+  const { data: approvalsData, isLoading, error: approvalsError } = useQuery({
+    queryKey: ['adminPendingApprovals', statusFilter],
+    queryFn: async () => {
+      const employers = await authService.getEmployers(statusFilter);
+      const data: PendingApproval[] = employers
+        .map((employer) => ({
           id: employer.id,
           companyName: employer.employerProfile.companyName,
           email: employer.email,
           createdAt: employer.createdAt,
           status: statusFilter,
           companyLogoUrl: undefined,
-            registrationFileUrl: employer.employerProfile.registrationFileUrl,
-            rejectionReason: employer.employerProfile.rejectionReason ?? null,
-          }))
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          registrationFileUrl: employer.employerProfile.registrationFileUrl,
+          rejectionReason: employer.employerProfile.rejectionReason ?? null,
+        }))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return data;
+    },
+  });
 
-        setApprovals(data);
-      } catch (err: unknown) {
-        setError(getErrorMessage(err, `Failed to load ${statusFilter} approvals.`));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [statusFilter]);
+  const approvals: PendingApproval[] = approvalsData ?? [];
+  const error = approvalsError ? getErrorMessage(approvalsError, `Failed to load ${statusFilter} approvals.`) : null;
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => authService.approveEmployer(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['adminPendingApprovals'] });
+    },
+    onError: (err: unknown) => {
+      window.alert(getErrorMessage(err, 'Failed to approve employer.'));
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => authService.rejectEmployer(id, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['adminPendingApprovals'] });
+    },
+    onError: (err: unknown) => {
+      window.alert(getErrorMessage(err, 'Failed to reject employer.'));
+    },
+  });
 
   // ── Approve ──
   const handleApprove = useCallback(async (id: string) => {
-    await authService.approveEmployer(id);
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+    await approveMutation.mutateAsync(id);
+  }, [approveMutation]);
 
   // ── Reject ──
   const handleReject = useCallback(async (id: string, reason?: string) => {
-    await authService.rejectEmployer(id, reason);
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+    await rejectMutation.mutateAsync({ id, reason });
+  }, [rejectMutation]);
 
   // ── View Business Registration ──
-  const handleViewBR = useCallback(async (id: string) => {
+  const handleViewBR = useCallback((id: string) => {
     const approval = approvals.find((entry) => entry.id === id);
     const fileUrl = approval?.registrationFileUrl;
 
     if (!fileUrl) {
-      setError("Business registration document not found.");
+      window.alert("Business registration document not found.");
       return;
     }
 
