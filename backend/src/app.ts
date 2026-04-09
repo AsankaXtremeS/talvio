@@ -36,9 +36,6 @@ app.use(cookieParser());
 app.use(passport.initialize());
 app.use(morgan(":method :pathNoQuery :status :response-time ms - :res[content-length]"));
 
-// Serve uploaded files (employer registration PDFs)
-app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
 registerRoutes(app);
 
 app.use(errorHandler);
