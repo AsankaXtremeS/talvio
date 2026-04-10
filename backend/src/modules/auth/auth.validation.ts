@@ -28,7 +28,8 @@ export const validateRegisterEmployer = (data: any) => {
     !data.email ||
     !data.password ||
     !data.confirmPassword ||
-    !data.companyName
+    !data.companyName ||
+    !data.registrationFileUrl
   ) {
     throw new Error("Missing employer fields");
   }
