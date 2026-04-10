@@ -49,19 +49,24 @@ export const authService = {
       data, // Axios uses `data` instead of `body`
     }),
 
-  registerEmployer: (formData: FormData) =>
-    axios.post('/api/auth/register-employer', formData, { withCredentials: true })
-      .then(res => res.data)
-      .catch(err => {
-        const errorMessage = err.response?.data?.message || 'Registration failed';
-        throw new Error(errorMessage);
-      }),
+  registerEmployer: (data: {
+    companyName: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    registrationFileUrl: string;
+    registrationFileName: string;
+  }) =>
+    apiClient<{ message: string; userId: string }>('/api/auth/register-employer', {
+      method: 'POST',
+      data,
+    }),
 
   getOAuthSignupUrl: (provider: 'google' | 'linkedin', role: 'STUDENT' | 'PROFESSIONAL') =>
     `/api/auth/oauth/${provider}?role=${role}`,
 
   login: (data: { email: string; password: string }) =>
-    apiClient<{ user: SessionUser }>('/api/auth/login', {
+    apiClient<{ user: SessionUser; accessToken?: string; refreshToken?: string }>('/api/auth/login', {
       method: 'POST',
       data,
     }),

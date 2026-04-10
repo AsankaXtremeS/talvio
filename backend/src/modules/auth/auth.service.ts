@@ -142,7 +142,8 @@ export const authService = {
   },
 
   async registerUser(data: any) {
-    const existing = await authRepository.findUserByEmail(data.email);
+    const normalizedEmail = String(data.email || "").trim().toLowerCase();
+    const existing = await authRepository.findUserByEmail(normalizedEmail);
     if (existing) throw new Error("User already exists");
 
     // Only allow STUDENT or PROFESSIONAL roles
@@ -157,7 +158,7 @@ export const authService = {
     const user = await authRepository.createUser({
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email,
+      email: normalizedEmail,
       password: hashed,
       role: requestedRole,
     });
@@ -166,7 +167,8 @@ export const authService = {
   },
 
   async registerEmployer(data: any) {
-    const existing = await authRepository.findUserByEmail(data.email);
+    const normalizedEmail = String(data.email || "").trim().toLowerCase();
+    const existing = await authRepository.findUserByEmail(normalizedEmail);
     if (existing) throw new Error("User already exists");
 
     if (!data.registrationFileUrl || !data.registrationFileName) {
@@ -178,7 +180,7 @@ export const authService = {
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: data.email,
+          email: normalizedEmail,
           password: hashed,
           role: "EMPLOYER",
         },
@@ -196,7 +198,7 @@ export const authService = {
       return user;
     });
 
-    const created = await authRepository.findUserByEmail(data.email);
+    const created = await authRepository.findUserByEmail(normalizedEmail);
     return {
       message: "Registration successful. Await admin approval.",
       userId: created!.id,
@@ -204,17 +206,28 @@ export const authService = {
   },
 
   async login(data: any) {
-    const user = await authRepository.findUserByEmail(data.email);
+    const normalizedEmail = String(data.email || "").trim();
+    const user = await authRepository.findUserByEmail(normalizedEmail);
     if (!user || !user.password) throw new Error("Invalid credentials");
 
     const match = await bcrypt.compare(data.password, user.password);
     if (!match) throw new Error("Invalid credentials");
 
     if (user.role === "EMPLOYER") {
-      if (
-        !user.employerProfile ||
-        user.employerProfile.verificationStatus !== "APPROVED"
-      ) {
+      if (!user.employerProfile) {
+        throw new Error("Employer profile missing. Please contact support.");
+      }
+
+      const verificationStatus = String(user.employerProfile.verificationStatus || "").toUpperCase();
+      if (verificationStatus !== "APPROVED") {
+        if (verificationStatus === "REJECTED") {
+          const reason = user.employerProfile.rejectionReason?.trim();
+          throw new Error(
+            reason
+              ? `Employer account was rejected: ${reason}`
+              : "Employer account was rejected by admin."
+          );
+        }
         throw new Error("Account pending admin approval");
       }
     }

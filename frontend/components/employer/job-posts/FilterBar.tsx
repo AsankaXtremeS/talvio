@@ -56,7 +56,7 @@ function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1.5 min-w-[140px] bg-white border
+        <div className="absolute left-0 z-50 mt-1.5 min-w-35 bg-white border
                         border-gray-100 rounded-xl shadow-lg overflow-hidden">
           {options.map((opt) => (
             <button
@@ -91,7 +91,7 @@ export default function FilterBar({
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
-      <div className="relative flex-1 min-w-[200px]">
+      <div className="relative flex-1 min-w-50">
         <Search size={15} className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
         <input
           type="text"
@@ -103,7 +103,7 @@ export default function FilterBar({
         />
       </div>
 
-      <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Draft", "Active", "Closed"]} />
+      <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Active", "Close"]} />
       <Dropdown value={jobRole} onChange={onJobRoleChange} options={["Job Role", "Engineering", "Design", "Marketing", "Management"]} />
       <Dropdown value={sort}    onChange={onSortChange}    options={["Newest", "Oldest"]} />
       <Dropdown value={period}  onChange={onPeriodChange}  options={["This Week", "This Month", "All Time"]} />

@@ -1,224 +1,149 @@
-import {
-  PrismaClient,
-  Role,
-  VerificationStatus,
-  JobType,
-  PostStatus,
-  WorkMode,
-  EmploymentType,
-  StipendType,
-  ExperienceLevel,
-} from "@prisma/client";
-import bcrypt from "bcrypt";
+// prisma/seed.ts
+// Run with: npx ts-node prisma/seed.ts
+// Creates a hardcoded admin user and a test employer user if they don't already exist.
+
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const plainPassword = "Test@1234";
-  const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-  // 1) Admin user
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@talvio.com" },
-    update: {
-      firstName: "Talvio",
-      lastName: "Admin",
-      role: Role.ADMIN,
-      isVerified: true,
-    },
-    create: {
-      email: "admin@talvio.com",
-      password: hashedPassword,
-      role: Role.ADMIN,
-      isVerified: true,
-      firstName: "Talvio",
-      lastName: "Admin",
-    },
-  });
+  // ─── Admin User ───────────────────────────────────────────────────────────
+  const adminEmail = 'admin@talvio.com';
+  const adminPassword = 'Admin@1234';
 
-  // 2) Employer user
-  const employerUser = await prisma.user.upsert({
-    where: { email: "employer.test2@talvio.com" },
-    update: {
-      firstName: "Eshan",
-      lastName: "Employer",
-      role: Role.EMPLOYER,
-      isVerified: true,
-    },
-    create: {
-      email: "employer.test2@talvio.com",
-      password: hashedPassword,
-      role: Role.EMPLOYER,
-      isVerified: true,
-      firstName: "Eshan",
-      lastName: "Employer",
-    },
-  });
-
-  // 3) Employer profile (approved so login and AI employer routes work)
-  const employerProfile = await prisma.employerProfile.upsert({
-    where: { userId: employerUser.id },
-    update: {
-      companyName: "Talvio Labs",
-      registrationFileUrl: "uploads/seed-registration.pdf",
-      registrationFileName: "seed-registration.pdf",
-      verificationStatus: VerificationStatus.APPROVED,
-      companyDescription: "Seeded company for local API testing.",
-      companyWebsite: "https://talvio.test",
-      companyLocation: "Colombo",
-    },
-    create: {
-      userId: employerUser.id,
-      companyName: "Talvio Labs",
-      registrationFileUrl: "uploads/seed-registration.pdf",
-      registrationFileName: "seed-registration.pdf",
-      verificationStatus: VerificationStatus.APPROVED,
-      companyDescription: "Seeded company for local API testing.",
-      companyWebsite: "https://talvio.test",
-      companyLocation: "Colombo",
-    },
-  });
-
-  // 4) Candidate user
-  const candidateUser = await prisma.user.upsert({
-    where: { email: "candidate.test2@talvio.com" },
-    update: {
-      firstName: "Chama",
-      lastName: "Candidate",
-      role: Role.STUDENT,
-      isVerified: true,
-    },
-    create: {
-      email: "candidate.test2@talvio.com",
-      password: hashedPassword,
-      role: Role.STUDENT,
-      isVerified: true,
-      firstName: "Chama",
-      lastName: "Candidate",
-    },
-  });
-
-  // 5) Candidate profile
-  const candidateProfile = await prisma.candidateProfile.upsert({
-    where: { userId: candidateUser.id },
-    update: {
-      headline: "Junior Full Stack Developer",
-      location: "Colombo",
-      skills: ["TypeScript", "Node.js", "React", "Prisma", "PostgreSQL"],
-      bio: "Seed candidate profile for AI endpoint testing.",
-      cvPath: "uploads/seed-cv.pdf",
-      cvFileName: "seed-cv.pdf",
-      cvText:
-        "I am a junior developer experienced with TypeScript, Node.js, React, Prisma, and PostgreSQL.",
-    },
-    create: {
-      userId: candidateUser.id,
-      headline: "Junior Full Stack Developer",
-      location: "Colombo",
-      skills: ["TypeScript", "Node.js", "React", "Prisma", "PostgreSQL"],
-      bio: "Seed candidate profile for AI endpoint testing.",
-      cvPath: "uploads/seed-cv.pdf",
-      cvFileName: "seed-cv.pdf",
-      cvText:
-        "I am a junior developer experienced with TypeScript, Node.js, React, Prisma, and PostgreSQL.",
-    },
-  });
-
-  // 6) Job post (create once, then update on next runs)
-  const existingJob = await prisma.jobPost.findFirst({
-    where: {
-      employerId: employerProfile.id,
-      title: "Backend Intern (Seed v2)",
-    },
-  });
-
-  const jobPost = existingJob
-    ? await prisma.jobPost.update({
-        where: { id: existingJob.id },
-        data: {
-          type: JobType.INTERNSHIP,
-          status: PostStatus.ACTIVE,
-          description:
-            "Design and build scalable backend APIs using Node.js, Prisma, and PostgreSQL with a strong focus on API quality and performance.",
-          requirements: [
-            "Basic Node.js knowledge",
-            "Basic SQL knowledge",
-            "Willingness to learn",
-          ],
-          responsibilities: [
-            "Implement API endpoints",
-            "Write clean TypeScript code",
-            "Assist with DB migrations",
-          ],
-          skillsRequired: ["Node.js", "TypeScript", "Prisma", "PostgreSQL"],
-          workMode: WorkMode.HYBRID,
-          employmentType: EmploymentType.CONTRACT,
-          stipendType: StipendType.PAID,
-          location: "Colombo",
-          duration: "6 months",
-          experienceLevel: ExperienceLevel.ENTRY,
-          closingDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-        },
-      })
-    : await prisma.jobPost.create({
-        data: {
-          employerId: employerProfile.id,
-          title: "Backend Intern (Seed v2)",
-          type: JobType.INTERNSHIP,
-          status: PostStatus.ACTIVE,
-          description:
-            "Design and build scalable backend APIs using Node.js, Prisma, and PostgreSQL with a strong focus on API quality and performance.",
-          requirements: [
-            "Basic Node.js knowledge",
-            "Basic SQL knowledge",
-            "Willingness to learn",
-          ],
-          responsibilities: [
-            "Implement API endpoints",
-            "Write clean TypeScript code",
-            "Assist with DB migrations",
-          ],
-          skillsRequired: ["Node.js", "TypeScript", "Prisma", "PostgreSQL"],
-          workMode: WorkMode.HYBRID,
-          employmentType: EmploymentType.CONTRACT,
-          stipendType: StipendType.PAID,
-          location: "Colombo",
-          duration: "6 months",
-          experienceLevel: ExperienceLevel.ENTRY,
-          closingDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-        },
-      });
-
-  // 7) Seed one application so you also have APPLICATION_ID immediately
-  const application = await prisma.application.upsert({
-    where: {
-      candidateProfileId_jobPostId: {
-        candidateProfileId: candidateProfile.id,
-        jobPostId: jobPost.id,
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (existingAdmin) {
+    console.log('Admin user already exists:', adminEmail);
+  } else {
+    const hashed = await bcrypt.hash(adminPassword, 10);
+    const admin = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        password: hashed,
+        role: 'ADMIN',
+        firstName: 'Talvio',
+        lastName: 'Admin',
+        isVerified: true,
       },
-    },
-    update: {
-      cvPath: "uploads/seed-cv.pdf",
-      cvFileName: "seed-cv.pdf",
-      cvText:
-        "I am a junior developer experienced with TypeScript, Node.js, React, Prisma, and PostgreSQL.",
-    },
-    create: {
-      candidateProfileId: candidateProfile.id,
-      jobPostId: jobPost.id,
-      cvPath: "uploads/seed-cv.pdf",
-      cvFileName: "seed-cv.pdf",
-      cvText:
-        "I am a junior developer experienced with TypeScript, Node.js, React, Prisma, and PostgreSQL.",
-    },
-  });
+    });
+    console.log('Admin user created:', admin.email);
+  }
 
-  console.log("Seed completed");
-  console.log("Admin:", admin.email);
-  console.log("Candidate:", candidateUser.email, "password:", plainPassword);
-  console.log("Employer:", employerUser.email, "password:", plainPassword);
-  console.log("JOB_POST_ID:", jobPost.id);
-  console.log("APPLICATION_ID:", application.id);
+  // ─── Test Employer User ───────────────────────────────────────────────────
+  // Creates an approved employer so we can test job post endpoints immediately
+  // without going through the full registration + admin approval flow.
+  const employerEmail = 'employer@test.com';
+  const employerPassword = 'Test@1234';
+
+  const existingEmployer = await prisma.user.findUnique({ where: { email: employerEmail } });
+  if (existingEmployer) {
+    console.log('Employer user already exists:', employerEmail);
+  } else {
+    const hashed = await bcrypt.hash(employerPassword, 10);
+
+    // Create the User and EmployerProfile in one transaction
+    // Status is set to APPROVED so we can test job posts right away
+    const employer = await prisma.user.create({
+      data: {
+        email: employerEmail,
+        password: hashed,
+        role: 'EMPLOYER',
+        firstName: 'Test',
+        lastName: 'Employer',
+        isVerified: true,
+        // Create the EmployerProfile at the same time
+        employerProfile: {
+          create: {
+            companyName: 'Test Company',
+            registrationFileUrl: 'https://example.com/test-reg.pdf',
+            registrationFileName: 'test-reg.pdf',
+            // APPROVED so job post endpoints work immediately
+            verificationStatus: 'APPROVED',
+          },
+        },
+      },
+    });
+    console.log('Employer user created:', employer.email);
+    console.log('Email:', employerEmail);
+    console.log('Password:', employerPassword);
+  }
+
+  // ─── Test Student User (Undergraduate) ───────────────────────────────────
+  const studentEmail = 'student@test.com';
+  const studentPassword = 'Test@1234';
+
+  const existingStudent = await prisma.user.findUnique({ where: { email: studentEmail } });
+  if (existingStudent) {
+    console.log('Student user already exists:', studentEmail);
+  } else {
+    const hashed = await bcrypt.hash(studentPassword, 10);
+    const student = await prisma.user.create({
+      data: {
+        email: studentEmail,
+        password: hashed,
+        role: 'STUDENT',
+        firstName: 'Test',
+        lastName: 'Student',
+        isVerified: true,
+      },
+    });
+
+    await prisma.candidateProfile.create({
+      data: {
+        userId: student.id,
+        headline: 'Computer Science Undergraduate',
+        location: 'Colombo, Sri Lanka',
+        skills: ['JavaScript', 'React', 'Node.js', 'Python'],
+        bio: 'Passionate CS undergraduate looking for internship opportunities.',
+        linkedinUrl: 'https://linkedin.com/in/teststudent',
+        githubUrl: 'https://github.com/teststudent',
+      },
+    });
+
+    console.log('Student user created:', student.email);
+    console.log('Email:', studentEmail);
+    console.log('Password:', studentPassword);
+  }
+
+  // ─── Test Professional User (Employee) ───────────────────────────────────
+  const professionalEmail = 'professional@test.com';
+  const professionalPassword = 'Test@1234';
+
+  const existingProfessional = await prisma.user.findUnique({ where: { email: professionalEmail } });
+  if (existingProfessional) {
+    console.log('Professional user already exists:', professionalEmail);
+  } else {
+    const hashed = await bcrypt.hash(professionalPassword, 10);
+    const professional = await prisma.user.create({
+      data: {
+        email: professionalEmail,
+        password: hashed,
+        role: 'PROFESSIONAL',
+        firstName: 'Test',
+        lastName: 'Professional',
+        isVerified: true,
+      },
+    });
+
+    await prisma.candidateProfile.create({
+      data: {
+        userId: professional.id,
+        headline: 'Senior Software Engineer',
+        location: 'Kandy, Sri Lanka',
+        skills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'AWS'],
+        bio: 'Experienced software engineer with 5+ years in full stack development.',
+        linkedinUrl: 'https://linkedin.com/in/testprofessional',
+        githubUrl: 'https://github.com/testprofessional',
+        portfolioUrl: 'https://testprofessional.dev',
+      },
+    });
+
+    console.log('Professional user created:', professional.email);
+    console.log('Email:', professionalEmail);
+    console.log('Password:', professionalPassword);
+  }
 }
 
 main()

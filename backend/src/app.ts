@@ -10,6 +10,7 @@ import passport, { initializePassport } from "./config/passport";
 import { Request } from "express";
 
 const app = express();
+app.set('trust proxy', 1);
 
 initializePassport();
 
@@ -37,9 +38,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
 app.use(morgan(":method :pathNoQuery :status :response-time ms - :res[content-length]"));
-
-// Serve uploaded files (employer registration PDFs)
-app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 registerRoutes(app);
 

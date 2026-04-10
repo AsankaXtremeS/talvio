@@ -28,7 +28,8 @@ export const validateRegisterEmployer = (data: any) => {
     !data.email ||
     !data.password ||
     !data.confirmPassword ||
-    !data.companyName
+    !data.companyName ||
+    !data.registrationFileUrl
   ) {
     throw new Error("Missing employer fields");
   }
@@ -55,9 +56,12 @@ export const validateLogin = (data: any) => {
     throw new Error("Email and password required");
   }
 
-  if (!validator.isEmail(data.email)) {
+  const normalizedEmail = String(data.email).trim().toLowerCase();
+  if (!validator.isEmail(normalizedEmail)) {
     throw new Error("Invalid email format");
   }
+
+  data.email = normalizedEmail;
 };
 
 export const validateResetPassword = (newPassword: string) => {

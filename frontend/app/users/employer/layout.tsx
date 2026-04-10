@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
-  Users,
   Briefcase,
   SquareUser,
   Loader2,
@@ -36,11 +35,6 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     href: "/users/employer/dashboard",
     icon: <LayoutDashboard size={18} />,
-  },
-  {
-    label: "Candidates",
-    href: "/users/employer/candidates",
-    icon: <Users size={18} />,
   },
   {
     label: "Job Posts",

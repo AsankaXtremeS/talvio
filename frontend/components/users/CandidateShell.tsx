@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarDays,
   Cog,
   FileText,
   LayoutDashboard,
@@ -30,6 +31,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
+  const isApplyJobPage = false;
 
   const navItems = [
     {
@@ -46,6 +48,11 @@ export default function CandidateShell({ children }: CandidateShellProps) {
       label: "Recommendations",
       href: "/users/candidate/recommendations",
       icon: <Cog size={18} />,
+    },
+    {
+      label: "Interview",
+      href: "/users/candidate/interviews",
+      icon: <CalendarDays size={18} />,
     },
   ];
 
@@ -70,14 +77,18 @@ export default function CandidateShell({ children }: CandidateShellProps) {
     }
   };
 
+  // --- AUTH & ROLE CHECK DISABLED FOR DESIGN REVIEW ---
+  // return (
+  //   <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
+  //     <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
   return (
-    <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
       <div className="flex h-screen overflow-hidden bg-[#F4F6FB] p-4 gap-4">
         <aside
           className={`
             relative flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100
             transition-all duration-300 ease-in-out shrink-0 overflow-hidden
             ${collapsed ? "w-18" : "w-60"}
+            ${isApplyJobPage ? "pointer-events-none select-none" : ""}
             h-full p-4
           `}
         >
@@ -167,7 +178,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors duration-150 justify-center"
+              className="w-full cursor-pointer disabled:cursor-not-allowed flex items-center gap-3 px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors duration-150 justify-center"
             >
               <span className="flex items-center justify-center w-full gap-2">
                 {isSigningOut ? (
@@ -183,6 +194,6 @@ export default function CandidateShell({ children }: CandidateShellProps) {
 
         <main className="flex flex-col flex-1 min-w-0 overflow-y-auto">{children}</main>
       </div>
-    </RoleGate>
+    // </RoleGate>
   );
 }

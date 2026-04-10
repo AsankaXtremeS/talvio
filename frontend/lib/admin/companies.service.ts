@@ -1,21 +1,43 @@
 import { apiClient } from '@/lib/apiClient';
-import type { Company, CompanyFilters, CompanyStats, JobPost } from '@/types/admin/company.types';
+import type {
+	Company,
+	CompanyFilters,
+	CompanyStats,
+	JobPost,
+	JobPostListResponse,
+	PaginationMeta,
+} from '@/types/admin/company.types';
 
 interface CompaniesApiItem {
 	id: string;
 	companyName: string;
 	email: string;
+	postCount: number;
 	joinedAt: string;
 }
 
 interface CompaniesApiResponse {
 	data: CompaniesApiItem[];
-	pagination: {
-		total: number;
-		page: number;
-		limit: number;
-		totalPages: number;
-	};
+	pagination: PaginationMeta;
+}
+
+interface JobPostsApiItem {
+	id: string;
+	companyName: string;
+	companyEmail: string;
+	companyLogoColor: string;
+	companyLogoText: string;
+	category: string;
+	jobTitle: string;
+	type: 'Job' | 'Internship';
+	closedDate?: string;
+	isClosed: boolean;
+	closedApplications: number;
+}
+
+interface JobPostsApiResponse {
+	data: JobPostsApiItem[];
+	pagination: PaginationMeta;
 }
 
 const formatJoinedDate = (isoDate: string): string => {
@@ -44,56 +66,35 @@ const mapCompany = (item: CompaniesApiItem): Company => ({
 	id: item.id,
 	name: item.companyName,
 	email: item.email,
-	postCount: 0,
+	postCount: item.postCount,
 	joinedAt: formatJoinedDate(item.joinedAt),
 	logoText: initialsFromName(item.companyName),
 });
 
-const stats: CompanyStats = {
-	internshipPosts: 84,
-	internshipCompanies: 29,
-	jobPosts: 214,
-	jobCompanies: 76,
-};
-
-const jobPosts: JobPost[] = [
-	{
-		id: '1',
-		companyName: 'Nova Labs',
-		companyEmail: 'contact@novalabs.com',
-		companyLogoColor: '#4F46E5',
-		companyLogoText: 'NL',
-		category: 'Engineering',
-		jobTitle: 'Frontend Developer',
-	},
-	{
-		id: '2',
-		companyName: 'Bright Stack',
-		companyEmail: 'team@brightstack.ai',
-		companyLogoColor: '#0EA5E9',
-		companyLogoText: 'BS',
-		category: 'Design',
-		jobTitle: 'Product Designer',
-	},
-	{
-		id: '3',
-		companyName: 'Pixel Forge',
-		companyEmail: 'hello@pixelforge.io',
-		companyLogoColor: '#F97316',
-		companyLogoText: 'PF',
-		category: 'Marketing',
-		jobTitle: 'Growth Specialist',
-	},
-];
+const mapJobPost = (item: JobPostsApiItem): JobPost => ({
+	id: item.id,
+	companyName: item.companyName,
+	companyEmail: item.companyEmail,
+	companyLogoColor: item.companyLogoColor,
+	companyLogoText: item.companyLogoText,
+	category: item.category,
+	jobTitle: item.jobTitle,
+	type: item.type,
+	closedDate: item.closedDate,
+	isClosed: item.isClosed,
+	closedApplications: item.closedApplications,
+});
 
 export const companiesService = {
 	async getStats(): Promise<CompanyStats> {
-		return { ...stats };
+		return apiClient<CompanyStats>('/api/admin/job-posts/stats', {
+			method: 'GET',
+		});
 	},
 
 	// Backward-compatible alias used by older pages/components.
 	async getJobPostStats(): Promise<CompanyStats> {
-		return { ...stats };
+		return this.getStats();
 	},
 
 	async getCompanies(filters?: Partial<CompanyFilters>): Promise<Company[]> {
@@ -127,16 +128,37 @@ export const companiesService = {
 		});
 	},
 
-	async getJobPosts(filters?: Partial<CompanyFilters>): Promise<JobPost[]> {
-		if (!filters?.search) {
-			return jobPosts.map((post) => ({ ...post }));
+	async removeJobPost(id: string): Promise<void> {
+		await apiClient<{ message: string }>(`/api/admin/job-posts/${id}`, {
+			method: 'DELETE',
+		});
+	},
+
+	async getJobPosts(filters?: Partial<CompanyFilters>): Promise<JobPostListResponse> {
+		const params = new URLSearchParams();
+
+		if (filters?.search?.trim()) {
+			params.set('search', filters.search.trim());
 		}
 
-		const search = filters.search.toLowerCase();
-		return jobPosts
-			.filter(
-				(post) => post.jobTitle.toLowerCase().includes(search) || post.companyName.toLowerCase().includes(search),
-			)
-			.map((post) => ({ ...post }));
+		if (typeof filters?.page === 'number' && Number.isFinite(filters.page)) {
+			params.set('page', String(filters.page));
+		}
+
+		if (typeof filters?.limit === 'number' && Number.isFinite(filters.limit)) {
+			params.set('limit', String(filters.limit));
+		}
+
+		const query = params.toString();
+		const endpoint = `/api/admin/job-posts${query ? `?${query}` : ''}`;
+
+		const result = await apiClient<JobPostsApiResponse>(endpoint, {
+			method: 'GET',
+		});
+
+		return {
+			data: result.data.map(mapJobPost),
+			pagination: result.pagination,
+		};
 	},
 };

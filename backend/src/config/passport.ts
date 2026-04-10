@@ -1,8 +1,16 @@
 import passport from "passport";
-import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
-import { Strategy as LinkedInStrategy, Profile as LinkedInProfile } from "passport-linkedin-oauth2";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as LinkedInStrategy } from "passport-linkedin-oauth2";
 import { env } from "./env";
 import { Request } from "express";
+
+type OAuthProfile = {
+	id?: string;
+	displayName?: string;
+	emails?: Array<{ value?: string }>;
+	name?: { givenName?: string; familyName?: string };
+	_json?: { email?: string; sub?: string };
+};
 
 export type OAuthProvider = "google" | "linkedin";
 
@@ -27,7 +35,7 @@ const extractNameParts = (displayName?: string) => {
 };
 
 const resolveGoogleProfile = (
-	profile: GoogleProfile
+	profile: OAuthProfile
 ): Pick<OAuthProviderPayload, "providerUserId" | "email" | "firstName" | "lastName"> => {
 	const email = profile.emails?.[0]?.value || (profile as any)?._json?.email;
 	const providerUserId = profile.id || (profile as any)?._json?.sub;
@@ -49,7 +57,7 @@ const resolveGoogleProfile = (
 };
 
 const resolveLinkedInProfile = (
-	profile: LinkedInProfile
+	profile: OAuthProfile
 ): Pick<OAuthProviderPayload, "providerUserId" | "email" | "firstName" | "lastName"> => {
 	const email = profile.emails?.[0]?.value || (profile as any)?._json?.email;
 	const providerUserId = profile.id || (profile as any)?._json?.sub;
@@ -88,7 +96,7 @@ export const initializePassport = () => {
 					accessToken: string,
 					refreshToken: string,
 					_params: unknown,
-					profile: GoogleProfile,
+					profile: OAuthProfile,
 					done: any
 				) => {
 					try {
@@ -119,7 +127,7 @@ export const initializePassport = () => {
 				(
 					accessToken: string,
 					refreshToken: string,
-					profile: LinkedInProfile,
+					profile: OAuthProfile,
 					done: any
 				) => {
 					try {

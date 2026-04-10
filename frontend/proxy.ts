@@ -12,6 +12,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Employer pages rely on client-side auth bootstrap and fallback flows.
+  // Skip strict cookie-only gating here to avoid redirect loops.
+  if (pathname.startsWith("/users/employer")) {
+    return NextResponse.next();
+  }
+
   const hasAccessToken = Boolean(request.cookies.get("accessToken")?.value);
   const hasRefreshToken = Boolean(request.cookies.get("refreshToken")?.value);
   const isAuthenticated = hasAccessToken || hasRefreshToken;

@@ -25,9 +25,6 @@ model User {
   passwordResetTokens PasswordResetToken[]
   refreshTokens       RefreshToken[]
   verificationTokens  VerificationToken[]
-
-  @@index([role, createdAt])
-  @@index([createdAt])
 }
 
 model AuthAccount {
@@ -84,7 +81,6 @@ model EmployerProfile {
   registrationFileName String
   verificationStatus   VerificationStatus @default(PENDING)
   rejectionReason      String?
-
   companyDescription   String?
   companyLogoUrl       String?
   companyWebsite       String?
@@ -95,8 +91,6 @@ model EmployerProfile {
 
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobPosts             JobPost[]
-
-  @@index([verificationStatus, createdAt])
 }
 
 model JobPost {
@@ -107,7 +101,8 @@ model JobPost {
   requirements     String[]
   responsibilities String[]
   skillsRequired   String[]
-
+  additionalInformation String?
+  skills           String?
   workMode         WorkMode?
   employmentType   EmploymentType?
   stipendType      StipendType?
@@ -260,12 +255,6 @@ enum JobType {
   INTERNSHIP
 }
 
-enum PostStatus {
-  DRAFT
-  ACTIVE
-  CLOSED
-}
-
 enum EmploymentType {
   FULL_TIME
   PART_TIME
@@ -273,9 +262,9 @@ enum EmploymentType {
 }
 
 enum WorkMode {
+  ON_SITE
   REMOTE
   HYBRID
-  ON_SITE
 }
 
 enum StipendType {
@@ -296,4 +285,10 @@ enum ApplicationStatus {
   SHORTLISTED
   REJECTED
   HIRED
+}
+
+enum PostStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
 }

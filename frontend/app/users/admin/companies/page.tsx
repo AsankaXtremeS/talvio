@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2 } from 'lucide-react';
 import CompaniesTable from '@/components/admin/companies/CompaniesTable';
 import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
@@ -15,12 +16,10 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
 };
 
 export default function CompaniesPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -34,25 +33,17 @@ export default function CompaniesPage() {
 
   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
 
-  const loadCompanies = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const data = await companiesService.getCompanies({
+  const { data: companiesData, isLoading, error: companiesError } = useQuery({
+    queryKey: ['adminCompanies', normalizedSearch],
+    queryFn: async () => {
+      return await companiesService.getCompanies({
         search: normalizedSearch || undefined,
       });
-      setCompanies(data);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load companies.'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [normalizedSearch]);
+    },
+  });
 
-  useEffect(() => {
-    void loadCompanies();
-  }, [loadCompanies]);
+  const companies = companiesData ?? [];
+  const error = companiesError ? getErrorMessage(companiesError, 'Failed to load companies.') : null;
 
   const filteredCompanies = useMemo(() => {
     if (periodFilter === 'all-time') return companies;
@@ -91,17 +82,21 @@ export default function CompaniesPage() {
     window.alert(`Company profile for ${company.name} will be available after the company module is implemented.`);
   }, []);
 
-  const handleRemove = useCallback(async (id: string) => {
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => companiesService.removeCompany(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['adminCompanies'] });
+    },
+    onError: (err: unknown) => {
+      window.alert(getErrorMessage(err, 'Failed to remove company.'));
+    },
+  });
+
+  const handleRemove = useCallback((id: string) => {
     const confirmed = window.confirm('Are you sure to remove this company?');
     if (!confirmed) return;
-
-    try {
-      await companiesService.removeCompany(id);
-      setCompanies((prev) => prev.filter((company) => company.id !== id));
-    } catch (err: unknown) {
-      window.alert(getErrorMessage(err, 'Failed to remove company.'));
-    }
-  }, []);
+    removeMutation.mutate(id);
+  }, [removeMutation]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

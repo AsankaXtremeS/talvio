@@ -37,7 +37,7 @@ export default function LoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { user } = await authService.login(data);
+      const { user, accessToken, refreshToken } = await authService.login(data);
       if (user.role !== 'EMPLOYER') {
         setError('root', { type: 'manual', message: 'Access denied. This login is for employers only.' });
         return;
@@ -52,6 +52,15 @@ export default function LoginForm() {
         setPopup({
           open: true,
           message: "Your employer account is still pending admin approval. Please wait until admin verification.",
+          success: false,
+        });
+        return;
+      }
+
+      if (message.toLowerCase().includes("rejected")) {
+        setPopup({
+          open: true,
+          message,
           success: false,
         });
         return;

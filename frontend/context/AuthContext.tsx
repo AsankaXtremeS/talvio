@@ -7,6 +7,7 @@ interface AuthUser {
   id: string;
   role: 'STUDENT' | 'PROFESSIONAL' | 'EMPLOYER' | 'ADMIN';
   email: string;
+  name?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   preferences?: {
@@ -93,6 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await authService.logout();
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("token");
     setUser(null);
     setAccessToken(null);
     window.location.href = '/login';

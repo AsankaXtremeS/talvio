@@ -6,8 +6,8 @@ import { Button } from '../../../components/ui/SignButton';
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-      <div className="w-full max-w-5xl h-[600px] bg-white rounded-3xl shadow-2xl p-12 relative">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-linear-to-br from-blue-50 via-purple-50 to-blue-100">
+      <div className="w-full max-w-5xl h-150 bg-white rounded-3xl shadow-2xl p-12 relative">
         {/* Close button */}
          <Link href="/"> 
         <button className="absolute text-gray-400 top-6 right-6 hover:text-gray-600">
@@ -35,7 +35,7 @@ export default function LoginPage() {
               <GraduationCap className="w-10 h-10 text-blue-600" />
             </div>
             <h3 className="mb-3 text-xl font-semibold text-gray-900">Undergraduate</h3>
-            <p className="flex-grow mb-8 text-sm text-gray-600">
+            <p className="grow mb-8 text-sm text-gray-600">
               Kick-start your career with smart job matching
             </p>
             <Link href="/login/undergraduate" className="w-full">
@@ -49,7 +49,7 @@ export default function LoginPage() {
               <User className="w-10 h-10 text-blue-600" />
             </div>
             <h3 className="mb-3 text-xl font-semibold text-gray-900">Professional</h3>
-            <p className="flex-grow mb-8 text-sm text-gray-600">
+            <p className="grow mb-8 text-sm text-gray-600">
               Find roles that match your skills instantly
             </p>
             <Link href="/login/professional" className="w-full">
@@ -63,7 +63,7 @@ export default function LoginPage() {
               <Building2 className="w-10 h-10 text-blue-600" />
             </div>
             <h3 className="mb-3 text-xl font-semibold text-gray-900">Employer</h3>
-            <p className="flex-grow mb-8 text-sm text-gray-600">
+            <p className="grow mb-8 text-sm text-gray-600">
               Hire verified talent faster with AI
             </p>
             <Link href="/login/employer" className="w-full">

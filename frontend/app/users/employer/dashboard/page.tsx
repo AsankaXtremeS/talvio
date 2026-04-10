@@ -13,8 +13,8 @@ export default function DashboardPage() {
   const router = useRouter();
 
   return (
-    <div className="flex-1 bg-[#E9F3FD] min-h-screen p-7 overflow-auto">
-      <div className="sticky top-0 z-30 bg-[#E9F3FD] pt-0 -mt-7 pb-2">
+    <div className="flex-1  min-h-screen overflow-auto p-7 [&_button:not(:disabled)]:cursor-pointer">
+      <div className="sticky top-0 z-30 bg-[#f4f6fb] pt-0 -mt-7 pb-2">
         <div className="bg-white rounded-2xl px-7 py-5 mb-3 flex items-center justify-between shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-indigo-700 flex items-center gap-2">
@@ -37,7 +37,7 @@ export default function DashboardPage() {
             Post New Job
           </button>
         </div>
-        <div className="sticky top-22 z-20 bg-[#E9F3FD] pb-2">
+        <div className="sticky top-22 z-20 bg-[#f4f6fb pb-2">
           <StatsRow />
         </div>
       </div>

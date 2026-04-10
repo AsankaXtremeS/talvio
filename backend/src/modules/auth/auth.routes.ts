@@ -38,7 +38,6 @@ router.get("/oauth/:provider", oauthStart);
 router.get("/oauth/:provider/callback", oauthCallback);
 router.post(
   "/register-employer",
-  upload.single("registrationFile"),
   registerEmployer
 );
 

@@ -10,6 +10,7 @@ import { Upload, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { authService } from "@/lib/auth.service"
 import Popup from "@/components/admin/layout/Popup"
+import { useUploadThing } from "@/lib/uploadthing"
 
 const schema = z
   .object({
@@ -57,8 +58,16 @@ export default function EmployerSignupForm() {
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [pwValue, setPwValue] = useState("")
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({ open: false, message: "", success: false })
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const { startUpload, isUploading: isFileUploading } = useUploadThing("pdfUploader", {
+    onUploadProgress: (p) => setUploadProgress(p),
+    onUploadError: (e) => {
+      setPopup({ open: true, message: `Upload failed: ${e.message}`, success: false })
+    }
+  })
 
   const toPopupMessage = (message: string) =>
     /already exists|already exist/i.test(message)
@@ -82,13 +91,27 @@ export default function EmployerSignupForm() {
         setIsLoading(false)
         return
       }
-      const formData = new FormData()
-      formData.append("companyName", data.companyName)
-      formData.append("email", data.email)
-      formData.append("password", data.password)
-      formData.append("confirmPassword", data.confirmPassword)
-      formData.append("registrationFile", file)
-      const result = await authService.registerEmployer(formData)
+
+      // Step 1: Upload to UploadThing
+      const uploadRes = await startUpload([file])
+      if (!uploadRes || uploadRes.length === 0) {
+        // Error already handled by onUploadError
+        setIsLoading(false)
+        return
+      }
+
+      const { url, name } = uploadRes[0]
+
+      // Step 2: Register with backend
+      const result = await authService.registerEmployer({
+        companyName: data.companyName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        registrationFileUrl: url,
+        registrationFileName: name,
+      })
+
       if (result?.userId) {
         setPopup({ open: true, message: "Registration submitted! Awaiting admin approval.", success: true })
       } else {
@@ -257,18 +280,32 @@ export default function EmployerSignupForm() {
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`w-full h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-white ${
+            className={`w-full h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-white overflow-hidden relative ${
               isDragActive ? "bg-blue-50 border-blue-600" : "border-blue-400"
             }`}
           >
+            {/* Progress Bar Overlay */}
+            {(isFileUploading || isLoading) && uploadProgress > 0 && uploadProgress < 100 && (
+              <div 
+                className="absolute bottom-0 left-0 h-1 bg-blue-600 transition-all duration-300 z-20" 
+                style={{ width: `${uploadProgress}%` }}
+              />
+            )}
+
             <Upload className="w-6 h-6 mb-1 text-gray-400" />
-            <span className="text-sm text-blue-600">
-              {fileName ? (
+            <span className="text-sm text-blue-600 px-4 text-center">
+              {isFileUploading ? (
+                <span className="flex flex-col items-center">
+                  <span>Uploading {uploadProgress}%</span>
+                </span>
+              ) : fileName ? (
                 <>
-                  {fileName}
+                  <span className="truncate max-w-[200px] inline-block align-bottom">{fileName}</span>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       setFileName("")
                       if (fileRef.current) fileRef.current.value = ""
                     }}
@@ -295,11 +332,11 @@ export default function EmployerSignupForm() {
       {/* Get Started Button */}
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || isFileUploading}
         className="w-full py-3 text-base font-semibold text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ background: "linear-gradient(90deg, #5F33E2 0%, #4F46E5 50%, #2563EB 100%)" }}
       >
-        {isLoading ? "Creating account..." : "Get started"}
+        {isFileUploading ? "Uploading BR..." : isLoading ? "Creating account..." : "Get started"}
       </button>
 
     </form>
