@@ -1,4 +1,4 @@
-export type InterviewStatus = "Applied" | "Confirmed" | "Rescheduled";
+export type InterviewStatus = "Scheduled";
 
 export type InterviewItem = {
   id: string;
@@ -37,7 +37,7 @@ export const INTERVIEWS: InterviewItem[] = [
     meetingLabel: "Google Meet",
     meetingUrl: "https://meet.google.com/xyz-abcd-efg",
     companyProfileUrl: "https://about.google/",
-    status: "Applied",
+    status: "Scheduled",
     roleOverview:
       "Help build and ship product-facing frontend experiences with modern React patterns.",
     companyDescription:
@@ -63,7 +63,7 @@ export const INTERVIEWS: InterviewItem[] = [
     meetingLabel: "Zoom",
     meetingUrl: "https://zoom.us/j/88991234123",
     companyProfileUrl: "https://stripe.com/",
-    status: "Confirmed",
+    status: "Scheduled",
     roleOverview:
       "Work with product and data teams to translate insights into roadmap decisions.",
     companyDescription:
@@ -89,7 +89,7 @@ export const INTERVIEWS: InterviewItem[] = [
     meetingLabel: "Figma Interview Room",
     meetingUrl: "https://figma.com/interview-room/ux-2026-15",
     companyProfileUrl: "https://www.figma.com/company/",
-    status: "Rescheduled",
+    status: "Scheduled",
     roleOverview:
       "Collaborate on product interaction and visual systems for design tooling experiences.",
     companyDescription:
