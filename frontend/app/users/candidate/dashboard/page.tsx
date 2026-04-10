@@ -10,6 +10,7 @@ import RecommendationList from "@/components/candidate/dashboard/RecommendationL
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
+import { INTERVIEWS } from "@/components/candidate/interviews/types";
 
 const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
   {
@@ -83,6 +84,7 @@ const APPLY_MODAL_CONTENT = {
 };
 
 const STORAGE_KEY = "candidateAppliedJobIds";
+const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
 function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDED_JOBS) {
   const router = useRouter();
@@ -90,6 +92,7 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
 
   const [search, setSearch] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
   const jobIdFromQuery = searchParams.get("jobId");
   const sourceFromQuery = searchParams.get("from");
@@ -185,6 +188,27 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY);
+      if (!stored) {
+        setReadNotificationIds([]);
+        return;
+      }
+
+      const parsed: unknown = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setReadNotificationIds(parsed.filter((value): value is string => typeof value === "string"));
+      } else {
+        setReadNotificationIds([]);
+      }
+    } catch {
+      setReadNotificationIds([]);
+    }
+  }, []);
+
   const currentDateLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("en-US", {
@@ -222,6 +246,41 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
       hour12: true,
     }).format(nearestInterview);
   }, [nearestInterview]);
+
+  const interviewNotifications = useMemo(() => {
+    return INTERVIEWS
+      .map((interview) => {
+        const scheduledDate = new Date(interview.scheduledAt);
+        const isUpcoming = scheduledDate.getTime() >= now.getTime();
+        const isRead = readNotificationIds.includes(interview.id);
+        const isNew = isUpcoming && !isRead;
+
+        return {
+          id: interview.id,
+          title: `New interview scheduled: ${interview.company}`,
+          timeLabel: interview.scheduledLabel,
+          isNew,
+          href: `/users/candidate/interviews/${interview.id}`,
+          scheduledAtMs: scheduledDate.getTime(),
+        };
+      })
+      .sort((a, b) => b.scheduledAtMs - a.scheduledAtMs)
+      .map(({ scheduledAtMs, ...notification }) => notification);
+  }, [now, readNotificationIds]);
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setReadNotificationIds((prev) => {
+      if (prev.includes(notificationId)) return prev;
+
+      const next = [...prev, notificationId];
+      try {
+        window.localStorage.setItem(NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // keep UI responsive even if storage is unavailable
+      }
+      return next;
+    });
+  };
 
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -270,6 +329,8 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     currentDateLabel,
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
+    interviewNotifications,
+    markNotificationAsRead,
     shownJobs,
     selectedJob,
     activeModal,
@@ -302,6 +363,8 @@ export default function CandidateDashboardPage() {
     currentDateLabel,
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
+    interviewNotifications,
+    markNotificationAsRead,
     shownJobs,
     selectedJob,
     activeModal,
@@ -341,6 +404,8 @@ export default function CandidateDashboardPage() {
           currentDateLabel={currentDateLabel}
           nearestInterviewDateLabel={nearestInterviewDateLabel}
           nearestInterviewTimeLabel={nearestInterviewTimeLabel}
+          notifications={interviewNotifications}
+          onNotificationClick={(notification) => markNotificationAsRead(notification.id)}
         />
 
         <div className="pt-0">

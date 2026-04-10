@@ -184,7 +184,7 @@ export default function ApplicationsListView() {
           No applications found for this view.
         </p>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-3">
           {filteredApplications.map((job) => (
             <ApplicationCard
               key={job.id}
