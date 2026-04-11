@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, CalendarDays, Users, Building2, GraduationCap, Briefcase, Clock3 } from 'lucide-react';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import StatsCard from '@/components/admin/dashboard/StatsCard';
@@ -34,30 +34,15 @@ const defaultOverview: DashboardOverview = {
 };
 
 export default function DashboardPage() {
-  const [overview, setOverview] = useState<DashboardOverview | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: overview, isLoading, error } = useQuery({
+    queryKey: ['adminDashboardOverview'],
+    queryFn: async () => {
+      const response = await dashboardService.getOverview();
+      return response;
+    },
+  });
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      setIsLoading(true);
-      try {
-        const response = await dashboardService.getOverview();
-        setOverview(response);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-          return;
-        }
-        setError('Failed to load dashboard data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadDashboard();
-  }, []);
-
+  const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data.';
   const data = overview ?? defaultOverview;
   const { stats, userGrowth, candidatesCompaniesActivity, recentCandidates, applicationStats: appStats } = data;
 
@@ -102,7 +87,7 @@ export default function DashboardPage() {
             <AdminLoadingCard label="Loading dashboard insights..." />
           ) : error ? (
             <div className="rounded-2xl border border-red-100 bg-white p-6 text-sm text-red-500">
-              {error}
+              {errorMessage}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

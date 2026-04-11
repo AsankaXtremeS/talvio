@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 import CandidateStatsBar from '@/components/admin/candidates/CandidateStatsBar';
 import CandidatesTable from '@/components/admin/candidates/CandidatesTable';
@@ -26,15 +27,11 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
 };
 
 export default function CandidatesPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
   const [roleFilter, setRoleFilter] = useState<CandidateRoleFilter>('all');
-  const [stats, setStats] = useState<CandidateStats>(defaultStats);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -48,44 +45,31 @@ export default function CandidatesPage() {
 
   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
 
-  const loadCandidates = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const { data: statsData, isLoading: isStatsLoading } = useQuery({
+    queryKey: ['adminCandidatesStats'],
+    queryFn: async () => {
+      try {
+        return await candidatesService.getStats();
+      } catch {
+        return defaultStats;
+      }
+    },
+  });
 
-    try {
-      const nextCandidates = await candidatesService.getCandidates({
+  const { data: candidatesData, isLoading: isCandidatesLoading, error: candidatesError } = useQuery({
+    queryKey: ['adminCandidates', normalizedSearch, roleFilter],
+    queryFn: async () => {
+      return await candidatesService.getCandidates({
         search: normalizedSearch || undefined,
         role: roleFilter,
       });
+    },
+  });
 
-      setCandidates(nextCandidates);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load candidates.'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [normalizedSearch, roleFilter]);
-
-  const loadStats = useCallback(async () => {
-    setIsStatsLoading(true);
-
-    try {
-      const nextStats = await candidatesService.getStats();
-      setStats(nextStats);
-    } catch {
-      // Keep default stats if stats endpoint fails; list can still render.
-    } finally {
-      setIsStatsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
-
-  useEffect(() => {
-    void loadCandidates();
-  }, [loadCandidates]);
+  const stats = statsData ?? defaultStats;
+  const candidates = candidatesData ?? [];
+  const isLoading = isCandidatesLoading;
+  const error = candidatesError ? getErrorMessage(candidatesError, 'Failed to load candidates.') : null;
 
   const filteredCandidates = useMemo(() => {
     if (periodFilter === 'all-time') return candidates;
@@ -124,41 +108,22 @@ export default function CandidatesPage() {
     window.alert(`Candidate profile for ${candidate.name} will be available soon.`);
   }, []);
 
-  const handleRemove = useCallback(async (id: string) => {
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => candidatesService.removeCandidate(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
+      void queryClient.invalidateQueries({ queryKey: ['adminCandidatesStats'] });
+    },
+    onError: (err: unknown) => {
+      window.alert(getErrorMessage(err, 'Failed to remove candidate.'));
+    },
+  });
+
+  const handleRemove = useCallback((id: string) => {
     const confirmed = window.confirm('Are you sure to remove this candidate?');
     if (!confirmed) return;
-
-    try {
-      await candidatesService.removeCandidate(id);
-      setCandidates((prev) => prev.filter((candidate) => candidate.id !== id));
-      setStats((prev) => {
-        const removed = candidates.find((candidate) => candidate.id === id);
-        if (!removed) return prev;
-
-        if (removed.type === 'Undergraduate') {
-          const updatedInternships = Math.max(0, prev.lookingForInternships - 1);
-          const total = updatedInternships + prev.lookingForJobs;
-          return {
-            ...prev,
-            lookingForInternships: updatedInternships,
-            internshipApplyingRate: total === 0 ? 0 : Math.round((updatedInternships / total) * 100),
-            jobApplyingRate: total === 0 ? 0 : Math.round((prev.lookingForJobs / total) * 100),
-          };
-        }
-
-        const updatedJobs = Math.max(0, prev.lookingForJobs - 1);
-        const total = prev.lookingForInternships + updatedJobs;
-        return {
-          ...prev,
-          lookingForJobs: updatedJobs,
-          internshipApplyingRate: total === 0 ? 0 : Math.round((prev.lookingForInternships / total) * 100),
-          jobApplyingRate: total === 0 ? 0 : Math.round((updatedJobs / total) * 100),
-        };
-      });
-    } catch (err: unknown) {
-      window.alert(getErrorMessage(err, 'Failed to remove candidate.'));
-    }
-  }, [candidates]);
+    removeMutation.mutate(id);
+  }, [removeMutation]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

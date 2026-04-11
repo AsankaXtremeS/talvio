@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarDays,
   Cog,
   FileText,
   LayoutDashboard,
@@ -47,6 +48,11 @@ export default function CandidateShell({ children }: CandidateShellProps) {
       label: "Recommendations",
       href: "/users/candidate/recommendations",
       icon: <Cog size={18} />,
+    },
+    {
+      label: "Interview",
+      href: "/users/candidate/interviews",
+      icon: <CalendarDays size={18} />,
     },
   ];
 

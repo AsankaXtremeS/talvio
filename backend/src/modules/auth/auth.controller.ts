@@ -89,15 +89,15 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const registerEmployer = async (req: Request, res: Response) => {
   try {
-    const file = req.file;
-    if (!file) {
-      throw new Error("Business registration PDF is required");
+    const { registrationFileUrl, registrationFileName } = req.body;
+    if (!registrationFileUrl) {
+      throw new Error("Business registration PDF URL is required");
     }
     validateRegisterEmployer(req.body);
     const result = await authService.registerEmployer({
       ...req.body,
-      registrationFileUrl: file.path,
-      registrationFileName: file.filename,
+      registrationFileUrl,
+      registrationFileName: registrationFileName || "BusinessRegistration.pdf",
     });
     res.status(201).json(result);
   } catch (err: any) {
