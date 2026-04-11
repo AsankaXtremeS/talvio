@@ -1,21 +1,13 @@
 // All database operations for AI module.
 // This layer is the ONLY place where Prisma is used.
-// Controllers and services must never directly query the database.
 
 import { prisma } from "../../config/db";
 import { ApplicationStatus } from "@prisma/client";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REPOSITORY
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const aiRepository = {
 
   // ── Candidate Profile ──────────────────────────────────────────────────────
 
-  /**
-   * Find candidate profile by user ID
-   */
   async findCandidateProfileByUserId(userId: string) {
     return prisma.candidateProfile.findUnique({
       where: { userId },
@@ -23,8 +15,7 @@ export const aiRepository = {
   },
 
   /**
-   * Create or update candidate profile (CV data)
-   * Ensures a user always has one profile
+   * Create or update candidate profile (CV data + extracted skills)
    */
   async upsertCandidateProfile(
     userId: string,
@@ -32,6 +23,7 @@ export const aiRepository = {
       cvPath: string;
       cvFileName: string;
       cvText: string;
+      extractedSkills?: string[];
     }
   ) {
     return prisma.candidateProfile.upsert({
@@ -46,9 +38,6 @@ export const aiRepository = {
 
   // ── Job Post ───────────────────────────────────────────────────────────────
 
-  /**
-   * Get job post with employer details
-   */
   async findJobPostById(id: string) {
     return prisma.jobPost.findUnique({
       where: { id },
@@ -66,27 +55,37 @@ export const aiRepository = {
     });
   },
 
+  /**
+   * Find active jobs matching the user's career path
+   */
+  async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
+    return prisma.jobPost.findMany({
+      where: {
+        status: "ACTIVE",
+        type: type,
+      },
+      include: {
+        employer: {
+          select: {
+            companyName: true,
+            companyLogoUrl: true,
+          },
+        },
+      },
+    });
+  },
+
   // ── Application ────────────────────────────────────────────────────────────
 
-  /**
-   * Find application by ID with related AI data
-   */
   async findApplicationById(id: string) {
     return prisma.application.findUnique({
       where: { id },
       include: {
         jobPost: true,
-        cvSuggestion: true,
-        generatedCoverLetter: true,
       },
     });
   },
 
-  /**
-   * Prevent duplicate applications
-   * Requires composite unique constraint in Prisma schema:
-   * @@unique([candidateProfileId, jobPostId])
-   */
   async findApplicationByCandidateAndJob(
     candidateProfileId: string,
     jobPostId: string
@@ -101,16 +100,12 @@ export const aiRepository = {
     });
   },
 
-  /**
-   * Create new job application
-   */
   async createApplication(data: {
     candidateProfileId: string;
     jobPostId: string;
     cvPath: string;
     cvFileName: string;
     cvText: string;
-    coverLetter?: string;
   }) {
     return prisma.application.create({
       data,
@@ -118,85 +113,60 @@ export const aiRepository = {
   },
 
   /**
-   * Save AI scoring results
+   * Save consolidated AI analysis result
    */
-  async saveScore(
+  async saveAnalysisResult(
     applicationId: string,
-    score: {
+    result: {
       aiScore: number;
-      skillsMatchScore: number;
-      experienceMatchScore: number;
-      educationMatchScore: number;
-      keywordsMatchScore: number;
-      matchedSkills: string[];
-      missingSkills: string[];
-      aiSummary: string;
+      aiSuggestions: string[];
+      coverLetter: string;
     }
   ) {
     return prisma.application.update({
       where: { id: applicationId },
       data: {
-        ...score,
-        scoredAt: new Date(),
-      },
-    });
-  },
-
-  // ── CV Suggestions ─────────────────────────────────────────────────────────
-
-  /**
-   * Create or update CV suggestions
-   * Avoids duplicate records per application
-   */
-  async upsertCvSuggestion(
-    applicationId: string,
-    data: {
-      overallScore: number;
-      summaryScore: number;
-      summaryFeedback: string[];
-      skillsScore: number;
-      skillsFeedback: string[];
-      experienceScore: number;
-      experienceFeedback: string[];
-      educationScore: number;
-      educationFeedback: string[];
-      missingKeywords: string[];
-      strengthsToHighlight: string[];
-    }
-  ) {
-    return prisma.cvSuggestion.upsert({
-      where: { applicationId },
-      create: {
-        applicationId,
-        ...data,
-      },
-      update: data,
-    });
-  },
-
-  // ── Cover Letter ───────────────────────────────────────────────────────────
-
-  /**
-   * Store or update generated cover letter
-   */
-  async upsertGeneratedCoverLetter(
-    applicationId: string,
-    content: string
-  ) {
-    return prisma.generatedCoverLetter.upsert({
-      where: { applicationId },
-      create: {
-        applicationId,
-        content,
-      },
-      update: {
-        content,
+        ...result,
         updatedAt: new Date(),
       },
     });
   },
 
   // ── Company: Ranked Applicants ─────────────────────────────────────────────
+
+  async findRankedApplicants(jobPostId: string) {
+    return prisma.application.findMany({
+      where: { jobPostId },
+      orderBy: { aiScore: "desc" },
+      include: {
+        candidateProfile: {
+          select: {
+            headline: true,
+            skills: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
+  async updateApplicationStatus(
+    id: string,
+    applicationStatus: ApplicationStatus
+  ) {
+    return prisma.application.update({
+      where: { id },
+      data: { applicationStatus },
+    });
+  },
+};
+ked Applicants ─────────────────────────────────────────────
 
   /**
    * Get applicants sorted by AI score (descending)

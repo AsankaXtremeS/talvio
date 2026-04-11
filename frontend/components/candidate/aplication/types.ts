@@ -14,7 +14,7 @@ export type ApplicationStatus = "active" | "archived";
 
 export type ApplicationMeta = {
   status: ApplicationStatus;
-  stage: "Applied" | "Reviewed by HR" | "Pending Next Step";
+  stage: "Applied" | "Reviewed" | "Scheduled" | "Rejected";
   interviewMessage?: string;
 };
 
@@ -284,18 +284,20 @@ export const TAB_LABELS: Array<{ key: ApplicationTab; label: string }> = [
   { key: "archived", label: "Archived" },
 ];
 
-export const STEP_LABELS: Array<ApplicationMeta["stage"]> = ["Applied", "Reviewed by HR", "Pending Next Step"];
+export const STEP_LABELS: Array<ApplicationMeta["stage"]> = ["Applied", "Reviewed", "Scheduled"];
 
 export const STEP_HINTS: Record<ApplicationMeta["stage"], string> = {
   Applied: "Checked",
-  "Reviewed by HR": "Checked",
-  "Pending Next Step": "Active",
+  Reviewed: "Checked",
+  Scheduled: "Active",
+  Rejected: "Terminated",
 };
 
 export const STAGE_SHORT_LABELS: Record<ApplicationMeta["stage"], string> = {
   Applied: "Applied",
-  "Reviewed by HR": "Reviewed by HR",
-  "Pending Next Step": "Pending Next Step",
+  Reviewed: "Reviewed",
+  Scheduled: "Scheduled",
+  Rejected: "Rejected",
 };
 
 export const COMPANY_BADGES: Record<string, CompanyBadge> = {

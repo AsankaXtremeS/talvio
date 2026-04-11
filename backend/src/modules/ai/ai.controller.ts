@@ -1,4 +1,4 @@
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, Role } from "@prisma/client";
 import { Request, Response } from "express";
 import { aiRepository } from "./ai.repository";
 import { aiService } from "./ai.service";
@@ -6,13 +6,64 @@ import { aiService } from "./ai.service";
 /**
  * Safely extract route param as string
  */
-const getParam = (
-  value: string | string[] | undefined,
-  name: string
-): string => {
+const getParam = (value: string | string[] | undefined, name: string): string => {
   const val = Array.isArray(value) ? value[0] : value;
   if (!val) throw new Error(`Missing required param: ${name}`);
   return val;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECOMMENDATIONS
+// GET /api/ai/recommendations
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getRecommendations = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const candidate = await aiRepository.findCandidateProfileByUserId(userId);
+    if (!candidate) return res.status(200).json({ jobs: [] });
+
+    const userRole = req.user?.role;
+    const type = userRole === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
+
+    const jobs = await aiRepository.findActiveJobsByRole(type);
+    
+    // If candidate has no skills extracted yet, just return jobs with 0 match
+    if (!candidate.extractedSkills?.length) {
+      return res.status(200).json({
+        jobs: jobs.map(j => ({ ...j, matchScore: 0 }))
+      });
+    }
+
+    // Fast matching logic
+    const rankedJobs = await Promise.all(jobs.map(async (job) => {
+      // Build a simple description for keyword extraction if not already cached
+      // In a real system, we'd cache the JD keywords in the JobPost table
+      const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
+      
+      const score = aiService.calculateSimilarity(candidate.extractedSkills, jdKeywords);
+      
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.employer.companyName,
+        companyLogoUrl: job.employer.companyLogoUrl,
+        location: job.location,
+        type: job.type,
+        matchScore: score,
+        tags: [job.workMode, job.employmentType].filter(Boolean)
+      };
+    }));
+
+    return res.status(200).json({
+      jobs: rankedJobs.sort((a, b) => b.matchScore - a.matchScore)
+    });
+  } catch (err: any) {
+    console.error("getRecommendations error:", err);
+    return res.status(500).json({ message: err.message });
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,95 +73,62 @@ const getParam = (
 
 export const applyForJob = async (req: Request, res: Response) => {
   try {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const userId = req.user.id;
     const jobPostId = getParam(req.params.jobPostId, "jobPostId");
     const file = req.file;
 
-    // Return early if already applied (idempotent)
-    let candidateProfile =
-      await aiRepository.findCandidateProfileByUserId(userId);
-
-    if (candidateProfile) {
-      const existing = await aiRepository.findApplicationByCandidateAndJob(
-        candidateProfile.id,
-        jobPostId
-      );
-
-      if (existing) {
-        return res.status(200).json({
-          message: "You have already applied",
-          alreadyApplied: true,
-          applicationId: existing.id,
-          applicationStatus: existing.applicationStatus,
-          aiScore: existing.aiScore,
-        });
-      }
-    }
-
-    if (!file) {
-      return res.status(400).json({ message: "CV file is required" });
-    }
-
-    const cvText = await aiService.extractCvText(file.path);
-
-    candidateProfile = await aiRepository.upsertCandidateProfile(userId, {
-      cvPath: file.path,
-      cvFileName: file.originalname,
-      cvText,
-    });
-
-    // Double-check for race condition between upload + profile creation
-    const existing = await aiRepository.findApplicationByCandidateAndJob(
-      candidateProfile.id,
-      jobPostId
-    );
-
-    if (existing) {
-      return res.status(200).json({
-        message: "You have already applied",
-        alreadyApplied: true,
-        applicationId: existing.id,
-        applicationStatus: existing.applicationStatus,
-        aiScore: existing.aiScore,
-      });
-    }
-
+    // 1. Get Job Post
     const jobPost = await aiRepository.findJobPostById(jobPostId);
-    if (!jobPost) {
-      return res.status(404).json({ message: "Job post not found" });
+    if (!jobPost) return res.status(404).json({ message: "Job post not found" });
+
+    // 2. Handle CV Upload & Text Extraction
+    let cvText = "";
+    let candidate = await aiRepository.findCandidateProfileByUserId(userId);
+
+    if (file) {
+      cvText = await aiService.extractCvText(file.path);
+      // Extract skills for the profile if it's a new upload
+      const extractedSkills = await aiService.extractSkills(cvText);
+      candidate = await aiRepository.upsertCandidateProfile(userId, {
+        cvPath: file.path,
+        cvFileName: file.originalname,
+        cvText,
+        extractedSkills
+      });
+    } else {
+      if (!candidate?.cvText) return res.status(400).json({ message: "No CV on file. Please upload one." });
+      cvText = candidate.cvText;
     }
 
-    const jobDescription = buildJobDescription(jobPost);
+    // 3. Create/Find Application
+    let application = await aiRepository.findApplicationByCandidateAndJob(candidate.id, jobPostId);
+    if (application) return res.status(400).json({ message: "Already applied", applicationId: application.id });
 
-    const application = await aiRepository.createApplication({
-      candidateProfileId: candidateProfile.id,
+    application = await aiRepository.createApplication({
+      candidateProfileId: candidate.id,
       jobPostId,
-      cvPath: file.path,
-      cvFileName: file.originalname,
-      cvText,
+      cvPath: candidate.cvPath!,
+      cvFileName: candidate.cvFileName!,
+      cvText: candidate.cvText!
     });
 
-    const score = await aiService.scoreCv(cvText, jobDescription);
+    // 4. Run Comprehensive AI Analysis
+    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
+    const analysis = await aiService.analyzeCv(cvText, jobDescription);
 
-    await aiRepository.saveScore(application.id, {
-      aiScore: score.overallScore,
-      skillsMatchScore: score.skillsMatchScore,
-      experienceMatchScore: score.experienceMatchScore,
-      educationMatchScore: score.educationMatchScore,
-      keywordsMatchScore: score.keywordsMatchScore,
-      matchedSkills: score.matchedSkills,
-      missingSkills: score.missingSkills,
-      aiSummary: score.summary,
+    // 5. Save Results
+    await aiRepository.saveAnalysisResult(application.id, {
+      aiScore: analysis.overallScore,
+      aiSuggestions: analysis.suggestions,
+      coverLetter: analysis.coverLetter
     });
 
     return res.status(201).json({
-      message: "Application submitted successfully",
+      message: "Application submitted and analyzed",
       applicationId: application.id,
-      score,
+      analysis
     });
   } catch (err: any) {
     console.error("applyForJob error:", err);
@@ -119,108 +137,25 @@ export const applyForJob = async (req: Request, res: Response) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET CV SUGGESTIONS
-// GET /api/ai/applications/:applicationId/suggestions
+// GET APPLICATION (For Result View)
+// GET /api/ai/applications/:applicationId
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getCvSuggestions = async (req: Request, res: Response) => {
+export const getApplicationResult = async (req: Request, res: Response) => {
   try {
     const applicationId = getParam(req.params.applicationId, "applicationId");
-
     const application = await aiRepository.findApplicationById(applicationId);
-    if (!application) {
-      return res.status(404).json({ message: "Application not found" });
-    }
+    
+    if (!application) return res.status(404).json({ message: "Application not found" });
 
-    if (!application.cvText) {
-      return res.status(400).json({ message: "CV text missing" });
-    }
-
-    // FIX 5 — DB-FIRST CHECK: return existing suggestions without hitting AI
-    if (application.cvSuggestion) {
-      return res.status(200).json(application.cvSuggestion);
-    }
-
-    const jobPost = await aiRepository.findJobPostById(application.jobPostId);
-    if (!jobPost) {
-      return res.status(404).json({ message: "Job post not found" });
-    }
-
-    const jobDescription = buildJobDescription(jobPost);
-    const suggestions = await aiService.getCvSuggestions(
-      application.cvText,
-      jobDescription
-    );
-
-    const saved = await aiRepository.upsertCvSuggestion(
-      applicationId,
-      suggestions
-    );
-
-    return res.status(200).json(saved);
+    return res.status(200).json(application);
   } catch (err: any) {
-    console.error("getCvSuggestions error:", err);
     return res.status(500).json({ message: err.message });
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GENERATE COVER LETTER
-// POST /api/ai/applications/:applicationId/cover-letter
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const generateCoverLetter = async (req: Request, res: Response) => {
-  try {
-    const applicationId = getParam(req.params.applicationId, "applicationId");
-    const { regenerate } = req.query; // ?regenerate=true forces a fresh generation
-
-    const application = await aiRepository.findApplicationById(applicationId);
-    if (!application) {
-      return res.status(404).json({ message: "Application not found" });
-    }
-
-    if (!application.cvText) {
-      return res.status(400).json({ message: "CV text missing" });
-    }
-
-    // FIX 5 — DB-FIRST CHECK: return stored cover letter without touching AI
-    // unless the client explicitly requests regeneration via ?regenerate=true
-    if (application.generatedCoverLetter?.content && regenerate !== "true") {
-      return res.status(200).json({
-        coverLetter: application.generatedCoverLetter.content,
-        cached: true,
-      });
-    }
-
-    const jobPost = await aiRepository.findJobPostById(application.jobPostId);
-    if (!jobPost) {
-      return res.status(404).json({ message: "Job post not found" });
-    }
-
-    const jobDescription = buildJobDescription(jobPost);
-    const content = await aiService.generateCoverLetter(
-      application.cvText,
-      jobDescription
-    );
-
-    const saved = await aiRepository.upsertGeneratedCoverLetter(
-      applicationId,
-      content
-    );
-
-    return res.status(200).json({
-      coverLetter: saved.content,
-      cached: false,
-    });
-  } catch (err: any) {
-    console.error("generateCoverLetter error:", err);
-    return res.status(500).json({ message: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET RANKED APPLICANTS (EMPLOYER)
-// GET /api/ai/jobs/:jobPostId/applicants
+// EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getRankedApplicants = async (req: Request, res: Response) => {
@@ -230,79 +165,28 @@ export const getRankedApplicants = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       total: applicants.length,
-      applicants: applicants.map((a) => {
-        const firstName = a.candidateProfile?.user?.firstName ?? "";
-        const lastName = a.candidateProfile?.user?.lastName ?? "";
-        const email = a.candidateProfile?.user?.email ?? "";
-
-        return {
-          applicationId: a.id,
-          aiScore: a.aiScore,
-          applicationStatus: a.applicationStatus,
-          appliedAt: a.appliedAt,
-          matchedSkills: a.matchedSkills,
-          missingSkills: a.missingSkills,
-          summary: a.aiSummary,
-          candidate: {
-            name: `${firstName} ${lastName}`.trim(),
-            email,
-            headline: a.candidateProfile?.headline ?? "",
-            skills: a.candidateProfile?.skills ?? [],
-          },
-        };
-      }),
+      applicants: applicants.map(a => ({
+        id: a.id,
+        aiScore: a.aiScore,
+        status: a.applicationStatus,
+        candidateName: `${a.candidateProfile.user.firstName} ${a.candidateProfile.user.lastName}`,
+        email: a.candidateProfile.user.email,
+        headline: a.candidateProfile.headline
+      }))
     });
   } catch (err: any) {
-    console.error("getRankedApplicants error:", err);
     return res.status(500).json({ message: err.message });
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE APPLICATION STATUS
-// PATCH /api/ai/applications/:applicationId/status
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const updateApplicationStatus = async (req: Request, res: Response) => {
   try {
     const applicationId = getParam(req.params.applicationId, "applicationId");
     const { status } = req.body as { status: ApplicationStatus };
 
-    const validStatuses = Object.values(ApplicationStatus);
-
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-      });
-    }
-
-    const updated = await aiRepository.updateApplicationStatus(
-      applicationId,
-      status
-    );
-
-    return res.status(200).json({
-      applicationId: updated.id,
-      applicationStatus: updated.applicationStatus,
-    });
+    const updated = await aiRepository.updateApplicationStatus(applicationId, status);
+    return res.status(200).json(updated);
   } catch (err: any) {
-    console.error("updateApplicationStatus error:", err);
     return res.status(500).json({ message: err.message });
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER
-// ─────────────────────────────────────────────────────────────────────────────
-
-function buildJobDescription(jobPost: any): string {
-  const parts: string[] = [`Job Title: ${jobPost.title}`];
-
-  if (jobPost.description) parts.push(`Description: ${jobPost.description}`);
-  if (jobPost.skillsRequired?.length)
-    parts.push(`Skills: ${jobPost.skillsRequired.join(", ")}`);
-  if (jobPost.employer?.companyName)
-    parts.push(`Company: ${jobPost.employer.companyName}`);
-
-  return parts.join("\n");
-}

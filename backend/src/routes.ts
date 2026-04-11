@@ -6,6 +6,7 @@ import adminDashboardRoutes from "./modules/admin/dashboard/dashboard.routes";
 import adminJobPostsRoutes from "./modules/admin/jobposts/jobpost.routes";
 import employerJobPostsRoutes from "./modules/employer/jobPosts/jobPosts.routes";
 import candidateJobsRoutes from "./modules/candidate/jobs/jobs.routes";
+import candidateApplicationsRoutes from "./modules/candidate/applications/applications.routes";
 
 export const registerRoutes = (app: Express) => {
   app.use("/api/auth", authRoutes)
@@ -15,4 +16,5 @@ export const registerRoutes = (app: Express) => {
   app.use("/api/admin/job-posts", adminJobPostsRoutes);
   app.use("/api/employer/job-posts", employerJobPostsRoutes);
   app.use("/api/candidate/jobs", candidateJobsRoutes);
+  app.use("/api/candidate/applications", candidateApplicationsRoutes);
 }

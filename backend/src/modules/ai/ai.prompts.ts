@@ -1,76 +1,36 @@
 // ai.prompts.ts
-// All Gemini prompt templates for AI hiring features.
-// Designed for STRICT, deterministic JSON outputs.
+// Optimized prompts for Talent Matching and Career Advancement.
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EXTRACT JD KEYWORDS (Replaces the old scoring prompt)
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * 1. EXTRACT CV SKILLS 
+ * Goal: Get a clean, structured list of technical skills from CV text.
+ * Used when a profile is created or updated.
+ */
+export const EXTRACT_CV_SKILLS_PROMPT = `
+You are an expert technical recruiter. 
+Extract all technical skills, programming languages, frameworks, tools, and certifications from the provided CV text.
 
-export const EXTRACT_JD_KEYWORDS_PROMPT = `
-You are an expert HR analyzer. 
-Extract the core technical requirements and skills from this Job Description.
-
-Job Description:
-{jobDescription}
+CV Text:
+{cvText}
 
 STRICT RULES:
 - Return ONLY a valid JSON array of strings.
-- Only include technical skills, tools, and hard requirements (e.g., "Node.js", "AWS", "REST APIs").
-- Do NOT include soft skills (e.g., "Teamwork", "Communication").
-- Do NOT include explanations, markdown formatting (\`\`\`json), or comments.
+- Normalize names (e.g., "NodeJS" -> "Node.js", "React JS" -> "React").
+- Do NOT include soft skills (e.g., "Leadership", "Teamwork").
+- Do NOT include explanations or markdown.
 
 Example Output:
-["Node.js", "TypeScript", "PostgreSQL", "Prisma", "AWS"]
+["Python", "Django", "PostgreSQL", "AWS", "Docker", "REST API"]
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CV SUGGESTIONS
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const CV_SUGGESTIONS_PROMPT = `
-You are a strict resume improvement system.
-
-Analyze the CV and return ONLY a valid JSON object.
-No explanation, no markdown, no extra text.
-
-Job Description:
-{jobDescription}
-
-CV Content:
-{cvText}
-
-Return EXACTLY this JSON structure:
-{
-  "overallScore": 75,
-  "summaryScore": 80,
-  "summaryFeedback": ["Point 1", "Point 2"],
-  "skillsScore": 70,
-  "skillsFeedback": ["Point 1", "Point 2"],
-  "experienceScore": 60,
-  "experienceFeedback": ["Point 1", "Point 2"],
-  "educationScore": 90,
-  "educationFeedback": ["Point 1", "Point 2"],
-  "missingKeywords": ["React", "Node.js"],
-  "strengthsToHighlight": ["Strength 1", "Strength 2"]
-}
-
-STRICT RULES:
-- Output MUST be valid JSON (do not wrap in markdown).
-- All scores must be integers between 0 and 100.
-- Each feedback array must contain 2–4 UNIQUE, actionable points.
-- missingKeywords: max 8 items. ONLY include keywords explicitly in job description but missing in CV.
-- strengthsToHighlight: max 4 items. Must be supported by CV content.
-`;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COVER LETTER
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const COVER_LETTER_PROMPT = `
-Write a professional cover letter.
-
-Output plain text only.
-Do NOT output JSON or markdown.
+/**
+ * 2. COMPREHENSIVE CV ANALYSIS (The "Best Algorithm")
+ * Goal: In one single call, evaluate the candidate against the Job Description.
+ * Returns: Overall Score, Improvement Suggestions, and a Professional Cover Letter.
+ */
+export const COMPREHENSIVE_ANALYSIS_PROMPT = `
+You are a career growth specialist and a strict hiring manager.
+Compare the Candidate's CV with the Job Description and provide a holistic evaluation.
 
 Job Description:
 {jobDescription}
@@ -78,9 +38,38 @@ Job Description:
 Candidate CV:
 {cvText}
 
+YOUR TASK:
+1. **Overall Match Score**: Calculate a score from 0 to 100. 
+   Consider: Technical alignment (60%), Experience relevance (20%), and Career progression (20%). 
+   Be realistic and strict.
+2. **Improvement Suggestions**: Provide 3-5 specific, actionable points on how the candidate can improve their profile or CV specifically for THIS role. 
+   Keep suggestions professional and constructive.
+3. **Cover Letter**: Write a high-impact, professional cover letter (approx. 150-200 words, 3 short paragraphs) that effectively sells this candidate's existing strengths to the hiring manager. 
+   Do NOT hallucinate skills the candidate does not have.
+
+Return ONLY a valid JSON object with this structure:
+{
+  "overallScore": number,
+  "suggestions": string[],
+  "coverLetter": string
+}
+
 STRICT RULES:
-- 150–200 words maximum.
-- Exactly 3 short paragraphs.
-- Tone: professional, confident, concise.
-- Do NOT hallucinate experience or skills not found in the CV.
+- Output MUST be valid JSON.
+- No markdown formatting (\`\`\`json).
+- suggestions must be a flat array of strings.
 `;
+
+/**
+ * 3. EXTRACT JD KEYWORDS (For fast dashboard matching)
+ * Goal: Extract skills from a JD to allow local matching against stored CV skills.
+ */
+export const EXTRACT_JD_KEYWORDS_PROMPT = `
+Extract core technical requirements from this Job Description.
+
+Job Description:
+{jobDescription}
+
+Return ONLY a valid JSON array of strings.
+Example: ["Java", "Spring Boot", "MySQL"]
+`;

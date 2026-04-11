@@ -8,8 +8,8 @@ import { requireRole } from "../../middlewares/role.middleware";
 import { upload } from "../../middlewares/upload.middleware";
 import {
   applyForJob,
-  getCvSuggestions,
-  generateCoverLetter,
+  getRecommendations,
+  getApplicationResult,
   getRankedApplicants,
   updateApplicationStatus,
 } from "./ai.controller";
@@ -17,6 +17,15 @@ import {
 const router = Router();
 
 // ── Candidate routes ──────────────────────────────────────────────────────────
+
+// Get job recommendations based on CV
+// GET /api/ai/recommendations
+router.get(
+  "/recommendations",
+  authenticate,
+  requireRole(["STUDENT", "PROFESSIONAL"]),
+  getRecommendations
+);
 
 // Apply for a job — upload CV, get scored
 // POST /api/ai/apply/:jobPostId
@@ -28,22 +37,13 @@ router.post(
   applyForJob
 );
 
-// Get CV improvement suggestions for an application
-// GET /api/ai/applications/:applicationId/suggestions
+// Get application result (analysis + cover letter)
+// GET /api/ai/applications/:applicationId
 router.get(
-  "/applications/:applicationId/suggestions",
+  "/applications/:applicationId",
   authenticate,
   requireRole(["STUDENT", "PROFESSIONAL"]),
-  getCvSuggestions
-);
-
-// Generate (or regenerate) a cover letter for an application
-// POST /api/ai/applications/:applicationId/cover-letter
-router.post(
-  "/applications/:applicationId/cover-letter",
-  authenticate,
-  requireRole(["STUDENT", "PROFESSIONAL"]),
-  generateCoverLetter
+  getApplicationResult
 );
 
 // ── Employer routes ───────────────────────────────────────────────────────────
@@ -66,4 +66,4 @@ router.patch(
   updateApplicationStatus
 );
 
-export default router;
+export default router;
