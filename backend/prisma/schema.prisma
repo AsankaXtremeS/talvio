@@ -139,7 +139,7 @@ model CandidateProfile {
   githubUrl    String?
   portfolioUrl String?
 
-  cvPath       String?
+  cvUrl        String?
   cvFileName   String?
   cvText       String?
   extractedSkills String[] @default([])
@@ -156,7 +156,7 @@ model Application {
   candidateProfileId   String
   jobPostId            String
 
-  cvPath               String
+  cvUrl                String
   cvFileName           String?
   cvText               String?
   coverLetter          String?

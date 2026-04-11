@@ -5,7 +5,6 @@
 import { Router } from "express";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
-import { upload } from "../../middlewares/upload.middleware";
 import {
   applyForJob,
   getRecommendations,
@@ -33,7 +32,6 @@ router.post(
   "/apply/:jobPostId",
   authenticate,
   requireRole(["STUDENT", "PROFESSIONAL"]),
-  upload.single("cv"),
   applyForJob
 );
 

@@ -101,11 +101,25 @@ export interface AnalysisResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const aiService = {
-  async extractCvText(filePath: string): Promise<string> {
-    const fileBuffer = await fs.promises.readFile(filePath);
-    const parser = new PDFParse({ data: fileBuffer });
-    const parsed = await parser.getText();
-    return (parsed.text || "").trim().replace(/\0/g, "");
+  async extractCvText(source: string): Promise<string> {
+    try {
+      let fileBuffer: Buffer;
+      
+      if (source.startsWith("http://") || source.startsWith("https://")) {
+        const response = await fetch(source);
+        if (!response.ok) throw new Error(`Failed to fetch PDF from URL: ${response.statusText}`);
+        fileBuffer = Buffer.from(await response.arrayBuffer());
+      } else {
+        fileBuffer = await fs.promises.readFile(source);
+      }
+
+      const parser = new PDFParse({ data: fileBuffer });
+      const parsed = await parser.getText();
+      return (parsed.text || "").trim().replace(/\0/g, "");
+    } catch (error: any) {
+      console.error("❌ PDF extraction error:", error);
+      throw new Error(`Failed to extract text from CV: ${error.message}`);
+    }
   },
 
   /**

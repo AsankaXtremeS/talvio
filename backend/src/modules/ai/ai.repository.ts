@@ -20,7 +20,7 @@ export const aiRepository = {
   async upsertCandidateProfile(
     userId: string,
     data: {
-      cvPath: string;
+      cvUrl: string;
       cvFileName: string;
       cvText: string;
       extractedSkills?: string[];
@@ -103,7 +103,7 @@ export const aiRepository = {
   async createApplication(data: {
     candidateProfileId: string;
     jobPostId: string;
-    cvPath: string;
+    cvUrl: string;
     cvFileName: string;
     cvText: string;
   }) {
