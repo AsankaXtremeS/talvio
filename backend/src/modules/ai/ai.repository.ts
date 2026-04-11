@@ -125,48 +125,11 @@ export const aiRepository = {
   ) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: {
-        ...result,
-        updatedAt: new Date(),
-      },
+      data: result,
     });
   },
 
-  // ── Company: Ranked Applicants ─────────────────────────────────────────────
-
-  async findRankedApplicants(jobPostId: string) {
-    return prisma.application.findMany({
-      where: { jobPostId },
-      orderBy: { aiScore: "desc" },
-      include: {
-        candidateProfile: {
-          select: {
-            headline: true,
-            skills: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  },
-
-  async updateApplicationStatus(
-    id: string,
-    applicationStatus: ApplicationStatus
-  ) {
-    return prisma.application.update({
-      where: { id },
-      data: { applicationStatus },
-    });
-  },
-};
-ked Applicants ─────────────────────────────────────────────
+  // ── Company Actions ────────────────────────────────────────────────────────
 
   /**
    * Get applicants sorted by AI score (descending)

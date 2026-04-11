@@ -9,16 +9,13 @@ const prisma = new PrismaClient();
 
 async function main() {
 
-  // ─── Admin User ───────────────────────────────────────────────────────────
+  // 1. Admin
   const adminEmail = 'admin@talvio.com';
   const adminPassword = 'Admin@1234';
-
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (existingAdmin) {
-    console.log('Admin user already exists:', adminEmail);
-  } else {
+  if (!existingAdmin) {
     const hashed = await bcrypt.hash(adminPassword, 10);
-    const admin = await prisma.user.create({
+    await prisma.user.create({
       data: {
         email: adminEmail,
         password: hashed,
@@ -28,122 +25,173 @@ async function main() {
         isVerified: true,
       },
     });
-    console.log('Admin user created:', admin.email);
+    console.log('✅ Admin created');
   }
 
-  // ─── Test Employer User ───────────────────────────────────────────────────
-  // Creates an approved employer so we can test job post endpoints immediately
-  // without going through the full registration + admin approval flow.
+  // 2. Employer & Job Posts
   const employerEmail = 'employer@test.com';
   const employerPassword = 'Test@1234';
-
   const existingEmployer = await prisma.user.findUnique({ where: { email: employerEmail } });
-  if (existingEmployer) {
-    console.log('Employer user already exists:', employerEmail);
-  } else {
-    const hashed = await bcrypt.hash(employerPassword, 10);
+  let employerId = existingEmployer?.id;
 
-    // Create the User and EmployerProfile in one transaction
-    // Status is set to APPROVED so we can test job posts right away
+  if (!existingEmployer) {
+    const hashed = await bcrypt.hash(employerPassword, 10);
     const employer = await prisma.user.create({
       data: {
         email: employerEmail,
         password: hashed,
         role: 'EMPLOYER',
-        firstName: 'Test',
-        lastName: 'Employer',
+        firstName: 'Talvio',
+        lastName: 'Solutions',
         isVerified: true,
-        // Create the EmployerProfile at the same time
         employerProfile: {
           create: {
-            companyName: 'Test Company',
-            registrationFileUrl: 'https://example.com/test-reg.pdf',
-            registrationFileName: 'test-reg.pdf',
-            // APPROVED so job post endpoints work immediately
+            companyName: 'Talvio Tech',
+            registrationFileUrl: 'https://utfs.io/f/sample-pdf.pdf',
+            registrationFileName: 'registration.pdf',
             verificationStatus: 'APPROVED',
+            companyDescription: 'Leading tech solutions provider specializing in AI and software development.',
           },
         },
       },
+      include: { employerProfile: true }
     });
-    console.log('Employer user created:', employer.email);
-    console.log('Email:', employerEmail);
-    console.log('Password:', employerPassword);
+    employerId = employer.id;
+    console.log('✅ Employer created');
   }
 
-  // ─── Test Student User (Undergraduate) ───────────────────────────────────
+  const employerProfile = await prisma.employerProfile.findUnique({ where: { userId: employerId! } });
+  const employerProfileId = employerProfile!.id;
+
+  // Create Job Posts
+  const jobPosts = [
+    {
+      id: 'fb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1a',
+      title: 'Frontend Intern (React)',
+      type: 'INTERNSHIP',
+      description: 'We are looking for a React enthusiast to join our frontend team. You will work on building scalable UI components.',
+      location: 'Colombo',
+      workMode: 'REMOTE',
+      employmentType: 'FULL_TIME',
+      skillsRequired: ['React', 'JavaScript', 'CSS', 'Tailwind'],
+      status: 'ACTIVE',
+    },
+    {
+      id: 'cb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1b',
+      title: 'Backend Intern (Node.js)',
+      type: 'INTERNSHIP',
+      description: 'Join our backend team to build robust APIs using Node.js and PostgreSQL. Great learning opportunity.',
+      location: 'Remote',
+      workMode: 'REMOTE',
+      employmentType: 'FULL_TIME',
+      skillsRequired: ['Node.js', 'Express', 'PostgreSQL', 'Prisma'],
+      status: 'ACTIVE',
+    },
+    {
+      id: 'db7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1c',
+      title: 'Full Stack Engineer',
+      type: 'JOB',
+      description: 'Experienced Full Stack Engineer needed to lead our main application development. Requires proficiency in React and Node.js.',
+      location: 'Kandy',
+      workMode: 'HYBRID',
+      employmentType: 'FULL_TIME',
+      skillsRequired: ['React', 'Node.js', 'TypeScript', 'AWS', 'Docker'],
+      status: 'ACTIVE',
+    },
+    {
+      id: 'eb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1d',
+      title: 'DevOps Engineer',
+      type: 'JOB',
+      description: 'Manage our cloud infrastructure and CI/CD pipelines. Experience with AWS and Terraform is a must.',
+      location: 'Colombo',
+      workMode: 'ON_SITE',
+      employmentType: 'FULL_TIME',
+      skillsRequired: ['AWS', 'Terraform', 'Docker', 'Kubernetes'],
+      status: 'ACTIVE',
+    }
+  ];
+
+  for (const post of jobPosts) {
+    await prisma.jobPost.upsert({
+      where: { id: post.id },
+      create: { 
+        ...post, 
+        employerId: employerProfileId,
+      } as any,
+      update: {},
+    });
+  }
+  console.log('✅ Job Posts seeded');
+
+  // 3. Student User
   const studentEmail = 'student@test.com';
-  const studentPassword = 'Test@1234';
+  const hashedStudent = await bcrypt.hash('Test@1234', 10);
+  const student = await prisma.user.upsert({
+    where: { email: studentEmail },
+    update: { role: 'STUDENT' }, // Ensure role is correct
+    create: {
+      email: studentEmail,
+      password: hashedStudent,
+      role: 'STUDENT',
+      firstName: 'Test',
+      lastName: 'Student',
+      isVerified: true,
+    }
+  });
 
-  const existingStudent = await prisma.user.findUnique({ where: { email: studentEmail } });
-  if (existingStudent) {
-    console.log('Student user already exists:', studentEmail);
-  } else {
-    const hashed = await bcrypt.hash(studentPassword, 10);
-    const student = await prisma.user.create({
-      data: {
-        email: studentEmail,
-        password: hashed,
-        role: 'STUDENT',
-        firstName: 'Test',
-        lastName: 'Student',
-        isVerified: true,
-      },
-    });
+  const studentProfileData = {
+    headline: 'Aspiring Web Developer',
+    skills: ['React', 'JavaScript'],
+    extractedSkills: ['React', 'JavaScript', 'HTML', 'CSS'],
+    cvUrl: 'https://utfs.io/f/sample-pdf.pdf',
+    cvFileName: 'student_cv.pdf',
+    cvText: 'I am a computer science student with a passion for frontend development. I have experience with React and JavaScript.',
+  };
 
-    await prisma.candidateProfile.create({
-      data: {
-        userId: student.id,
-        headline: 'Computer Science Undergraduate',
-        location: 'Colombo, Sri Lanka',
-        skills: ['JavaScript', 'React', 'Node.js', 'Python'],
-        bio: 'Passionate CS undergraduate looking for internship opportunities.',
-        linkedinUrl: 'https://linkedin.com/in/teststudent',
-        githubUrl: 'https://github.com/teststudent',
-      },
-    });
+  await prisma.candidateProfile.upsert({
+    where: { userId: student.id },
+    update: studentProfileData,
+    create: {
+      userId: student.id,
+      ...studentProfileData
+    } as any
+  });
+  console.log('✅ Student created/updated');
 
-    console.log('Student user created:', student.email);
-    console.log('Email:', studentEmail);
-    console.log('Password:', studentPassword);
-  }
+  // 4. Professional User
+  const proEmail = 'professional@test.com';
+  const hashedPro = await bcrypt.hash('Test@1234', 10);
+  const professional = await prisma.user.upsert({
+    where: { email: proEmail },
+    update: { role: 'PROFESSIONAL' }, // Ensure role is correct
+    create: {
+      email: proEmail,
+      password: hashedPro,
+      role: 'PROFESSIONAL',
+      firstName: 'Test',
+      lastName: 'Professional',
+      isVerified: true,
+    }
+  });
 
-  // ─── Test Professional User (Employee) ───────────────────────────────────
-  const professionalEmail = 'professional@test.com';
-  const professionalPassword = 'Test@1234';
+  const professionalProfileData = {
+    headline: 'Senior Full Stack Developer',
+    skills: ['Node.js', 'TypeScript', 'AWS'],
+    extractedSkills: ['Node.js', 'TypeScript', 'AWS', 'Docker', 'React'],
+    cvUrl: 'https://utfs.io/f/sample-pdf.pdf',
+    cvFileName: 'pro_cv.pdf',
+    cvText: 'Experienced developer with over 5 years in the industry. Expertise in Node.js, AWS and building scalable systems.',
+  };
 
-  const existingProfessional = await prisma.user.findUnique({ where: { email: professionalEmail } });
-  if (existingProfessional) {
-    console.log('Professional user already exists:', professionalEmail);
-  } else {
-    const hashed = await bcrypt.hash(professionalPassword, 10);
-    const professional = await prisma.user.create({
-      data: {
-        email: professionalEmail,
-        password: hashed,
-        role: 'PROFESSIONAL',
-        firstName: 'Test',
-        lastName: 'Professional',
-        isVerified: true,
-      },
-    });
-
-    await prisma.candidateProfile.create({
-      data: {
-        userId: professional.id,
-        headline: 'Senior Software Engineer',
-        location: 'Kandy, Sri Lanka',
-        skills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'AWS'],
-        bio: 'Experienced software engineer with 5+ years in full stack development.',
-        linkedinUrl: 'https://linkedin.com/in/testprofessional',
-        githubUrl: 'https://github.com/testprofessional',
-        portfolioUrl: 'https://testprofessional.dev',
-      },
-    });
-
-    console.log('Professional user created:', professional.email);
-    console.log('Email:', professionalEmail);
-    console.log('Password:', professionalPassword);
-  }
+  await prisma.candidateProfile.upsert({
+    where: { userId: professional.id },
+    update: professionalProfileData,
+    create: {
+      userId: professional.id,
+      ...professionalProfileData
+    } as any
+  });
+  console.log('✅ Professional created/updated');
 }
 
 main()

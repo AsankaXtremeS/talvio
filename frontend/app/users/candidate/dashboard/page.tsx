@@ -11,6 +11,9 @@ import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
 import { INTERVIEWS } from "@/components/candidate/interviews/types";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:8000/api";
 
 const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
   {
@@ -86,17 +89,50 @@ const APPLY_MODAL_CONTENT = {
 const STORAGE_KEY = "candidateAppliedJobIds";
 const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
-function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDED_JOBS) {
+function useCandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
+  
+  // Real Data State
+  const [jobs, setJobs] = useState<DashboardJob[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const jobIdFromQuery = searchParams.get("jobId");
   const sourceFromQuery = searchParams.get("from");
-  const jobs = recommendedJobs.length > 0 ? recommendedJobs : MOCK_RECOMMENDED_JOBS;
+
+  // Fetch Recommendations from AI Module
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/ai/recommendations`, {
+          withCredentials: true // Important for cookie-based auth
+        });
+        
+        if (response.data?.recommendations) {
+          setJobs(response.data.recommendations);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recommendations:", error);
+        // Fallback to mock data if backend fails
+        setJobs(MOCK_RECOMMENDED_JOBS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [user]);
+
+  const selectedJob = useMemo(() => {
 
   const selectedJob = useMemo(() => {
     if (!jobIdFromQuery) {
@@ -341,6 +377,7 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     handleViewJob: openJobDetails,
     handleApplyFromList: openJobDetails,
     handleWithdrawApplication,
+    isLoading, // Export loading state
   };
 }
 
@@ -374,7 +411,8 @@ export default function CandidateDashboardPage() {
     submitApplication,
     handleApplyFromList,
     handleWithdrawApplication,
-  } = useCandidateDashboard(ALL_DASHBOARD_JOBS);
+    isLoading,
+  } = useCandidateDashboard();
 
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
 
@@ -437,14 +475,22 @@ export default function CandidateDashboardPage() {
               </button>
             </div>
 
-            <RecommendationList
-              jobs={shownJobs}
-              appliedJobIds={appliedJobIds}
-              activeTab={activeTab}
-              onView={openJobDetails}
-              onApply={handleApplyFromList}
-              onWithdraw={handleWithdrawApplication}
-            />
+            <div className={`transition-opacity duration-300 ${isLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+              <RecommendationList
+                jobs={shownJobs}
+                appliedJobIds={appliedJobIds}
+                activeTab={activeTab}
+                onView={openJobDetails}
+                onApply={handleApplyFromList}
+                onWithdraw={handleWithdrawApplication}
+              />
+            </div>
+            
+            {isLoading && (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-700"></div>
+              </div>
+            )}
             </section>
 
         </div>
