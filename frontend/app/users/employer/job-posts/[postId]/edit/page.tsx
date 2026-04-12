@@ -65,7 +65,11 @@ export default function EditJobPostPage() {
           responsibilities: post.responsibilities ?? "",
           requirements:   post.requirements ?? "",
           additionalInformation: post.additionalInformation ?? "",
-          skills:         (post.skills ?? []).join(", "),
+          skills:         Array.isArray(post.skills)
+            ? post.skills.join(", ")
+            : typeof post.skills === "string"
+              ? post.skills
+              : "",
           workMode:       post.workMode ?? "On site",
           employmentType: post.employmentType ?? "Full-time",
         }}
