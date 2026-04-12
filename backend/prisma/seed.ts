@@ -67,46 +67,35 @@ async function main() {
   const jobPosts = [
     {
       id: 'fb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1a',
-      title: 'Frontend Intern (React)',
+      title: 'Frontend Developer Intern',
       type: 'INTERNSHIP',
-      description: 'We are looking for a React enthusiast to join our frontend team. You will work on building scalable UI components.',
+      description: 'Join our team as a Frontend Intern. You will work with React, Tailwind CSS, and TypeScript to build beautiful user interfaces.',
       location: 'Colombo',
       workMode: 'REMOTE',
       employmentType: 'FULL_TIME',
-      skillsRequired: ['React', 'JavaScript', 'CSS', 'Tailwind'],
+      skillsRequired: ['React', 'JavaScript', 'TypeScript', 'Tailwind CSS', 'HTML', 'CSS'],
       status: 'ACTIVE',
     },
     {
       id: 'cb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1b',
-      title: 'Backend Intern (Node.js)',
+      title: 'Backend Developer Intern',
       type: 'INTERNSHIP',
-      description: 'Join our backend team to build robust APIs using Node.js and PostgreSQL. Great learning opportunity.',
+      description: 'We are looking for a Node.js enthusiast to help us build scalable backend services and APIs.',
       location: 'Remote',
       workMode: 'REMOTE',
       employmentType: 'FULL_TIME',
-      skillsRequired: ['Node.js', 'Express', 'PostgreSQL', 'Prisma'],
+      skillsRequired: ['Node.js', 'Express', 'PostgreSQL', 'Prisma', 'REST API', 'JavaScript'],
       status: 'ACTIVE',
     },
     {
       id: 'db7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1c',
-      title: 'Full Stack Engineer',
-      type: 'JOB',
-      description: 'Experienced Full Stack Engineer needed to lead our main application development. Requires proficiency in React and Node.js.',
+      title: 'UI/UX Designer Intern',
+      type: 'INTERNSHIP',
+      description: 'Passionate about design? Join us to create intuitive user experiences and mockups for our web applications.',
       location: 'Kandy',
       workMode: 'HYBRID',
-      employmentType: 'FULL_TIME',
-      skillsRequired: ['React', 'Node.js', 'TypeScript', 'AWS', 'Docker'],
-      status: 'ACTIVE',
-    },
-    {
-      id: 'eb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1d',
-      title: 'DevOps Engineer',
-      type: 'JOB',
-      description: 'Manage our cloud infrastructure and CI/CD pipelines. Experience with AWS and Terraform is a must.',
-      location: 'Colombo',
-      workMode: 'ON_SITE',
-      employmentType: 'FULL_TIME',
-      skillsRequired: ['AWS', 'Terraform', 'Docker', 'Kubernetes'],
+      employmentType: 'PART_TIME',
+      skillsRequired: ['Figma', 'Adobe XD', 'UI Design', 'UX Research', 'Prototyping'],
       status: 'ACTIVE',
     }
   ];
@@ -142,10 +131,9 @@ async function main() {
   const studentProfileData = {
     headline: 'Aspiring Web Developer',
     skills: ['React', 'JavaScript'],
-    extractedSkills: ['React', 'JavaScript', 'HTML', 'CSS'],
-    cvUrl: 'https://utfs.io/f/sample-pdf.pdf',
-    cvFileName: 'student_cv.pdf',
-    cvText: 'I am a computer science student with a passion for frontend development. I have experience with React and JavaScript.',
+    extractedSkills: [], // Start empty for testing upload
+    cvUrl: null,
+    cvFileName: null,
   };
 
   await prisma.candidateProfile.upsert({
@@ -178,9 +166,8 @@ async function main() {
     headline: 'Senior Full Stack Developer',
     skills: ['Node.js', 'TypeScript', 'AWS'],
     extractedSkills: ['Node.js', 'TypeScript', 'AWS', 'Docker', 'React'],
-    cvUrl: 'https://utfs.io/f/sample-pdf.pdf',
-    cvFileName: 'pro_cv.pdf',
-    cvText: 'Experienced developer with over 5 years in the industry. Expertise in Node.js, AWS and building scalable systems.',
+    cvUrl: null,
+    cvFileName: null,
   };
 
   await prisma.candidateProfile.upsert({
