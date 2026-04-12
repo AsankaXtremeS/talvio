@@ -213,8 +213,8 @@ export default function JobPostsTable({
       ) : (
         <>
           <div className="space-y-4 lg:hidden px-4 pb-4">
-            {sortedPosts.map((post) => (
-              <div key={post.id} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+            {sortedPosts.map((post, idx) => (
+              <div key={post.id ?? `mobile-post-${idx}`} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -283,8 +283,8 @@ export default function JobPostsTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {sortedPosts.map((post) => (
-                  <tr key={post.id} className="transition-colors hover:bg-gray-50">
+                {sortedPosts.map((post, idx) => (
+                  <tr key={post.id ?? `desktop-post-${idx}`} className="transition-colors hover:bg-gray-50">
                     <td className="px-4 py-4 text-sm font-medium text-gray-800">
                       {post.title}
                     </td>

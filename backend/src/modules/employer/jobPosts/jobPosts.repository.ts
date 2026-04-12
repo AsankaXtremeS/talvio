@@ -271,8 +271,9 @@ export const jobsRepository = {
   async update(id: string, employerId: string, data: UpdateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
-    // Use updateMany to allow filtering by employerId alongside id for security
-    return prisma.jobPost.updateMany({
+    // Use updateMany to allow filtering by employerId alongside id for security.
+    // Then fetch the updated row because updateMany only returns a count.
+    const result = await prisma.jobPost.updateMany({
       where: {
         id,
         employerId, // CRITICAL: Now securely checking ownership
@@ -314,6 +315,20 @@ export const jobsRepository = {
         }),
       },
     });
+
+    if (result.count === 0) {
+      throw new Error("Job post not found");
+    }
+
+    const updated = await prisma.jobPost.findUnique({
+      where: { id },
+    });
+
+    if (!updated) {
+      throw new Error("Job post not found");
+    }
+
+    return updated;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

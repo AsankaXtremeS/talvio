@@ -52,6 +52,11 @@ export default function EditJobPostPage() {
       <div className="flex items-center gap-2.5 mb-6">
         <Pencil size={20} className="text-indigo-500" />
         <h1 className="text-2xl font-bold text-indigo-600">Edit Job Post</h1>
+        {post.isOffline && (
+          <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 ring-1 ring-yellow-200">
+            Offline draft
+          </span>
+        )}
       </div>
       <JobPostForm
         postId={post.id}
