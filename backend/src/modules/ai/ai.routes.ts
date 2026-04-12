@@ -7,6 +7,7 @@ import { authenticate } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
 import {
   applyForJob,
+  generateCoverLetter,
   getRecommendations,
   getApplicationResult,
   getRankedApplicants,
@@ -33,6 +34,15 @@ router.post(
   authenticate,
   requireRole(["STUDENT", "PROFESSIONAL"]),
   applyForJob
+);
+
+// Generate a tailored cover letter using AI (without submitting application)
+// POST /api/ai/generate-cover-letter/:jobPostId
+router.post(
+  "/generate-cover-letter/:jobPostId",
+  authenticate,
+  requireRole(["STUDENT", "PROFESSIONAL"]),
+  generateCoverLetter
 );
 
 // Get application result (analysis + cover letter)

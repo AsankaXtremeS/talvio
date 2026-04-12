@@ -40,7 +40,6 @@ export const getRecommendations = async (req: Request, res: Response) => {
     // Fast matching logic
     const rankedJobs = await Promise.all(jobs.map(async (job) => {
       // Build a simple description for keyword extraction if not already cached
-      // In a real system, we'd cache the JD keywords in the JobPost table
       const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
       
       const score = aiService.calculateSimilarity(candidate.extractedSkills, jdKeywords);
@@ -52,13 +51,16 @@ export const getRecommendations = async (req: Request, res: Response) => {
         companyLogoUrl: job.employer.companyLogoUrl,
         location: job.location,
         type: job.type,
-        matchScore: score,
+        matchPercent: score,
+        createdAt: job.createdAt,
         tags: [job.workMode, job.employmentType].filter(Boolean)
       };
     }));
 
     return res.status(200).json({
-      jobs: rankedJobs.sort((a, b) => b.matchScore - a.matchScore)
+      recommendations: rankedJobs
+        .filter(job => job.matchPercent >= 80)
+        .sort((a, b) => b.matchPercent - a.matchPercent)
     });
   } catch (err: any) {
     console.error("getRecommendations error:", err);
@@ -149,6 +151,44 @@ export const applyForJob = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("applyForJob error:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERATE COVER LETTER ONLY
+// POST /api/ai/generate-cover-letter/:jobPostId
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const generateCoverLetter = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const jobPostId = getParam(req.params.jobPostId, "jobPostId");
+
+    // 1. Get Job Post
+    const jobPost = await aiRepository.findJobPostById(jobPostId);
+    if (!jobPost) return res.status(404).json({ message: "Job post not found" });
+
+    // 2. Get Candidate Profile
+    const candidate = await aiRepository.findCandidateProfileByUserId(userId);
+    if (!candidate?.cvUrl) {
+      return res.status(400).json({ message: "No CV on file. Please upload a CV first." });
+    }
+
+    // 3. Extract Text & Generate CL
+    const cvText = await aiService.extractCvText(candidate.cvUrl);
+    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
+    
+    // We can use the same analyzeCv service but just take the cover letter
+    const analysis = await aiService.analyzeCv(cvText, jobDescription);
+
+    return res.status(200).json({
+      coverLetter: analysis.coverLetter
+    });
+  } catch (err: any) {
+    console.error("generateCoverLetter error:", err);
     return res.status(500).json({ message: err.message });
   }
 };
