@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -156,8 +157,19 @@ function Sidebar({
           className="flex items-center min-w-0 gap-3 transition-opacity hover:opacity-75"
           title={collapsed ? "View Company Profile" : undefined}
         >
-          <div className="flex items-center justify-center shrink-0 text-sm font-bold text-white bg-gray-800 rounded-lg w-9 h-9">
-            {resolvedInitial}
+          <div className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-gray-800 text-sm font-bold text-white">
+            {user?.employerProfile?.companyLogoUrl ? (
+              <Image
+                src={user.employerProfile.companyLogoUrl}
+                alt={`${resolvedCompanyName} logo`}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#101828] text-sm font-bold text-white">
+                {resolvedInitial}
+              </div>
+            )}
           </div>
 
           {/* Name + role — hidden when collapsed */}

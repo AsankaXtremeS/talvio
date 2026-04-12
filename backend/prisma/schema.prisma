@@ -17,11 +17,9 @@ model User {
   updatedAt           DateTime             @updatedAt
   firstName           String?
   lastName            String?
-
   authAccounts        AuthAccount[]
-  employerProfile     EmployerProfile?
   candidateProfile    CandidateProfile?
-
+  employerProfile     EmployerProfile?
   passwordResetTokens PasswordResetToken[]
   refreshTokens       RefreshToken[]
   verificationTokens  VerificationToken[]
@@ -35,7 +33,6 @@ model AuthAccount {
   refreshToken   String?
   expiresAt      DateTime?
   createdAt      DateTime     @default(now())
-
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -48,7 +45,6 @@ model RefreshToken {
   isRevoked Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
-
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -58,7 +54,6 @@ model VerificationToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
-
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -68,7 +63,6 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
-
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -85,41 +79,44 @@ model EmployerProfile {
   companyLogoUrl       String?
   companyWebsite       String?
   companyLocation      String?
-
+  coverImageUrl        String?
+  industry             String?
+  companyType          String?
+  companySize          String?
+  foundedYear          Int?
+  specialties          String?
+  linkedInUrl          String?
+  facebookUrl          String?
+  twitterUrl           String?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
-
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobPosts             JobPost[]
 }
 
 model JobPost {
-  id               String          @id @default(uuid())
-  title            String
-  type             JobType
-  description      String?
-  requirements     String[]
-  responsibilities String[]
-  skillsRequired   String[]
+  id                    String           @id @default(uuid())
+  title                 String
+  type                  JobType
+  description           String?
+  requirements          String[]
+  responsibilities      String[]
+  skillsRequired        String[]
   additionalInformation String?
-  skills           String?
-  workMode         WorkMode?
-  employmentType   EmploymentType?
-  stipendType      StipendType?
-  location         String?
-  duration         String?
-  experienceLevel  ExperienceLevel?
-
-  closingDate      DateTime?
-  status           PostStatus      @default(DRAFT)
-
-  employerId       String
-  employer         EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
-
-  applications     Application[]
-
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  skills                String?
+  workMode              WorkMode?
+  employmentType        EmploymentType?
+  stipendType           StipendType?
+  location              String?
+  duration              String?
+  experienceLevel       ExperienceLevel?
+  closingDate           DateTime?
+  status                PostStatus       @default(DRAFT)
+  employerId            String
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  applications          Application[]
+  employer              EmployerProfile  @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
   @@index([employerId])
   @@index([status])
@@ -128,47 +125,40 @@ model JobPost {
 }
 
 model CandidateProfile {
-  id           String        @id @default(uuid())
-  userId       String        @unique
-
-  headline     String?
-  location     String?
-  skills       String[]      @default([])
-  bio          String?
-  linkedinUrl  String?
-  githubUrl    String?
-  portfolioUrl String?
-
-  cvUrl        String?
-  cvFileName   String?
-  extractedSkills String[] @default([])
-
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applications Application[]
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  headline        String?
+  location        String?
+  skills          String[]      @default([])
+  bio             String?
+  linkedinUrl     String?
+  githubUrl       String?
+  portfolioUrl    String?
+  cvUrl           String?
+  cvFileName      String?
+  cvText          String?
+  extractedSkills String[]      @default([])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  applications    Application[]
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Application {
-  id                   String            @id @default(uuid())
-  candidateProfileId   String
-  jobPostId            String
-
-  cvUrl                String
-  cvFileName           String?
-  coverLetter          String?
-
-  aiScore              Int?
-  aiSuggestions        String[]          @default([])
-
-  applicationStatus    ApplicationStatus @default(PENDING)
-
-  appliedAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-
-  candidateProfile     CandidateProfile  @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
-  jobPost              JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  id                 String            @id @default(uuid())
+  candidateProfileId String
+  jobPostId          String
+  cvUrl              String
+  cvFileName         String?
+  cvText             String?
+  coverLetter        String?
+  aiScore            Int?
+  aiSuggestions      String[]          @default([])
+  applicationStatus  ApplicationStatus @default(PENDING)
+  appliedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  candidateProfile   CandidateProfile  @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  jobPost            JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
 
   @@unique([candidateProfileId, jobPostId])
   @@index([jobPostId, aiScore])
@@ -176,12 +166,6 @@ model Application {
   @@index([candidateProfileId, appliedAt])
   @@index([applicationStatus])
 }
-
-// CV models removed for simplification
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────────────────────────────────────
 
 enum Role {
   STUDENT
