@@ -22,7 +22,6 @@ export const aiRepository = {
     data: {
       cvUrl: string;
       cvFileName: string;
-      cvText: string;
       extractedSkills?: string[];
     }
   ) {
@@ -33,6 +32,17 @@ export const aiRepository = {
         ...data,
       },
       update: data,
+    });
+  },
+
+  async clearCandidateProfileResume(userId: string) {
+    return prisma.candidateProfile.update({
+      where: { userId },
+      data: {
+        cvUrl: null,
+        cvFileName: null,
+        extractedSkills: [],
+      },
     });
   },
 
@@ -105,7 +115,6 @@ export const aiRepository = {
     jobPostId: string;
     cvUrl: string;
     cvFileName: string;
-    cvText: string;
   }) {
     return prisma.application.create({
       data,

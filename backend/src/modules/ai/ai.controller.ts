@@ -105,18 +105,18 @@ export const applyForJob = async (req: Request, res: Response) => {
         candidate = await aiRepository.upsertCandidateProfile(userId, {
           cvUrl: finalCvUrl,
           cvFileName: finalCvFileName,
-          cvText,
           extractedSkills
         });
       }
     } else {
       // SCENARIO: Use existing profile CV
-      if (!candidate?.cvUrl || !candidate?.cvText) {
+      if (!candidate?.cvUrl) {
         return res.status(400).json({ message: "No CV on file. Please upload a CV to apply." });
       }
-      cvText = candidate.cvText;
       finalCvUrl = candidate.cvUrl;
       finalCvFileName = candidate.cvFileName || "Profile_CV.pdf";
+      // Re-extract text from URL since we no longer store it in DB
+      cvText = await aiService.extractCvText(finalCvUrl);
     }
 
     // 3. Create/Find Application (Store the specific CV URL used for this application)
@@ -128,7 +128,6 @@ export const applyForJob = async (req: Request, res: Response) => {
       jobPostId,
       cvUrl: finalCvUrl,
       cvFileName: finalCvFileName,
-      cvText,
     });
 
     // 4. Run AI Analysis

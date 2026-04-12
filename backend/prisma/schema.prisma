@@ -141,7 +141,6 @@ model CandidateProfile {
 
   cvUrl        String?
   cvFileName   String?
-  cvText       String?
   extractedSkills String[] @default([])
 
   createdAt    DateTime      @default(now())
@@ -158,7 +157,6 @@ model Application {
 
   cvUrl                String
   cvFileName           String?
-  cvText               String?
   coverLetter          String?
 
   aiScore              Int?
