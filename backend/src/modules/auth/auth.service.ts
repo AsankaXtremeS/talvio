@@ -112,6 +112,7 @@ export const authService = {
       employerProfile: user.employerProfile
         ? {
             companyName: user.employerProfile.companyName,
+            companyLogoUrl: user.employerProfile.companyLogoUrl ?? null,
             verificationStatus: user.employerProfile.verificationStatus,
             rejectionReason: user.employerProfile.rejectionReason,
           }

@@ -19,6 +19,7 @@ interface AuthUser {
     companyName: string;
     verificationStatus: string;
     rejectionReason?: string | null;
+    companyLogoUrl?: string | null;
   } | null;
 }
 
