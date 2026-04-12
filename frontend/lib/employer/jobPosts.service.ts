@@ -513,11 +513,11 @@ export async function getJobPostById(id: string): Promise<JobPost> {
   const res = await fetchWithAuth(apiUrl(`/api/employer/job-posts/${id}`));
   const payload: unknown = await res.json().catch(() => null);
   
-  // Check for database unavailability (503) and try offline store
-  if (res.status === 503) {
+  // Check for database unavailability (503) or missing backend record (404)
+  // and try the offline store if the post was created locally.
+  if (res.status === 503 || res.status === 404) {
     const offline = getOfflinePostById(id);
-    if (!offline) throw new Error("Job post not found");
-    return mergeStoredExtras(offline);
+    if (offline) return mergeStoredExtras({ ...offline, isOffline: true });
   }
   
   // Handle other errors

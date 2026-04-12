@@ -21,7 +21,9 @@ import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import { JobPost } from "@/types/employer/jobPost.types";
 
 interface Props {
-  params: Promise<{ postId: string }>;
+  params: Promise<{
+    postId: string;
+  }>;
 }
 
 const buildExtrasStorageKey = (id: string) => `employerJobPostExtras:${id}`;
@@ -126,7 +128,14 @@ export default function JobPostDetailPage({ params }: Props) {
       })
     : "Not specified";
 
-  const skillsList = post.skills ?? [];
+  const skillsList = Array.isArray(post.skills)
+    ? post.skills
+    : typeof post.skills === "string"
+      ? post.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      : [];
   const reqList = post.requirements ? post.requirements.split('\n').filter(r => r.trim() !== '') : [];
   const respList = post.responsibilities ? post.responsibilities.split('\n').filter(r => r.trim() !== '') : [];
 

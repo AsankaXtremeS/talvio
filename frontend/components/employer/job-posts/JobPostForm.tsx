@@ -147,7 +147,7 @@ export default function JobPostForm({
     try {
       const payload: JobPostFormData = {
         ...form,
-        status: "Active",
+        status: isEdit ? form.status : "Active",
       };
 
       if (isEdit && postId) {
@@ -325,7 +325,7 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Qualifications</label>
+            <label className={labelCls}>Responsibilities</label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List the key responsibilities for this role..."
@@ -335,7 +335,7 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Additional Information</label>
+            <label className={labelCls}>Requirements</label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List required experience and education..."
