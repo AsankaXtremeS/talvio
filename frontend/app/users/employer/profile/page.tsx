@@ -196,22 +196,31 @@ export default function EmployerProfilePage() {
 
                 <div className="flex gap-3">
                   <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white transition hover:scale-105"
+                    href={profile.linkedInUrl || undefined}
+                    target={profile.linkedInUrl ? "_blank" : undefined}
+                    rel={profile.linkedInUrl ? "noopener noreferrer" : undefined}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl text-white transition hover:scale-105 ${profile.linkedInUrl ? "bg-[#0A66C2]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                    aria-disabled={!profile.linkedInUrl}
                   >
                     <FaLinkedinIn size={20} />
                   </a>
 
                   <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white transition hover:scale-105"
+                    href={profile.facebookUrl || undefined}
+                    target={profile.facebookUrl ? "_blank" : undefined}
+                    rel={profile.facebookUrl ? "noopener noreferrer" : undefined}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl text-white transition hover:scale-105 ${profile.facebookUrl ? "bg-[#1877F2]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                    aria-disabled={!profile.facebookUrl}
                   >
                     <FaFacebookF size={20} />
                   </a>
 
                   <a
-                    href="#"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white transition hover:scale-105"
+                    href={profile.twitterUrl || undefined}
+                    target={profile.twitterUrl ? "_blank" : undefined}
+                    rel={profile.twitterUrl ? "noopener noreferrer" : undefined}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl text-white transition hover:scale-105 ${profile.twitterUrl ? "bg-[#111827]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                    aria-disabled={!profile.twitterUrl}
                   >
                     <FaXTwitter size={18} />
                   </a>

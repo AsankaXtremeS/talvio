@@ -176,6 +176,7 @@ export default function EditEmployerProfilePage() {
             companyName: updatedProfile.companyName,
             verificationStatus: updatedProfile.verificationStatus,
             rejectionReason: updatedProfile.rejectionReason ?? null,
+            companyLogoUrl: updatedProfile.companyLogoUrl ?? null,
           },
         });
       }
