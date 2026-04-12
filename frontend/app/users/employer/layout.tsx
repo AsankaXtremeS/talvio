@@ -80,9 +80,9 @@ export default function EmployerLayout({
 // Sidebar component
 // -------------------------------------------------
 function Sidebar({
-  companyName = "Rackspace",
-  companyRole = "Team · 100 Members",
-  companyInitial = "R",
+  companyName = "Employer",
+  companyRole = "Employer",
+  companyInitial = "E",
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -92,7 +92,10 @@ function Sidebar({
 
   const resolvedCompanyName = user?.employerProfile?.companyName || companyName;
   const resolvedRoleLabel = user?.email ? `Employer · ${user.email}` : companyRole;
-  const resolvedInitial = resolvedCompanyName.slice(0, 1).toUpperCase() || companyInitial;
+  const resolvedInitial = (user?.employerProfile?.companyName
+    ? user.employerProfile.companyName.slice(0, 1).toUpperCase()
+    : companyInitial
+  );
 
   // Active link detection
   const isActive = (href: string) => pathname.startsWith(href);
