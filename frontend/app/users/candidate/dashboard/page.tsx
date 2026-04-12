@@ -133,8 +133,6 @@ function useCandidateDashboard() {
   }, [user]);
 
   const selectedJob = useMemo(() => {
-
-  const selectedJob = useMemo(() => {
     if (!jobIdFromQuery) {
       return null;
     }
@@ -492,9 +490,8 @@ export default function CandidateDashboardPage() {
               </div>
             )}
             </section>
-
+          </div>
         </div>
-      </div>
       </div>
 
       {selectedJob && activeModal !== "none" && (
