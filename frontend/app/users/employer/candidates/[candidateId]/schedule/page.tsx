@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, UserSquare } from "lucide-react";
 import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
 import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
@@ -17,6 +17,8 @@ interface Props {
 export default function ScheduleInterviewPage({ params }: Props) {
   const { candidateId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const postId = searchParams.get("postId");
 
   const [date, setDate] = useState("2025-12-24");
   const [time, setTime] = useState("11:30");
@@ -40,7 +42,14 @@ export default function ScheduleInterviewPage({ params }: Props) {
           </div>
           
           <button 
-            onClick={() => router.back()} 
+            onClick={() => {
+              if (postId) {
+                router.push(`/users/employer/job-posts/${postId}/candidates`);
+                return;
+              }
+
+              router.back();
+            }} 
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
           >
             <ChevronLeft size={18} />
