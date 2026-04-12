@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Popup from "@/components/admin/layout/Popup";
 import {
   ArrowLeft,
   Briefcase,
@@ -63,7 +64,16 @@ export default function EditEmployerProfilePage() {
   const [isUploadingLogo, setIsUploadingLogo]   = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [error, setError]             = useState<string | null>(null);
-  const [success, setSuccess]         = useState<string | null>(null);
+  const [popup, setPopup]             = useState<{ open: boolean; message: string; success?: boolean }>({
+    open: false,
+    message: "",
+    success: false,
+  });
+
+  const handleClosePopup = () => {
+    if (popup.success) router.push("/users/employer/profile");
+    setPopup((prev) => ({ ...prev, open: false }));
+  };
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -146,7 +156,7 @@ export default function EditEmployerProfilePage() {
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true); setError(null); setSuccess(null);
+    setIsSaving(true); setError(null); setPopup({ open: false, message: "", success: false });
 
     const payload: UpdateProfilePayload = {
       companyName:        form.name.trim() || undefined,
@@ -167,7 +177,11 @@ export default function EditEmployerProfilePage() {
 
     try {
       const updatedProfile = await profileService.updateProfile(payload);
-      setSuccess("Profile updated successfully.");
+      setPopup({
+        open: true,
+        message: "Profile updated successfully.",
+        success: true,
+      });
 
       if (user) {
         setUser({
@@ -180,8 +194,6 @@ export default function EditEmployerProfilePage() {
           },
         });
       }
-
-      setTimeout(() => router.push("/users/employer/profile"), 1200);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save. Please try again.");
     } finally {
@@ -234,9 +246,19 @@ export default function EditEmployerProfilePage() {
           </div>
         </div>
 
+        <Popup
+          open={popup.open}
+          message={popup.message}
+          success={popup.success}
+          onClose={handleClosePopup}
+        />
+
         {/* Alerts */}
-        {error   && <div className="mb-4 rounded-xl border border-red-200   bg-red-50   px-4 py-3 text-sm font-medium text-red-700"  >{error}</div>}
-        {success && <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">{success}</div>}
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="rounded-[28px] border border-[#dbe7ff] bg-white p-5 sm:p-6 lg:p-8">
