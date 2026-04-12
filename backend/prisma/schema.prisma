@@ -81,7 +81,6 @@ model EmployerProfile {
   registrationFileName String
   verificationStatus   VerificationStatus @default(PENDING)
   rejectionReason      String?
-
   companyDescription   String?
   companyLogoUrl       String?
   companyWebsite       String?
@@ -104,7 +103,6 @@ model JobPost {
   skillsRequired   String[]
   additionalInformation String?
   skills           String?
-
   workMode         WorkMode?
   employmentType   EmploymentType?
   stipendType      StipendType?
@@ -141,9 +139,10 @@ model CandidateProfile {
   githubUrl    String?
   portfolioUrl String?
 
-  cvPath       String?
+  cvUrl        String?
   cvFileName   String?
   cvText       String?
+  extractedSkills String[] @default([])
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -157,33 +156,21 @@ model Application {
   candidateProfileId   String
   jobPostId            String
 
-  cvPath               String
+  cvUrl                String
   cvFileName           String?
   cvText               String?
   coverLetter          String?
 
   aiScore              Int?
-  skillsMatchScore     Int?
-  experienceMatchScore Int?
-  educationMatchScore  Int?
-  keywordsMatchScore   Int?
-
-  matchedSkills        String[]          @default([])
-  missingSkills        String[]          @default([])
-
-  aiSummary            String?
+  aiSuggestions        String[]          @default([])
 
   applicationStatus    ApplicationStatus @default(PENDING)
 
-  scoredAt             DateTime?
   appliedAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 
   candidateProfile     CandidateProfile  @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
   jobPost              JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-
-  cvSuggestion         CvSuggestion?
-  generatedCoverLetter GeneratedCoverLetter?
 
   @@unique([candidateProfileId, jobPostId])
   @@index([jobPostId, aiScore])
@@ -192,42 +179,7 @@ model Application {
   @@index([applicationStatus])
 }
 
-model CvSuggestion {
-  id                   String      @id @default(uuid())
-  applicationId        String      @unique
-
-  overallScore         Int
-  summaryScore         Int
-  summaryFeedback      String[]    @default([])
-
-  skillsScore          Int
-  skillsFeedback       String[]    @default([])
-
-  experienceScore      Int
-  experienceFeedback   String[]    @default([])
-
-  educationScore       Int
-  educationFeedback    String[]    @default([])
-
-  missingKeywords      String[]    @default([])
-  strengthsToHighlight String[]    @default([])
-
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-
-  application          Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-}
-
-model GeneratedCoverLetter {
-  id            String      @id @default(uuid())
-  applicationId String      @unique
-  content       String
-
-  generatedAt   DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-}
+// CV models removed for simplification
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENUMS
