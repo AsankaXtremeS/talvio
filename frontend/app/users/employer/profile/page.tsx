@@ -70,8 +70,20 @@ export default function EmployerProfilePage() {
           {/* Top section */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
             <div className="flex gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#101828] text-sm font-bold text-white">
-                {companyInitial}
+              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#101828] text-sm font-bold text-white">
+                {profile.companyLogoUrl ? (
+                  <Image
+                    src={profile.companyLogoUrl}
+                    alt={`${profile.companyName} logo`}
+                    width={44}
+                    height={44}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#101828] text-sm font-bold text-white">
+                    {companyInitial}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -106,10 +118,10 @@ export default function EmployerProfilePage() {
             </div>
 
             <div className="overflow-hidden rounded-3xl border border-gray-100">
-              {profile.companyLogoUrl ? (
+              {profile.coverImageUrl ? (
                 <Image
-                  src={profile.companyLogoUrl}
-                  alt={profile.companyName}
+                  src={profile.coverImageUrl}
+                  alt={`${profile.companyName} cover`}
                   width={500}
                   height={300}
                   className="h-57.5 w-full object-cover"

@@ -99,20 +99,26 @@ export default function EditEmployerProfilePage() {
   // ── UploadThing ─────────────────────────────────────────────────────────────
   const { startUpload: uploadLogo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (res) => {
-      const url = res?.[0]?.url;
+      const url = res?.[0]?.url ?? res?.[0]?.ufsUrl;
       if (url) setForm((p) => ({ ...p, logoUrl: url }));
       setIsUploadingLogo(false);
     },
-    onUploadError: () => { setError("Logo upload failed."); setIsUploadingLogo(false); },
+    onUploadError: (error) => {
+      setError(error?.message ? `Logo upload failed: ${error.message}` : "Logo upload failed.");
+      setIsUploadingLogo(false);
+    },
   });
 
   const { startUpload: uploadCover } = useUploadThing("imageUploader", {
     onClientUploadComplete: (res) => {
-      const url = res?.[0]?.url;
+      const url = res?.[0]?.url ?? res?.[0]?.ufsUrl;
       if (url) setForm((p) => ({ ...p, coverImageUrl: url }));
       setIsUploadingCover(false);
     },
-    onUploadError: () => { setError("Cover upload failed."); setIsUploadingCover(false); },
+    onUploadError: (error) => {
+      setError(error?.message ? `Cover upload failed: ${error.message}` : "Cover upload failed.");
+      setIsUploadingCover(false);
+    },
   });
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,10 +263,10 @@ export default function EditEmployerProfilePage() {
                         ) : (
                           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#101828] text-2xl font-bold text-white">{logoInitial}</div>
                         )}
-                        <label className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#2563eb] text-white transition hover:bg-[#1d4ed8]">
+                        <label htmlFor="logo-upload" className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#2563eb] text-white transition hover:bg-[#1d4ed8]">
                           {isUploadingLogo ? <Spinner /> : <Camera className="h-4 w-4" />}
-                          <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} className="hidden" />
                         </label>
+                        <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} className="hidden" />
                       </div>
                       <div className="flex-1">
                         <p className="text-sm text-[#667085]">Upload a logo. Recommended: 200×200px</p>
@@ -290,26 +296,28 @@ export default function EditEmployerProfilePage() {
                       <div className="relative h-50 w-full">
                         <Image src={form.coverImageUrl} alt="Cover" fill className="object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition hover:opacity-100">
-                          <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-gray-100">
+                          <label htmlFor="cover-upload-change" className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-gray-100">
                             <Upload className="h-4 w-4" />Change
-                            <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                           </label>
+                          <input id="cover-upload-change" type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                           <button type="button" onClick={() => setForm((p) => ({ ...p, coverImageUrl: "" }))} className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
                             <Trash2 className="h-4 w-4" />Remove
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <label className="flex h-50 cursor-pointer flex-col items-center justify-center gap-3">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef5ff]">
-                          {isUploadingCover ? <Spinner /> : <Upload className="h-6 w-6 text-[#2563eb]" />}
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-[#111827]">Click to upload cover image</p>
-                          <p className="mt-1 text-xs text-[#9ca3af]">Recommended: 1200×400px, PNG or JPG</p>
-                        </div>
-                        <input type="file" accept="image/*" onChange={handleCoverUpload} disabled={isUploadingCover} className="hidden" />
-                      </label>
+                      <>
+                        <label htmlFor="cover-upload-empty" className="flex h-50 cursor-pointer flex-col items-center justify-center gap-3">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef5ff]">
+                            {isUploadingCover ? <Spinner /> : <Upload className="h-6 w-6 text-[#2563eb]" />}
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-semibold text-[#111827]">Click to upload cover image</p>
+                            <p className="mt-1 text-xs text-[#9ca3af]">Recommended: 1200×400px, PNG or JPG</p>
+                          </div>
+                        </label>
+                        <input id="cover-upload-empty" type="file" accept="image/*" onChange={handleCoverUpload} disabled={isUploadingCover} className="hidden" />
+                      </>
                     )}
                   </div>
                 </div>
