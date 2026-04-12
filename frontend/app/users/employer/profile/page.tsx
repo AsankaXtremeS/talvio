@@ -1,8 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Briefcase,
-  Building2,
   CalendarDays,
   ExternalLink,
   Globe,
@@ -10,8 +12,57 @@ import {
   Users,
 } from "lucide-react";
 import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
+import { profileService, EmployerProfileDTO } from "@/lib/employer/profile.service";
 
 export default function EmployerProfilePage() {
+  const [profile, setProfile] = useState<EmployerProfileDTO | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const data = await profileService.getProfile();
+        if (!cancelled) setProfile(data);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load profile.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#eef5ff] px-4 pb-4 pt-0 sm:px-6">
+        <div className="mx-auto max-w-305 rounded-[28px] border border-[#dbe7ff] bg-white p-6">
+          <div className="h-8 w-60 rounded-xl bg-gray-200" />
+          <div className="mt-6 h-72 rounded-3xl bg-gray-200" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-[#eef5ff] px-4 pb-4 pt-0 sm:px-6">
+        <div className="mx-auto max-w-305 rounded-[28px] border border-[#dbe7ff] bg-white p-6">
+          <p className="text-sm text-red-600">{error || "Employer profile not found."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const companyInitial = profile.companyName.slice(0, 1).toUpperCase();
+  const websiteUrl = profile.companyWebsite || "#";
+
   return (
     <div className="min-h-screen bg-[#eef5ff] px-4 pb-4 pt-0 sm:px-6">
       <div className="mx-auto max-w-305 rounded-[28px] border border-[#dbe7ff] bg-white p-6">
@@ -20,19 +71,16 @@ export default function EmployerProfilePage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
             <div className="flex gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#101828] text-sm font-bold text-white">
-                R
+                {companyInitial}
               </div>
 
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-[#111827]">
-                  Rackspace
+                  {profile.companyName}
                 </h1>
 
                 <p className="mt-3 max-w-2xl text-[15px] leading-8 text-[#475467]">
-                  Rackspace is a global IT services company that specializes in cloud
-                  computing and managed IT solutions. The company helps businesses
-                  design, build, and manage secure cloud environments across public,
-                  private, and hybrid platforms.
+                  {profile.companyDescription || "No company description provided yet."}
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-3">
@@ -45,26 +93,32 @@ export default function EmployerProfilePage() {
                   </Link>
 
                   <a
-                    href="https://rackspace.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={websiteUrl}
+                    target={profile.companyWebsite ? "_blank" : undefined}
+                    rel={profile.companyWebsite ? "noopener noreferrer" : undefined}
                     className="flex items-center gap-2 rounded-xl border border-[#3b82f6] bg-white px-6 py-3 text-sm font-semibold text-[#2563eb] transition hover:bg-blue-50"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Visit us
+                    {profile.companyWebsite ? "Visit us" : "No website"}
                   </a>
                 </div>
               </div>
             </div>
 
             <div className="overflow-hidden rounded-3xl border border-gray-100">
-              <Image
-                src="/images/company/Rackspace.jpg"
-                alt="Company"
-                width={500}
-                height={300}
-                className="h-57.5 w-full object-cover"
-              />
+              {profile.companyLogoUrl ? (
+                <Image
+                  src={profile.companyLogoUrl}
+                  alt={profile.companyName}
+                  width={500}
+                  height={300}
+                  className="h-57.5 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-72 items-center justify-center bg-gray-100 text-4xl font-bold text-gray-400">
+                  {companyInitial}
+                </div>
+              )}
             </div>
           </div>
 
@@ -79,40 +133,10 @@ export default function EmployerProfilePage() {
                   <div className="flex items-start gap-3">
                     <Briefcase className="mt-0.5 h-4 w-4 text-[#2563eb]" />
                     <div>
-                      <p className="font-semibold text-[#111827]">Industry</p>
-                      <p className="text-[#667085]">Software Development</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Building2 className="mt-0.5 h-4 w-4 text-[#2563eb]" />
-                    <div>
-                      <p className="font-semibold text-[#111827]">Type</p>
-                      <p className="text-[#667085]">Private</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <CalendarDays className="mt-0.5 h-4 w-4 text-[#2563eb]" />
-                    <div>
-                      <p className="font-semibold text-[#111827]">Verified Page</p>
-                      <p className="text-[#667085]">June 23, 2024</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Users className="mt-0.5 h-4 w-4 text-[#2563eb]" />
-                    <div>
-                      <p className="font-semibold text-[#111827]">Company Size</p>
-                      <p className="text-[#667085]">200–1000 employees</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <CalendarDays className="mt-0.5 h-4 w-4 text-[#2563eb]" />
-                    <div>
-                      <p className="font-semibold text-[#111827]">Founded</p>
-                      <p className="text-[#667085]">2017</p>
+                      <p className="font-semibold text-[#111827]">Website</p>
+                      <p className="text-[#667085]">
+                        {profile.companyWebsite || "Not specified"}
+                      </p>
                     </div>
                   </div>
 
@@ -120,7 +144,27 @@ export default function EmployerProfilePage() {
                     <Globe className="mt-0.5 h-4 w-4 text-[#2563eb]" />
                     <div>
                       <p className="font-semibold text-[#111827]">Location</p>
-                      <p className="text-[#667085]">San Francisco, CA, USA</p>
+                      <p className="text-[#667085]">
+                        {profile.companyLocation || "Not specified"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CalendarDays className="mt-0.5 h-4 w-4 text-[#2563eb]" />
+                    <div>
+                      <p className="font-semibold text-[#111827]">Status</p>
+                      <p className="text-[#667085]">{profile.verificationStatus}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Users className="mt-0.5 h-4 w-4 text-[#2563eb]" />
+                    <div>
+                      <p className="font-semibold text-[#111827]">Last updated</p>
+                      <p className="text-[#667085]">
+                        {new Date(profile.updatedAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -180,7 +224,7 @@ export default function EmployerProfilePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
-                          R
+                          {companyInitial}
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-[#111827] transition group-hover:text-[#2563eb]">
@@ -218,7 +262,7 @@ export default function EmployerProfilePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
-                          R
+                          {companyInitial}
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-[#111827] transition group-hover:text-[#2563eb]">

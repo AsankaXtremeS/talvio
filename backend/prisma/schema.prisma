@@ -79,6 +79,15 @@ model EmployerProfile {
   companyLogoUrl       String?
   companyWebsite       String?
   companyLocation      String?
+  coverImageUrl        String?
+  industry             String?
+  companyType          String?
+  companySize          String?
+  foundedYear          Int?
+  specialties          String?
+  linkedInUrl          String?
+  facebookUrl          String?
+  twitterUrl           String?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
