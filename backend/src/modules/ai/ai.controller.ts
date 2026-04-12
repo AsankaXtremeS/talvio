@@ -37,13 +37,30 @@ export const getRecommendations = async (req: Request, res: Response) => {
       });
     }
 
-    // Fast matching logic
-    const rankedJobs = await Promise.all(jobs.map(async (job) => {
-      // Build a simple description for keyword extraction if not already cached
+    // 1. Initial filter by Keyword Similarity (Fast)
+    let filteredJobs = await Promise.all(jobs.map(async (job) => {
       const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
-      
       const score = aiService.calculateSimilarity(candidate.extractedSkills, jdKeywords);
-      
+      return { ...job, initialScore: score };
+    }));
+
+    // Take top 20 for AI ranking to ensure accuracy while keeping latency reasonable
+    const topJobs = filteredJobs
+      .sort((a, b) => b.initialScore - a.initialScore)
+      .slice(0, 20);
+
+    // 2. High-Accuracy AI Ranking
+    const candidateSummary = {
+      headline: candidate.headline,
+      skills: [...new Set([...candidate.skills, ...candidate.extractedSkills])],
+      bio: candidate.bio?.slice(0, 500)
+    };
+
+    const aiRankings = await aiService.rankJobsWithAI(candidateSummary, topJobs);
+
+    // 3. Map results back
+    const recommendations = topJobs.map(job => {
+      const ranking = aiRankings.find(r => r.id === job.id);
       return {
         id: job.id,
         title: job.title,
@@ -51,15 +68,15 @@ export const getRecommendations = async (req: Request, res: Response) => {
         companyLogoUrl: job.employer.companyLogoUrl,
         location: job.location,
         type: job.type,
-        matchPercent: score,
+        matchPercent: ranking ? ranking.matchPercent : job.initialScore,
         createdAt: job.createdAt,
         tags: [job.workMode, job.employmentType].filter(Boolean)
       };
-    }));
+    });
 
     return res.status(200).json({
-      recommendations: rankedJobs
-        .filter(job => job.matchPercent >= 80)
+      recommendations: recommendations
+        .filter(j => j.matchPercent >= 70) // Higher threshold for AI matches
         .sort((a, b) => b.matchPercent - a.matchPercent)
     });
   } catch (err: any) {

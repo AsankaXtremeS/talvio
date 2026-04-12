@@ -8,6 +8,7 @@ import {
   COMPREHENSIVE_ANALYSIS_PROMPT,
   EXTRACT_CV_SKILLS_PROMPT,
   EXTRACT_JD_KEYWORDS_PROMPT,
+  RANK_JOBS_PROMPT,
 } from "./ai.prompts";
 
 const geminiEnabled = Boolean(env.GEMINI_API_KEY);
@@ -174,6 +175,30 @@ export const aiService = {
         return JSON.parse(raw);
       }
       const raw = await openAiGenerate(provider, prompt, 0.1);
+      return JSON.parse(raw);
+    }));
+  },
+
+  /**
+   * 4. RANK JOBS (High Accuracy Batch Ranking)
+   * Goal: Evaluate a list of jobs against a candidate profile in one go.
+   */
+  async rankJobsWithAI(candidateSummary: any, jobs: any[]): Promise<any[]> {
+    if (!jobs.length) return [];
+    
+    const jobsList = jobs.map(j => ({
+      id: j.id,
+      title: j.title,
+      description: j.description?.slice(0, 500),
+      skillsRequired: j.skillsRequired
+    }));
+
+    const prompt = RANK_JOBS_PROMPT
+      .replace("{candidateProfile}", JSON.stringify(candidateSummary))
+      .replace("{jobsList}", JSON.stringify(jobsList));
+
+    return aiQueue.run(() => requestWithFallback(["gemini"], async (provider) => {
+      const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
       return JSON.parse(raw);
     }));
   }
