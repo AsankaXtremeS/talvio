@@ -13,11 +13,16 @@ import {
 } from "lucide-react";
 import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { profileService, EmployerProfileDTO } from "@/lib/employer/profile.service";
+import { getJobPosts } from "@/lib/employer/jobPosts.service";
+import type { JobPost } from "@/types/employer/jobPost.types";
 
 export default function EmployerProfilePage() {
   const [profile, setProfile] = useState<EmployerProfileDTO | null>(null);
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isJobsLoading, setIsJobsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [jobsError, setJobsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +39,32 @@ export default function EmployerProfilePage() {
     };
 
     loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJobs = async () => {
+      try {
+        const jobs = await getJobPosts();
+        if (!cancelled) {
+          setJobPosts(jobs.sort((a, b) => {
+            const aDate = new Date(a.updatedAt ?? a.createdAt ?? "").getTime();
+            const bDate = new Date(b.updatedAt ?? b.createdAt ?? "").getTime();
+            return bDate - aDate;
+          }));
+        }
+      } catch (err) {
+        if (!cancelled) setJobsError(err instanceof Error ? err.message : "Unable to load job openings.");
+      } finally {
+        if (!cancelled) setIsJobsLoading(false);
+      }
+    };
+
+    loadJobs();
     return () => {
       cancelled = true;
     };
@@ -62,6 +93,16 @@ export default function EmployerProfilePage() {
 
   const companyInitial = profile.companyName.slice(0, 1).toUpperCase();
   const websiteUrl = profile.companyWebsite || "#";
+  const recentJobs = jobPosts.slice(0, 2);
+
+  const formatPostedAt = (job: JobPost) => {
+    const raw = job.updatedAt ?? job.createdAt;
+    if (!raw) return "Posted recently";
+    return `Posted ${new Date(raw).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#eef5ff] px-4 pb-4 pt-0 sm:px-6">
@@ -235,88 +276,89 @@ export default function EmployerProfilePage() {
                   <h2 className="text-2xl font-bold text-[#2563eb]">
                     Recent Job Openings
                   </h2>
-                  <button className="text-sm font-semibold text-[#2563eb] transition hover:underline">
+                  <Link href="/users/employer/job-posts" className="text-sm font-semibold text-[#2563eb] transition hover:underline">
                     View all →
-                  </button>
+                  </Link>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="group rounded-2xl bg-[#f4f8ff] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
-                          {companyInitial}
+                {isJobsLoading ? (
+                  <div className="rounded-2xl bg-[#f4f8ff] p-6 text-sm text-[#667085]">
+                    Loading recent job openings...
+                  </div>
+                ) : jobsError ? (
+                  <div className="rounded-2xl bg-[#fef3c7] p-6 text-sm text-[#92400e]">
+                    {jobsError}
+                  </div>
+                ) : recentJobs.length === 0 ? (
+                  <div className="rounded-2xl bg-[#f4f8ff] p-6 text-sm text-[#475467]">
+                    No recent job openings yet. Create a job post to show it here.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {recentJobs.map((job) => (
+                      <div key={job.id} className="group rounded-2xl bg-[#f4f8ff] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#111827] text-sm font-bold text-white">
+                              {profile.companyLogoUrl ? (
+                                <Image
+                                  src={profile.companyLogoUrl}
+                                  alt={`${profile.companyName} logo`}
+                                  width={48}
+                                  height={48}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-[#111827] text-sm font-bold text-white">
+                                  {companyInitial}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <h3 className="text-lg font-semibold text-[#111827] transition group-hover:text-[#2563eb]">
+                                {job.title}
+                              </h3>
+                              <p className="mt-0.5 text-sm text-[#667085]">
+                                {job.type} · {job.location || "Remote/Hybrid"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-semibold text-[#16a34a]">
+                            {job.status}
+                          </span>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-[#111827] transition group-hover:text-[#2563eb]">
-                            UX/UI Designer
-                          </h3>
-                          <p className="mt-0.5 text-sm text-[#667085]">Software</p>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {job.employmentType ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#dbeafe] px-3 py-1 text-xs font-medium text-[#2563eb]">
+                              {job.employmentType}
+                            </span>
+                          ) : null}
+                          {job.workMode ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e0f2fe] px-3 py-1 text-xs font-medium text-[#0284c7]">
+                              {job.workMode}
+                            </span>
+                          ) : null}
+                          {job.closingDate ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffedd5] px-3 py-1 text-xs font-medium text-[#ea580c]">
+                              Closes {new Date(job.closingDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-2 text-sm text-[#667085]">
+                          <span className="font-medium text-[#22c55e]">
+                            {job.applicantsCount ?? 0} Applicants
+                          </span>
+                          <span className="text-[#f4b400]">•</span>
+                          <span>{formatPostedAt(job)}</span>
                         </div>
                       </div>
-
-                      <span className="rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-semibold text-[#16a34a]">
-                        Active
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#dbeafe] px-3 py-1 text-xs font-medium text-[#2563eb]">
-                        Full-time
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e0f2fe] px-3 py-1 text-xs font-medium text-[#0284c7]">
-                        On site
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffedd5] px-3 py-1 text-xs font-medium text-[#ea580c]">
-                        $1000 - $1100
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-2 text-sm text-[#667085]">
-                      <span className="font-medium text-[#22c55e]">24 Applicants</span>
-                      <span className="text-[#f4b400]">•</span>
-                      <span>Posted 5 days ago</span>
-                    </div>
+                    ))}
                   </div>
-
-                  <div className="group rounded-2xl bg-[#f4f8ff] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-bold text-white">
-                          {companyInitial}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-[#111827] transition group-hover:text-[#2563eb]">
-                            Frontend Developer
-                          </h3>
-                          <p className="mt-0.5 text-sm text-[#667085]">Engineering</p>
-                        </div>
-                      </div>
-
-                      <span className="rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-semibold text-[#16a34a]">
-                        Active
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#dbeafe] px-3 py-1 text-xs font-medium text-[#2563eb]">
-                        Full-time
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ede9fe] px-3 py-1 text-xs font-medium text-[#7c3aed]">
-                        Hybrid
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffedd5] px-3 py-1 text-xs font-medium text-[#ea580c]">
-                        $1200 - $1500
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-2 text-sm text-[#667085]">
-                      <span className="font-medium text-[#22c55e]">18 Applicants</span>
-                      <span className="text-[#f4b400]">•</span>
-                      <span>Posted 3 days ago</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
