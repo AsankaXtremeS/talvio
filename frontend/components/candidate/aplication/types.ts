@@ -193,12 +193,12 @@ export const JOBS: Record<string, JobSummary> = {
 export const APPLICATION_META: Record<string, ApplicationMeta> = {
   "1": {
     status: "active",
-    stage: "Pending Next Step",
+    stage: "Scheduled",
     interviewMessage: "Interview scheduled: Tomorrow 10:00 AM",
   },
   "2": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "3": {
     status: "archived",
@@ -206,11 +206,11 @@ export const APPLICATION_META: Record<string, ApplicationMeta> = {
   },
   "4": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "5": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "6": {
     status: "archived",
@@ -218,7 +218,7 @@ export const APPLICATION_META: Record<string, ApplicationMeta> = {
   },
   "7": {
     status: "active",
-    stage: "Pending Next Step",
+    stage: "Scheduled",
     interviewMessage: "Interview scheduled: Monday 11:30 AM",
   },
   "8": {
@@ -227,7 +227,7 @@ export const APPLICATION_META: Record<string, ApplicationMeta> = {
   },
   "9": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "10": {
     status: "archived",
@@ -235,12 +235,12 @@ export const APPLICATION_META: Record<string, ApplicationMeta> = {
   },
   "11": {
     status: "active",
-    stage: "Pending Next Step",
+    stage: "Scheduled",
     interviewMessage: "Interview scheduled: Friday 2:00 PM",
   },
   "12": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "13": {
     status: "active",
@@ -252,20 +252,20 @@ export const APPLICATION_META: Record<string, ApplicationMeta> = {
   },
   "15": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "16": {
     status: "active",
-    stage: "Pending Next Step",
+    stage: "Scheduled",
     interviewMessage: "Interview scheduled: Wednesday 9:30 AM",
   },
   "17": {
     status: "active",
-    stage: "Reviewed by HR",
+    stage: "Reviewed",
   },
   "18": {
     status: "active",
-    stage: "Pending Next Step",
+    stage: "Scheduled",
     interviewMessage: "Interview scheduled: Next Tuesday 4:00 PM",
   },
   "19": {

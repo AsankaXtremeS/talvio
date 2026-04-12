@@ -20,6 +20,7 @@ import {
 import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { profileService, UpdateProfilePayload } from "@/lib/employer/profile.service";
 import { useUploadThing } from "@/lib/uploadthing";
+import { useAuth } from "@/context/AuthContext";
 
 interface FormData {
   name: string;
@@ -54,6 +55,7 @@ const INDUSTRIES     = [
 
 export default function EditEmployerProfilePage() {
   const router = useRouter();
+  const { user, setUser } = useAuth();
 
   const [form, setForm]               = useState<FormData>(EMPTY);
   const [isLoading, setIsLoading]     = useState(true);
@@ -158,8 +160,20 @@ export default function EditEmployerProfilePage() {
     };
 
     try {
-      await profileService.updateProfile(payload);
+      const updatedProfile = await profileService.updateProfile(payload);
       setSuccess("Profile updated successfully.");
+
+      if (user) {
+        setUser({
+          ...user,
+          employerProfile: {
+            companyName: updatedProfile.companyName,
+            verificationStatus: updatedProfile.verificationStatus,
+            rejectionReason: updatedProfile.rejectionReason ?? null,
+          },
+        });
+      }
+
       setTimeout(() => router.push("/users/employer/profile"), 1200);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save. Please try again.");
