@@ -16,6 +16,9 @@ initializePassport();
 
 morgan.token("pathNoQuery", (req) => (req as Request).originalUrl.split("?")[0]);
 
+// Enable trust proxy to handle X-Forwarded-For headers
+app.set('trust proxy', true);
+
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
