@@ -42,6 +42,18 @@ export const aiRepository = {
         cvUrl: null,
         cvFileName: null,
         extractedSkills: [],
+        recommendationCache: null,
+        lastRecommendedAt: null,
+      },
+    });
+  },
+
+  async updateRecommendationCache(userId: string, recommendations: any) {
+    return prisma.candidateProfile.update({
+      where: { userId },
+      data: {
+        recommendationCache: recommendations,
+        lastRecommendedAt: new Date(),
       },
     });
   },

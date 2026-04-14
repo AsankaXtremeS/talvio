@@ -136,6 +136,8 @@ model CandidateProfile {
   cvUrl           String?
   cvFileName      String?
   extractedSkills String[]      @default([])
+  recommendationCache Json?
+  lastRecommendedAt   DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   applications    Application[]

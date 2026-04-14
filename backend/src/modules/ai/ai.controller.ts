@@ -30,6 +30,22 @@ export const getRecommendations = async (req: Request, res: Response) => {
 
     const jobs = await aiRepository.findActiveJobsByRole(type);
     
+    // 0. Caching Logic (12 Hours)
+    const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in ms
+    const now = new Date();
+    
+    if (
+      candidate.recommendationCache &&
+      candidate.lastRecommendedAt &&
+      (now.getTime() - candidate.lastRecommendedAt.getTime()) < CACHE_DURATION &&
+      candidate.lastRecommendedAt >= candidate.updatedAt
+    ) {
+      return res.status(200).json({
+        recommendations: candidate.recommendationCache,
+        fromCache: true
+      });
+    }
+
     // If candidate has no skills extracted yet, just return jobs with 0 match
     if (!candidate.extractedSkills?.length) {
       return res.status(200).json({
@@ -74,10 +90,15 @@ export const getRecommendations = async (req: Request, res: Response) => {
       };
     });
 
+    const finalRecommendations = recommendations
+      .filter(j => j.matchPercent >= 70) // Higher threshold for AI matches
+      .sort((a, b) => b.matchPercent - a.matchPercent);
+
+    // Save to Cache
+    await aiRepository.updateRecommendationCache(userId, finalRecommendations);
+
     return res.status(200).json({
-      recommendations: recommendations
-        .filter(j => j.matchPercent >= 70) // Higher threshold for AI matches
-        .sort((a, b) => b.matchPercent - a.matchPercent)
+      recommendations: finalRecommendations
     });
   } catch (err: any) {
     console.error("getRecommendations error:", err);
