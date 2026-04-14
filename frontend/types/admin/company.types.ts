@@ -22,6 +22,7 @@ export interface JobPost {
 	closedDate?: string;
 	isClosed?: boolean;
 	closedApplications?: number;
+	description?: string;
 }
 
 export interface CompanyStats {

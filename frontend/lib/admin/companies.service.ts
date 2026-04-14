@@ -33,6 +33,7 @@ interface JobPostsApiItem {
 	closedDate?: string;
 	isClosed: boolean;
 	closedApplications: number;
+	description?: string;
 }
 
 interface JobPostsApiResponse {
@@ -83,6 +84,7 @@ const mapJobPost = (item: JobPostsApiItem): JobPost => ({
 	closedDate: item.closedDate,
 	isClosed: item.isClosed,
 	closedApplications: item.closedApplications,
+	description: item.description,
 });
 
 export const companiesService = {
@@ -120,6 +122,14 @@ export const companiesService = {
 		});
 
 		return mapCompany(item);
+	},
+
+	async getJobPostById(id: string): Promise<JobPost> {
+		const item = await apiClient<JobPostsApiItem>(`/api/admin/job-posts/${id}`, {
+			method: 'GET',
+		});
+
+		return mapJobPost(item);
 	},
 
 	async removeCompany(id: string): Promise<void> {
