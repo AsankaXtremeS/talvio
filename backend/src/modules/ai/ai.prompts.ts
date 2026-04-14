@@ -72,4 +72,37 @@ Job Description:
 
 Return ONLY a valid JSON array of strings.
 Example: ["Java", "Spring Boot", "MySQL"]
-`;
+`;
+
+/**
+ * 4. RANK JOBS (High Accuracy Batch Ranking)
+ * Goal: Evaluate a list of jobs against a candidate profile in one go.
+ */
+export const RANK_JOBS_PROMPT = `
+You are an advanced talent matching system. 
+Analyze the candidate's profile against the provided list of job posts.
+
+CANDIDATE PROFILE:
+{candidateProfile}
+
+JOB POSTS:
+{jobsList}
+
+YOUR TASK:
+For each job in the list, calculate a match percentage (0-100).
+Consider:
+1. **Title Match**: How well does the candidate's headline align with the job title?
+2. **Skill Match**: Do the candidate's skills match the required skills?
+3. **Experience/Role Match**: Is the candidate's profile suitable for the job type/level?
+
+Return ONLY a valid JSON array of objects with "id" and "matchPercent".
+Example Output:
+[
+  { "id": "uuid-1", "matchPercent": 95 },
+  { "id": "uuid-2", "matchPercent": 40 }
+]
+
+STRICT RULES:
+- Return ONLY the JSON array. No markdown, no explanations.
+- Be realistic—only give >80% if it's a very strong match.
+`;

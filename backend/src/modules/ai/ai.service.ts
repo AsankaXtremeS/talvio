@@ -8,6 +8,7 @@ import {
   COMPREHENSIVE_ANALYSIS_PROMPT,
   EXTRACT_CV_SKILLS_PROMPT,
   EXTRACT_JD_KEYWORDS_PROMPT,
+  RANK_JOBS_PROMPT,
 } from "./ai.prompts";
 
 const geminiEnabled = Boolean(env.GEMINI_API_KEY);
@@ -127,13 +128,15 @@ export const aiService = {
    */
   async extractSkills(cvText: string): Promise<string[]> {
     const prompt = EXTRACT_CV_SKILLS_PROMPT.replace("{cvText}", cvText.slice(0, 4000));
-    return aiQueue.run(() => requestWithFallback(["gemini", "groq"], async (provider) => {
+    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
+
+    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
         const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(raw);
+        return JSON.parse(cleanJson(raw));
       }
       const raw = await openAiGenerate(provider, prompt, 0.1);
-      return JSON.parse(raw);
+      return JSON.parse(cleanJson(raw));
     }));
   },
 
@@ -145,13 +148,15 @@ export const aiService = {
       .replace("{cvText}", cvText.slice(0, 4000))
       .replace("{jobDescription}", jobDescription);
 
-    return aiQueue.run(() => requestWithFallback(["gemini", "mistral"], async (provider) => {
+    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
+
+    return aiQueue.run(() => requestWithFallback(["gemini", "mistral", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
         const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(raw);
+        return JSON.parse(cleanJson(raw));
       }
       const raw = await openAiGenerate(provider, prompt, 0.2);
-      return JSON.parse(raw);
+      return JSON.parse(cleanJson(raw));
     }));
   },
 
@@ -168,13 +173,48 @@ export const aiService = {
 
   async extractJdKeywords(jobDescription: string): Promise<string[]> {
     const prompt = EXTRACT_JD_KEYWORDS_PROMPT.replace("{jobDescription}", jobDescription);
-    return aiQueue.run(() => requestWithFallback(["gemini", "groq"], async (provider) => {
+    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
+
+    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
         const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(raw);
+        return JSON.parse(cleanJson(raw));
       }
       const raw = await openAiGenerate(provider, prompt, 0.1);
-      return JSON.parse(raw);
+      return JSON.parse(cleanJson(raw));
+    }));
+  },
+  /**
+   * 4. RANK JOBS (High Accuracy Batch Ranking)
+   * Goal: Evaluate a list of jobs against a candidate profile in one go.
+   */
+  async rankJobsWithAI(candidateSummary: any, jobs: any[]): Promise<any[]> {
+    if (!jobs.length) return [];
+    
+    const jobsList = jobs.map(j => ({
+      id: j.id,
+      title: j.title,
+      description: j.description?.slice(0, 500),
+      skillsRequired: j.skillsRequired
+    }));
+
+    const prompt = RANK_JOBS_PROMPT
+      .replace("{candidateProfile}", JSON.stringify(candidateSummary))
+      .replace("{jobsList}", JSON.stringify(jobsList));
+
+    const cleanJson = (raw: string) => {
+      // Remove markdown code blocks if present
+      return raw.replace(/```json|```/g, "").trim();
+    };
+
+    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter", "mistral"], async (provider) => {
+      if (provider.type === "gemini") {
+        const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
+        return JSON.parse(cleanJson(raw));
+      }
+      
+      const raw = await openAiGenerate(provider, prompt, 0.1);
+      return JSON.parse(cleanJson(raw));
     }));
   }
 };

@@ -151,7 +151,7 @@ export const jobsRepository = {
           responsibilities: true,
           requirements: true,
           additionalInformation: true,
-          skills: true,
+          skillsRequired: true,
           workMode: true,
           employmentType: true,
           location: true,
@@ -232,7 +232,6 @@ export const jobsRepository = {
       requirements: toStringArray(data.requirements),
       skillsRequired: toStringArray(data.skills),
       additionalInformation: toNullableString(data.additionalInformation),
-      skills: toNullableString(data.skills),
       workMode: toWorkMode(data.workMode),
       employmentType: toEmploymentType(data.employmentType),
       location: toNullableString(data.location),
@@ -290,7 +289,6 @@ export const jobsRepository = {
         ...(data.requirements !== undefined && { requirements: toStringArray(data.requirements) }),
         ...(data.skills !== undefined && {
           skillsRequired: toStringArray(data.skills),
-          skills: toNullableString(data.skills),
         }),
         ...(data.additionalInformation !== undefined && {
           additionalInformation: toNullableString(data.additionalInformation),

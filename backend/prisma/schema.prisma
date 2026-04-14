@@ -103,7 +103,6 @@ model JobPost {
   responsibilities      String[]
   skillsRequired        String[]
   additionalInformation String?
-  skills                String?
   workMode              WorkMode?
   employmentType        EmploymentType?
   stipendType           StipendType?
@@ -136,8 +135,9 @@ model CandidateProfile {
   portfolioUrl    String?
   cvUrl           String?
   cvFileName      String?
-  cvText          String?
   extractedSkills String[]      @default([])
+  recommendationCache Json?
+  lastRecommendedAt   DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   applications    Application[]
@@ -150,7 +150,6 @@ model Application {
   jobPostId          String
   cvUrl              String
   cvFileName         String?
-  cvText             String?
   coverLetter        String?
   aiScore            Int?
   aiSuggestions      String[]          @default([])
