@@ -32,6 +32,7 @@ export interface AdminJobPostDTO {
 	closedDate?: string;
 	isClosed: boolean;
 	closedApplications: number;
+	description?: string;
 }
 
 export interface AdminJobPostListResponse {
@@ -100,6 +101,7 @@ const toDTO = (post: AdminJobPostRecord): AdminJobPostDTO => {
 		closedDate: post.closingDate ? post.closingDate.toISOString() : undefined,
 		isClosed: post.status === "CLOSED",
 		closedApplications: post._count.applications,
+		description: post.description || undefined,
 	};
 };
 
