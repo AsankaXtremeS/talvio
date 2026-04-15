@@ -9,6 +9,7 @@ import CandidateFilterBar from '@/components/admin/candidates/CandidateFilterBar
 import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
 import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
+import AdminDetailModal from '@/components/admin/shared/AdminDetailModal';
 import { candidatesService, type CandidateRoleFilter } from '@/lib/admin/candidates.service';
 import type { Candidate, CandidateStats } from '@/types/admin/candidate.types';
 
@@ -32,6 +33,10 @@ export default function CandidatesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
   const [roleFilter, setRoleFilter] = useState<CandidateRoleFilter>('all');
+
+  // Detail Modal State
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -105,7 +110,8 @@ export default function CandidatesPage() {
   }, [candidates, periodFilter]);
 
   const handleView = useCallback((candidate: Candidate) => {
-    window.alert(`Candidate profile for ${candidate.name} will be available soon.`);
+    setSelectedCandidate(candidate);
+    setIsDetailOpen(true);
   }, []);
 
   const removeMutation = useMutation({
@@ -164,6 +170,14 @@ export default function CandidatesPage() {
           </div>
         )}
       </div>
+
+      <AdminDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        title={selectedCandidate?.name || 'Candidate Details'}
+        type="candidate"
+        data={selectedCandidate}
+      />
     </div>
   );
 }

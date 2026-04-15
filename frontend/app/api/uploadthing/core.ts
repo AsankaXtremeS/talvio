@@ -1,6 +1,8 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
+// Requires a valid UploadThing token in the frontend server environment.
+// Set `UPLOADTHING_TOKEN` in `frontend/.env.local` (or your deployment config).
 const f = createUploadthing();
 
 // Fake auth function for now, but we can integrate with our auth if needed

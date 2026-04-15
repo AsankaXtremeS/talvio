@@ -19,7 +19,6 @@ import {
   oauthStart,
   oauthCallback,
 } from "./auth.controller";
-import { upload } from "../../middlewares/upload.middleware";
 import rateLimit from "express-rate-limit";
 // Rate limiter: 5 requests per minute per IP for sensitive routes
 const sensitiveLimiter = rateLimit({

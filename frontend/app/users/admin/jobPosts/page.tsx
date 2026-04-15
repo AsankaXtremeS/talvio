@@ -7,6 +7,7 @@ import AdminTopbar from '@/components/admin/layout/AdminTopbar';
 import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
 import JobPostStatBar from '@/components/admin/jobPosts/JobPostStatBar';
 import JobPostsTable from '@/components/admin/jobPosts/JobPostsTable';
+import AdminDetailModal from '@/components/admin/shared/AdminDetailModal';
 import { companiesService } from '@/lib/admin/companies.service';
 import type { CompanyStats, JobPost, PaginationMeta } from '@/types/admin/company.types';
 
@@ -36,6 +37,10 @@ export default function JobPostsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+
+  // Detail Modal State
+  const [selectedPost, setSelectedPost] = useState<JobPost | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -88,10 +93,14 @@ export default function JobPostsPage() {
     setPage((p) => p + 1);
   }, [page, pagination.totalPages]);
 
+  const handleView = useCallback((post: JobPost) => {
+    setSelectedPost(post);
+    setIsDetailOpen(true);
+  }, []);
+
   const removeMutation = useMutation({
     mutationFn: (id: string) => companiesService.removeJobPost(id),
     onSuccess: () => {
-      // If we are deleting the last item on the current page, and we're not on the first page, go back.
       if (posts.length === 1 && page > 1) {
         setPage((p) => p - 1);
       }
@@ -141,6 +150,7 @@ export default function JobPostsPage() {
           ) : (
             <JobPostsTable
               posts={posts}
+              onView={handleView}
               onDelete={handleRemove}
               pagination={pagination}
               onPreviousPage={handlePrevious}
@@ -150,6 +160,14 @@ export default function JobPostsPage() {
           )}
         </div>
       </div>
+
+      <AdminDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        title={selectedPost?.jobTitle || 'Job Post Details'}
+        type="jobPost"
+        data={selectedPost}
+      />
     </div>
   );
 }

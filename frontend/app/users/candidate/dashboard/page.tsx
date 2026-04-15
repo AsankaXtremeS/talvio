@@ -12,7 +12,12 @@ import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
 import RecommendationList from "@/components/candidate/dashboard/RecommendationList";
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
+import Popup from "@/components/admin/layout/Popup";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
+import { INTERVIEWS } from "@/components/candidate/interviews/types";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:8000/api";
 
 const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
   {
@@ -86,17 +91,81 @@ const APPLY_MODAL_CONTENT = {
 };
 
 const STORAGE_KEY = "candidateAppliedJobIds";
+const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
-function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDED_JOBS) {
+function timeAgo(date: string | Date): string {
+  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  return Math.floor(seconds) + " seconds ago";
+}
+
+function useCandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
+  
+  // Real Data State
+  const [jobs, setJobs] = useState<DashboardJob[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const jobIdFromQuery = searchParams.get("jobId");
   const sourceFromQuery = searchParams.get("from");
-  const jobs = recommendedJobs.length > 0 ? recommendedJobs : MOCK_RECOMMENDED_JOBS;
+
+  // Feedback state
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
+    open: false,
+    message: "",
+    success: false,
+  });
+
+  // Fetch Recommendations from AI Module
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/ai/recommendations`, {
+          withCredentials: true 
+        });
+        
+        if (response.data?.recommendations) {
+          const mappedJobs: DashboardJob[] = response.data.recommendations.map((job: any) => ({
+            id: job.id,
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            postedAgo: timeAgo(job.createdAt),
+            matchPercent: job.matchPercent,
+            tags: job.tags || [],
+            companyLogoUrl: job.companyLogoUrl,
+          }));
+          setJobs(mappedJobs);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recommendations:", error);
+        setJobs([]); // Clear on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [user]);
 
   const selectedJob = useMemo(() => {
     if (!jobIdFromQuery) {
@@ -188,6 +257,27 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY);
+      if (!stored) {
+        setReadNotificationIds([]);
+        return;
+      }
+
+      const parsed: unknown = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setReadNotificationIds(parsed.filter((value): value is string => typeof value === "string"));
+      } else {
+        setReadNotificationIds([]);
+      }
+    } catch {
+      setReadNotificationIds([]);
+    }
+  }, []);
+
   const currentDateLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("en-US", {
@@ -226,6 +316,41 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     }).format(nearestInterview);
   }, [nearestInterview]);
 
+  const interviewNotifications = useMemo(() => {
+    return INTERVIEWS
+      .map((interview) => {
+        const scheduledDate = new Date(interview.scheduledAt);
+        const isUpcoming = scheduledDate.getTime() >= now.getTime();
+        const isRead = readNotificationIds.includes(interview.id);
+        const isNew = isUpcoming && !isRead;
+
+        return {
+          id: interview.id,
+          title: `New interview scheduled: ${interview.company}`,
+          timeLabel: interview.scheduledLabel,
+          isNew,
+          href: `/users/candidate/interviews/${interview.id}`,
+          scheduledAtMs: scheduledDate.getTime(),
+        };
+      })
+      .sort((a, b) => b.scheduledAtMs - a.scheduledAtMs)
+      .map(({ scheduledAtMs, ...notification }) => notification);
+  }, [now, readNotificationIds]);
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setReadNotificationIds((prev) => {
+      if (prev.includes(notificationId)) return prev;
+
+      const next = [...prev, notificationId];
+      try {
+        window.localStorage.setItem(NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // keep UI responsive even if storage is unavailable
+      }
+      return next;
+    });
+  };
+
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     if (!keyword) return jobs;
@@ -239,17 +364,26 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     return filteredJobs;
   }, [activeTab, appliedJobIds, filteredJobs]);
 
-  const submitApplication = (jobId: string) => {
-    setAppliedJobIds((prev) => {
-      const next = prev.includes(jobId) ? prev : [...prev, jobId];
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // keep UI responsive
-      }
-      return next;
-    });
-    setActiveModal("details");
+  const submitApplication = async (jobId: string, coverLetter?: string) => {
+    try {
+      setIsLoading(true);
+      await axios.post(`${API_BASE_URL}/ai/apply/${jobId}`, {
+        coverLetter
+      }, { withCredentials: true });
+
+      setAppliedJobIds((prev) => [...new Set([...prev, jobId])]);
+      setPopup({ open: true, message: "Application submitted successfully!", success: true });
+      setActiveModal("details");
+    } catch (error: any) {
+      console.error("Failed to submit application:", error);
+      setPopup({ 
+        open: true, 
+        message: error.response?.data?.message || "Failed to submit application. Please try again.", 
+        success: false 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleWithdrawApplication = (jobId: string) => {
@@ -273,6 +407,8 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     currentDateLabel,
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
+    interviewNotifications,
+    markNotificationAsRead,
     shownJobs,
     selectedJob,
     activeModal,
@@ -283,6 +419,9 @@ function useCandidateDashboard(recommendedJobs: DashboardJob[] = MOCK_RECOMMENDE
     handleViewJob: openJobDetails,
     handleApplyFromList: openJobDetails,
     handleWithdrawApplication,
+    isLoading,
+    popup,
+    setPopup,
   };
 }
 
@@ -305,6 +444,8 @@ export default function CandidateDashboardPage() {
     currentDateLabel,
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
+    interviewNotifications,
+    markNotificationAsRead,
     shownJobs,
     selectedJob,
     activeModal,
@@ -314,7 +455,10 @@ export default function CandidateDashboardPage() {
     submitApplication,
     handleApplyFromList,
     handleWithdrawApplication,
-  } = useCandidateDashboard(ALL_DASHBOARD_JOBS);
+    isLoading,
+    popup,
+    setPopup,
+  } = useCandidateDashboard();
 
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
 
@@ -327,7 +471,7 @@ export default function CandidateDashboardPage() {
     if (!selectedJob || !resumeFileName) {
       return;
     }
-    submitApplication(selectedJob.id);
+    submitApplication(selectedJob.id, coverLetter);
   };
 
   const handleAIDone = (generatedCoverLetter: string) => {
@@ -344,6 +488,8 @@ export default function CandidateDashboardPage() {
           currentDateLabel={currentDateLabel}
           nearestInterviewDateLabel={nearestInterviewDateLabel}
           nearestInterviewTimeLabel={nearestInterviewTimeLabel}
+          notifications={interviewNotifications}
+          onNotificationClick={(notification) => markNotificationAsRead(notification.id)}
         />
 
         <div className="pt-0">
@@ -375,18 +521,25 @@ export default function CandidateDashboardPage() {
               </button>
             </div>
 
-            <RecommendationList
-              jobs={shownJobs}
-              appliedJobIds={appliedJobIds}
-              activeTab={activeTab}
-              onView={openJobDetails}
-              onApply={openApplyForm}
-              onWithdraw={handleWithdrawApplication}
-            />
+            <div className={`transition-opacity duration-300 ${isLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+              <RecommendationList
+                jobs={shownJobs}
+                appliedJobIds={appliedJobIds}
+                activeTab={activeTab}
+                onView={openJobDetails}
+                onApply={handleApplyFromList}
+                onWithdraw={handleWithdrawApplication}
+              />
+            </div>
+            
+            {isLoading && (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-700"></div>
+              </div>
+            )}
             </section>
-
+          </div>
         </div>
-      </div>
       </div>
 
       {selectedJob && activeModal !== "none" && (
@@ -427,13 +580,20 @@ export default function CandidateDashboardPage() {
       )}
       {selectedJob && activeModal === "apply" && showAIModal && (
         <AICoverLetterModal
+          jobId={selectedJob.id}
           jobTitle={selectedJob.title}
-          candidateName={user?.name || "Your Name"}
+          candidateName={user?.firstName ? `${user.firstName} ${user.lastName || ""}` : "Candidate"}
           onDone={handleAIDone}
           onClose={() => setShowAIModal(false)}
         />
       )}
+
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => setPopup({ ...popup, open: false })}
+      />
     </div>
   );
 }
-

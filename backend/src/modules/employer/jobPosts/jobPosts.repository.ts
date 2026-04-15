@@ -151,7 +151,7 @@ export const jobsRepository = {
           responsibilities: true,
           requirements: true,
           additionalInformation: true,
-          skills: true,
+          skillsRequired: true,
           workMode: true,
           employmentType: true,
           location: true,
@@ -232,7 +232,6 @@ export const jobsRepository = {
       requirements: toStringArray(data.requirements),
       skillsRequired: toStringArray(data.skills),
       additionalInformation: toNullableString(data.additionalInformation),
-      skills: toNullableString(data.skills),
       workMode: toWorkMode(data.workMode),
       employmentType: toEmploymentType(data.employmentType),
       location: toNullableString(data.location),
@@ -271,8 +270,9 @@ export const jobsRepository = {
   async update(id: string, employerId: string, data: UpdateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
-    // Use updateMany to allow filtering by employerId alongside id for security
-    return prisma.jobPost.updateMany({
+    // Use updateMany to allow filtering by employerId alongside id for security.
+    // Then fetch the updated row because updateMany only returns a count.
+    const result = await prisma.jobPost.updateMany({
       where: {
         id,
         employerId, // CRITICAL: Now securely checking ownership
@@ -289,7 +289,6 @@ export const jobsRepository = {
         ...(data.requirements !== undefined && { requirements: toStringArray(data.requirements) }),
         ...(data.skills !== undefined && {
           skillsRequired: toStringArray(data.skills),
-          skills: toNullableString(data.skills),
         }),
         ...(data.additionalInformation !== undefined && {
           additionalInformation: toNullableString(data.additionalInformation),
@@ -314,6 +313,20 @@ export const jobsRepository = {
         }),
       },
     });
+
+    if (result.count === 0) {
+      throw new Error("Job post not found");
+    }
+
+    const updated = await prisma.jobPost.findUnique({
+      where: { id },
+    });
+
+    if (!updated) {
+      throw new Error("Job post not found");
+    }
+
+    return updated;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

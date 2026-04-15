@@ -56,6 +56,28 @@ const generateRefreshToken = async (userId: string) => {
 
   return token;
 };
+
+const buildSessionUser = (user: any) => ({
+  id: user.id,
+  email: user.email,
+  role: user.role,
+  firstName: user.firstName ?? null,
+  lastName: user.lastName ?? null,
+  preferences: {
+    locale: "en",
+    theme: "light",
+  },
+  permissions: [user.role],
+  employerProfile: user.employerProfile
+    ? {
+        companyName: user.employerProfile.companyName,
+        companyLogoUrl: user.employerProfile.companyLogoUrl ?? null,
+        verificationStatus: user.employerProfile.verificationStatus,
+        rejectionReason: user.employerProfile.rejectionReason ?? null,
+      }
+    : null,
+});
+
 // Issues access and refresh tokens for a given user ID and role.(Access token is short-lived, refresh token is long-lived and stored in DB for rotation and revocation)
 
 const issueTokensForUser = async (userId: string, role: string) => {
@@ -112,6 +134,7 @@ export const authService = {
       employerProfile: user.employerProfile
         ? {
             companyName: user.employerProfile.companyName,
+            companyLogoUrl: user.employerProfile.companyLogoUrl ?? null,
             verificationStatus: user.employerProfile.verificationStatus,
             rejectionReason: user.employerProfile.rejectionReason,
           }
@@ -235,11 +258,7 @@ export const authService = {
     const tokens = await issueTokensForUser(user.id, user.role);
     return {
       ...tokens,
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-      },
+      user: buildSessionUser(user),
     };
   },
 
@@ -267,11 +286,7 @@ export const authService = {
     return {
       accessToken: generateAccessToken(payload.userId, user.role),
       refreshToken: newRefreshToken,
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-      },
+      user: buildSessionUser(user),
     };
   },
 

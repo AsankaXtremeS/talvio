@@ -1,9 +1,15 @@
 /*
   Warnings:
 
-  - The `requirements` column on the `JobPost` table would be dropped and recreated. This will lead to data loss if there is data in the column.
+  - Added the required column `updatedAt` to the `EmployerProfile` table without a default value. This is not possible if the table is not empty.
 
 */
+-- CreateEnum
+CREATE TYPE "JobType" AS ENUM ('JOB', 'INTERNSHIP');
+
+-- CreateEnum
+CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'ACTIVE', 'CLOSED');
+
 -- CreateEnum
 CREATE TYPE "EmploymentType" AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACT');
 
@@ -23,19 +29,32 @@ CREATE TYPE "ApplicationStatus" AS ENUM ('PENDING', 'REVIEWED', 'SHORTLISTED', '
 ALTER TABLE "EmployerProfile" ADD COLUMN     "companyDescription" TEXT,
 ADD COLUMN     "companyLocation" TEXT,
 ADD COLUMN     "companyLogoUrl" TEXT,
-ADD COLUMN     "companyWebsite" TEXT;
+ADD COLUMN     "companyWebsite" TEXT,
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL;
 
--- AlterTable
-ALTER TABLE "JobPost" ADD COLUMN     "duration" TEXT,
-ADD COLUMN     "employmentType" "EmploymentType",
-ADD COLUMN     "experienceLevel" "ExperienceLevel",
-ADD COLUMN     "location" TEXT,
-ADD COLUMN     "responsibilities" TEXT[],
-ADD COLUMN     "skillsRequired" TEXT[],
-ADD COLUMN     "stipendType" "StipendType",
-ADD COLUMN     "workMode" "WorkMode",
-DROP COLUMN "requirements",
-ADD COLUMN     "requirements" TEXT[];
+-- CreateTable
+CREATE TABLE "JobPost" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "type" "JobType" NOT NULL,
+    "description" TEXT,
+    "requirements" TEXT[],
+    "responsibilities" TEXT[],
+    "skillsRequired" TEXT[],
+    "workMode" "WorkMode",
+    "employmentType" "EmploymentType",
+    "stipendType" "StipendType",
+    "location" TEXT,
+    "duration" TEXT,
+    "experienceLevel" "ExperienceLevel",
+    "closingDate" TIMESTAMP(3),
+    "status" "PostStatus" NOT NULL DEFAULT 'DRAFT',
+    "employerId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JobPost_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "CandidateProfile" (
@@ -43,7 +62,7 @@ CREATE TABLE "CandidateProfile" (
     "userId" TEXT NOT NULL,
     "headline" TEXT,
     "location" TEXT,
-    "skills" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "skills" TEXT[],
     "bio" TEXT,
     "linkedinUrl" TEXT,
     "githubUrl" TEXT,
@@ -71,8 +90,8 @@ CREATE TABLE "Application" (
     "experienceMatchScore" INTEGER,
     "educationMatchScore" INTEGER,
     "keywordsMatchScore" INTEGER,
-    "matchedSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "missingSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "matchedSkills" TEXT[],
+    "missingSkills" TEXT[],
     "aiSummary" TEXT,
     "applicationStatus" "ApplicationStatus" NOT NULL DEFAULT 'PENDING',
     "scoredAt" TIMESTAMP(3),
@@ -87,16 +106,16 @@ CREATE TABLE "CvSuggestion" (
     "id" TEXT NOT NULL,
     "applicationId" TEXT NOT NULL,
     "overallScore" INTEGER NOT NULL,
-    "summaryScore" INTEGER NOT NULL,
-    "summaryFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "skillsScore" INTEGER NOT NULL,
-    "skillsFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "experienceScore" INTEGER NOT NULL,
-    "experienceFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "educationScore" INTEGER NOT NULL,
-    "educationFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "missingKeywords" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "strengthsToHighlight" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "summaryScore" INTEGER,
+    "summaryFeedback" TEXT[],
+    "skillsScore" INTEGER,
+    "skillsFeedback" TEXT[],
+    "experienceScore" INTEGER,
+    "experienceFeedback" TEXT[],
+    "educationScore" INTEGER,
+    "educationFeedback" TEXT[],
+    "missingKeywords" TEXT[],
+    "strengthsToHighlight" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -115,13 +134,22 @@ CREATE TABLE "GeneratedCoverLetter" (
 );
 
 -- CreateIndex
+CREATE INDEX "JobPost_employerId_idx" ON "JobPost"("employerId");
+
+-- CreateIndex
+CREATE INDEX "JobPost_status_idx" ON "JobPost"("status");
+
+-- CreateIndex
+CREATE INDEX "JobPost_status_createdAt_idx" ON "JobPost"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "JobPost_workMode_type_idx" ON "JobPost"("workMode", "type");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "CandidateProfile_userId_key" ON "CandidateProfile"("userId");
 
 -- CreateIndex
 CREATE INDEX "Application_jobPostId_aiScore_idx" ON "Application"("jobPostId", "aiScore");
-
--- CreateIndex
-CREATE INDEX "Application_aiScore_idx" ON "Application"("aiScore");
 
 -- CreateIndex
 CREATE INDEX "Application_candidateProfileId_appliedAt_idx" ON "Application"("candidateProfileId", "appliedAt");
@@ -138,11 +166,8 @@ CREATE UNIQUE INDEX "CvSuggestion_applicationId_key" ON "CvSuggestion"("applicat
 -- CreateIndex
 CREATE UNIQUE INDEX "GeneratedCoverLetter_applicationId_key" ON "GeneratedCoverLetter"("applicationId");
 
--- CreateIndex
-CREATE INDEX "JobPost_status_createdAt_idx" ON "JobPost"("status", "createdAt");
-
--- CreateIndex
-CREATE INDEX "JobPost_workMode_type_idx" ON "JobPost"("workMode", "type");
+-- AddForeignKey
+ALTER TABLE "JobPost" ADD CONSTRAINT "JobPost_employerId_fkey" FOREIGN KEY ("employerId") REFERENCES "EmployerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CandidateProfile" ADD CONSTRAINT "CandidateProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

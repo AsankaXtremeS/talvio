@@ -10,15 +10,30 @@ import QuickActionsCard from "@/components/candidate/settings/QuickActionsCard";
 import SettingsTopBar from "@/components/candidate/settings/SettingsTopBar";
 import WorkExperienceCard from "@/components/candidate/settings/WorkExperienceCard";
 import { CandidateSettingsProfile } from "@/components/candidate/settings/types";
+import ResumeCard from "@/components/candidate/settings/ResumeCard";
+
+interface ResumeData {
+  cvUrl?: string;
+  cvFileName?: string;
+  updatedAt?: string;
+}
 
 interface CandidateSettingsViewProps {
   profile: CandidateSettingsProfile;
   profileScore: number;
+  resumeData?: ResumeData;
+  onResumeUpdate: (res: any) => void;
+  onResumeError: (error: string) => void;
+  onRemoveResume: () => void;
 }
 
 export default function CandidateSettingsView({
   profile,
   profileScore,
+  resumeData,
+  onResumeUpdate,
+  onResumeError,
+  onRemoveResume,
 }: CandidateSettingsViewProps) {
   return (
     <div className="space-y-4 rounded-3xl bg-[#F4F6FB] p-4 md:p-5">
@@ -35,6 +50,15 @@ export default function CandidateSettingsView({
             phone={profile.phone}
             bio={profile.bio}
             skills={profile.skills}
+          />
+
+          <ResumeCard 
+            cvUrl={resumeData?.cvUrl}
+            cvFileName={resumeData?.cvFileName}
+            updatedAt={resumeData?.updatedAt}
+            onUploadSuccess={onResumeUpdate}
+            onUploadError={onResumeError}
+            onRemove={onRemoveResume}
           />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
