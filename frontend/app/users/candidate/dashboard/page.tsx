@@ -1,8 +1,11 @@
+
 "use client";
+import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CalendarDays, Clock3, DollarSign, Globe2, LayoutDashboard, Sparkles, Upload, X, Pencil } from "lucide-react";
+import { LayoutDashboard, Sparkles, Upload, X, Pencil } from "lucide-react";
+import JobDetailsModal from "@/components/candidate/dashboard/JobDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import DashboardHeader from "@/components/candidate/dashboard/DashboardHeader";
 import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
@@ -544,127 +547,33 @@ export default function CandidateDashboardPage() {
           <div
             className={`w-full shadow-xl ${activeModal === "apply" ? "relative max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4" : "relative max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl bg-white p-4"}`}
           >
-            {activeModal === "details" && (
-              <div className="space-y-3">
-                <button
-                  onClick={closeModals}
-                  className="absolute right-3 top-3 rounded-lg border border-slate-300 bg-white px-2 py-0.5 text-lg leading-none text-slate-500 hover:text-slate-700"
-                >
-                  ×
-                </button>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-[#F4F7FF] text-base font-bold text-indigo-600">
-                        {selectedJob.company.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold leading-tight text-slate-800">{selectedJob.title}</h3>
-                        <p className="text-sm font-semibold text-indigo-500">{selectedJob.company} - {selectedJob.location}</p>
-                      </div>
-                    </div>
-
-                    {isSelectedJobApplied ? (
-                      <button disabled className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">Applied</button>
-                    ) : (
-                      <button onClick={() => openApplyForm(selectedJob.id)} className="rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Apply now</button>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedJob.tags.map((tag) => (
-                      <span key={tag} className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <h4 className="text-lg font-semibold text-slate-800">Job Overview</h4>
-                    <div className="mt-3 space-y-2 text-xs text-slate-600 sm:text-sm">
-                      <p className="flex items-center gap-2"><Briefcase size={16} className="text-slate-400" />Role: <span className="font-semibold text-slate-700">{selectedJob.title}</span></p>
-                      <p className="flex items-center gap-2"><Clock3 size={16} className="text-slate-400" />Duration: <span className="font-semibold text-slate-700">3 months</span></p>
-                      <p className="flex items-center gap-2"><DollarSign size={16} className="text-slate-400" />Stipend: <span className="font-semibold text-slate-700">Paid</span></p>
-                      <p className="flex items-center gap-2"><Globe2 size={16} className="text-slate-400" />Work Mode: <span className="font-semibold text-slate-700">Remote</span></p>
-                      <p className="flex items-center gap-2"><CalendarDays size={16} className="text-slate-400" />Posted: <span className="font-semibold text-slate-700">{selectedJob.postedAgo}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <h4 className="text-lg font-semibold text-slate-800">Company</h4>
-                    <p className="mt-2 text-2xl font-bold text-indigo-600">{selectedJob.company}</p>
-                    <p className="mt-2 text-xs leading-6 text-slate-600 sm:text-sm">{APPLY_MODAL_CONTENT.companyAbout}</p>
-                    <button className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700">Visit company profile</button>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <h4 className="text-lg font-semibold text-slate-800">About the Role</h4>
-                  <p className="mt-3 text-xs leading-6 text-slate-600 sm:text-sm">{APPLY_MODAL_CONTENT.about}</p>
-
-                  <h5 className="mt-4 text-base font-semibold text-slate-800">Responsibilities</h5>
-                  <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-slate-600 sm:text-sm">
-                    {APPLY_MODAL_CONTENT.responsibilities.map((item) => (<li key={item}>{item}</li>))}
-                  </ul>
-
-                  <h5 className="mt-4 text-base font-semibold text-slate-800">Requirements</h5>
-                  <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-slate-600 sm:text-sm">
-                    {APPLY_MODAL_CONTENT.requirements.map((item) => (<li key={item}>{item}</li>))}
-                  </ul>
-                </div>
-              </div>
+            {activeModal === "details" && selectedJob && (
+              <JobDetailsModal
+                selectedJob={selectedJob}
+                isSelectedJobApplied={isSelectedJobApplied}
+                closeModals={closeModals}
+                openApplyForm={openApplyForm}
+                APPLY_MODAL_CONTENT={APPLY_MODAL_CONTENT}
+              />
             )}
 
-            {activeModal === "apply" && (
-              <div className="space-y-5 p-6">
-                <button onClick={closeModals} className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 hover:text-gray-600 transition-colors"><X size={14} strokeWidth={2.5} /></button>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white overflow-hidden">
-                    {/* Optionally show logo or initials */}
-                    <div className="flex h-full w-full items-center justify-center rounded-xl bg-indigo-100 text-sm font-semibold text-indigo-600">{selectedJob.company?.slice(0, 3)}</div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Applying for</p>
-                    <h3 className="text-[17px] font-semibold text-indigo-600">{selectedJob.title}</h3>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Resume</p>
-                  <input ref={resumeInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResumeFileName(e.target.files?.[0]?.name ?? "")} />
-                  <button onClick={() => resumeInputRef.current?.click()} className="w-full rounded-2xl border-2 border-dashed border-indigo-300 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-                    <Upload size={22} className="mx-auto mb-1.5 text-indigo-300" />
-                    <p className="text-sm font-medium text-slate-500">{resumeFileName ? resumeFileName : "Drag and drop resume"}</p>
-                    <p className="mt-1 text-sm font-semibold text-indigo-600">Browse CV</p>
-                  </button>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Cover letter</p>
-                  <input ref={coverLetterInputRef} type="file" accept=".txt,.doc,.docx,.pdf" className="hidden" onChange={(e) => setCoverLetterFileName(e.target.files?.[0]?.name ?? "")} />
-                  <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200">
-                    <button onClick={() => coverLetterInputRef.current?.click()} className="flex flex-col items-center justify-center gap-1.5 border-r border-gray-200 px-4 py-5 text-center transition-colors hover:bg-slate-50">
-                      <Upload size={20} className="text-indigo-300" />
-                      <p className="text-xs text-gray-400">Drag and drop</p>
-                      <p className="text-sm font-semibold text-indigo-600">Browse</p>
-                    </button>
-                    <button onClick={() => setShowAIModal(true)} className="flex flex-col items-center justify-center gap-1.5 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-                      <Sparkles size={20} className="text-indigo-300" />
-                      <p className="text-xs text-gray-400">Skip the writing</p>
-                      <p className="text-sm font-semibold text-indigo-600">Generate with AI</p>
-                    </button>
-                  </div>
-                  {coverLetterFileName && <p className="mt-2 text-xs text-gray-400">Uploaded: {coverLetterFileName}</p>}
-                  {coverLetter && <p className="mt-2 text-xs text-slate-600 whitespace-pre-wrap">{coverLetter}</p>}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <button onClick={() => openJobDetails(selectedJob.id)} className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-5 py-2 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"><Pencil size={13} strokeWidth={2.2} />Edit</button>
-                  <button onClick={handleApplySubmission} disabled={!resumeFileName} className="rounded-xl px-6 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50" style={{ background: "linear-gradient(90deg, #5F33E2 0%, #7C3AED 100%)", boxShadow: "0 4px 14px rgba(95,51,226,0.3)" }}>Apply now</button>
-                </div>
-              </div>
+            {activeModal === "apply" && selectedJob && (
+              <JobApplyModal
+                selectedJob={selectedJob}
+                resumeFileName={resumeFileName}
+                setResumeFileName={setResumeFileName}
+                resumeInputRef={resumeInputRef}
+                coverLetter={coverLetter}
+                setCoverLetter={setCoverLetter}
+                coverLetterFileName={coverLetterFileName}
+                setCoverLetterFileName={setCoverLetterFileName}
+                coverLetterInputRef={coverLetterInputRef}
+                showAIModal={showAIModal}
+                setShowAIModal={setShowAIModal}
+                closeModals={closeModals}
+                openJobDetails={openJobDetails}
+                handleApplySubmission={handleApplySubmission}
+              />
             )}
           </div>
         </div>

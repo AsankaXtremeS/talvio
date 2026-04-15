@@ -31,6 +31,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
+  const isProfessional = user?.role === "PROFESSIONAL";
   const isApplyJobPage = false;
 
   const navItems = [
@@ -45,7 +46,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
       icon: <FileText size={18} />,
     },
     {
-      label: "Recommendations",
+      label: isProfessional ? "All Job Posts" : "All Internships",
       href: "/users/candidate/recommendations",
       icon: <Cog size={18} />,
     },
