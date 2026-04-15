@@ -1,161 +1,171 @@
 "use client";
 
-import { useState } from "react";
-import { X, RefreshCw, Check, Sparkles } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, RefreshCw, Check, Sparkles, Loader2 } from "lucide-react";
+import { apiClient } from "@/lib/apiClient";
 
 interface AICoverLetterModalProps {
+  jobId: string;
   jobTitle: string;
   candidateName?: string;
   onDone: (coverLetterText: string) => void;
   onClose: () => void;
 }
 
-const COVER_LETTER_1 = (jobTitle: string, name: string) => `Dear Hiring Manager,
-
-I am writing to express my strong interest in the ${jobTitle} position. As a Computer Science undergraduate with hands-on experience in JavaScript, React, and Node.js, I am excited about the opportunity to contribute to your innovative projects.
-
-During my academic journey, I have developed a solid foundation in software development principles, working on several full-stack projects that involved designing scalable architectures and writing clean, maintainable code. My experience with collaborative team environments and agile workflows aligns well with your engineering culture.
-
-I am particularly drawn to this position because of the commitment to building products that improve everyday life. I am eager to learn from experienced engineers, contribute meaningfully to the team, and grow as a software professional.
-
-Thank you for considering my application. I look forward to the opportunity to discuss how my skills and enthusiasm can contribute to your mission.
-
-Sincerely,
-${name}`;
-
-const COVER_LETTER_2 = (jobTitle: string, name: string) => `Dear Hiring Manager,
-
-I am excited to apply for the ${jobTitle} role. With a background in Computer Science and practical experience building web applications using React and Node.js, I believe I can make a meaningful contribution to your engineering team.
-
-Throughout my studies, I have cultivated a passion for solving complex problems through elegant code. I have led multiple team projects, honing my ability to collaborate effectively and deliver results under deadlines. My understanding of data structures and algorithms, combined with my enthusiasm for learning, makes me well-suited for the challenges this position presents.
-
-Your culture of innovation and impact inspires me deeply. I am committed to bringing the same level of dedication and creativity to every task I undertake.
-
-I would welcome the opportunity to discuss my qualifications further. Thank you for your time and consideration.
-
-Best regards,
-${name}`;
-
 export default function AICoverLetterModal({
+  jobId,
   jobTitle,
   candidateName = "Your Name",
   onDone,
   onClose,
 }: AICoverLetterModalProps) {
-  const [coverLetter, setCoverLetter] = useState(COVER_LETTER_1(jobTitle, candidateName));
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [useFirst, setUseFirst] = useState(true);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCoverLetter = useCallback(async () => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await apiClient<{ coverLetter: string }>(`/api/ai/generate-cover-letter/${jobId}`, {
+        method: "POST"
+      });
+      setCoverLetter(response.coverLetter);
+    } catch (err: unknown) {
+      console.error("Failed to generate cover letter:", err);
+      const message = err instanceof Error ? err.message : "Failed to generate cover letter. Please try again.";
+      setError(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [jobId]);
+
+  useEffect(() => {
+    fetchCoverLetter();
+  }, [fetchCoverLetter]);
 
   const handleRegenerate = () => {
-    setIsRegenerating(true);
-    setCoverLetter("Regenerating cover letter...");
-
-    setTimeout(() => {
-      const next = useFirst
-        ? COVER_LETTER_2(jobTitle, candidateName)
-        : COVER_LETTER_1(jobTitle, candidateName);
-      setCoverLetter(next);
-      setUseFirst(!useFirst);
-      setIsRegenerating(false);
-    }, 1200);
+    fetchCoverLetter();
   };
 
   const handleDone = () => {
+    if (!coverLetter || isGenerating) return;
     onDone(coverLetter);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-[90] overflow-hidden">
+    <div className="fixed inset-0 z-95 overflow-hidden">
       {/* Blurred backdrop */}
-      <div className="absolute inset-0 bg-[#DCE6F3]/56 backdrop-blur-xl" />
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1220px] items-start justify-center px-4 pt-5">
-        <div className="relative w-full max-w-[620px]">
+      <div className="relative z-10 mx-auto flex h-full max-w-305 items-center justify-center px-4">
+        <div className="relative w-full max-w-155 animate-in fade-in zoom-in duration-300">
 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute -top-2 -right-2 z-10 flex h-7 w-7 items-center justify-center rounded-md border border-[#C7CED9] bg-white text-slate-500 transition hover:bg-slate-50"
+            className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={20} />
           </button>
 
           {/* Main card */}
-          <div className="relative w-full rounded-2xl border border-[#D7DEE8] bg-[#EFF6FD] p-8 shadow-[0_18px_55px_rgba(32,51,87,0.12)]">
+          <div className="relative w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl">
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50">
-                <Sparkles size={15} className="text-indigo-600" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
+                <Sparkles size={18} className="text-indigo-600" />
               </div>
               <h1 className="text-[22px] font-bold text-slate-900">
                 AI Cover Letter Generator
               </h1>
             </div>
-            <p className="text-[14px] text-slate-500 mb-6">
-              Generating for:{" "}
-              <span className="font-semibold text-indigo-600">{jobTitle}</span>
+            <p className="text-[14px] text-slate-500 mb-6 font-medium">
+              Writing for:{" "}
+              <span className="font-bold text-indigo-700">{jobTitle}</span>
+              <span className="text-slate-400"> ({candidateName})</span>
             </p>
 
-            {/* Text area card */}
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] font-semibold text-slate-500">
-                  Generated Cover Letter
+            {/* Text area area */}
+            <div className="relative bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5 min-h-75 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">
+                  Generated Draft
                 </p>
-                <span className="text-[11px] bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-semibold">
-                  AI Generated
-                </span>
+                {isGenerating && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-indigo-600 font-bold animate-pulse">
+                    <Loader2 size={14} className="animate-spin" />
+                    AI is writing...
+                  </span>
+                )}
               </div>
 
-              <textarea
-                value={coverLetter}
-                onChange={(e) => setCoverLetter(e.target.value)}
-                disabled={isRegenerating}
-                className={`w-full min-h-[220px] border border-[#E2E8F0] rounded-lg p-4 text-[13px] leading-relaxed resize-y bg-[#F8FAFC] font-inherit outline-none transition ${
-                  isRegenerating
-                    ? "text-slate-400 cursor-not-allowed"
-                    : "text-slate-700 focus:border-indigo-300"
-                }`}
-              />
+              {error ? (
+                <div className="flex flex-col items-center justify-center flex-1 text-center p-6 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-sm text-red-600 font-medium mb-3">{error}</p>
+                  <button 
+                    onClick={handleRegenerate}
+                    className="text-xs font-bold text-red-700 underline uppercase hover:text-red-800"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : (
+                <textarea
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  disabled={isGenerating}
+                  placeholder={isGenerating ? "" : "Your AI generated cover letter will appear here..."}
+                  className={`w-full flex-1 min-h-62.5 border border-slate-200 rounded-lg p-5 text-[14px] leading-relaxed resize-none bg-white font-serif outline-none transition shadow-inner ${
+                    isGenerating
+                      ? "text-slate-300 cursor-wait opacity-60"
+                      : "text-slate-700 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                  }`}
+                />
+              )}
 
-              <p className="text-[11px] text-slate-400 mt-2">
-                You can edit the generated text above before using it.
-              </p>
+              {!isGenerating && !error && (
+                <p className="text-[11px] text-slate-400 mt-3 font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block" />
+                  You can personalize the AI&apos;s draft above before using it.
+                </p>
+              )}
             </div>
 
-            {/* Info banner */}
-            <div className="flex items-start gap-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl px-4 py-3 mb-6">
-              <Check size={15} className="text-green-600 mt-0.5 shrink-0" />
-              <p className="text-[12px] text-green-700 leading-relaxed">
-                Cover letter generated based on your CV and the job requirements.
-                Feel free to personalize it before submitting.
-              </p>
-            </div>
+            {/* Success banner */}
+            {!isGenerating && !error && coverLetter && (
+              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-6">
+                <Check size={16} className="text-emerald-600 mt-0.5 shrink-0" />
+                <p className="text-[12px] text-emerald-700 font-medium leading-relaxed">
+                  Tailored based on your default CV and specific job requirements.
+                </p>
+              </div>
+            )}
 
             {/* Action buttons */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4 mt-2">
               <button
                 onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="flex items-center gap-2 h-10 px-5 border border-indigo-200 bg-white rounded-lg text-[14px] font-semibold text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isGenerating}
+                className="flex items-center gap-2 h-11 px-5 border border-slate-200 bg-white rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
               >
                 <RefreshCw
-                  size={14}
-                  className={isRegenerating ? "animate-spin" : ""}
+                  size={16}
+                  className={isGenerating ? "animate-spin" : ""}
                 />
-                {isRegenerating ? "Regenerating..." : "Regenerate"}
+                Regenerate
               </button>
 
               <button
                 onClick={handleDone}
-                disabled={isRegenerating}
-                className="flex items-center gap-2 h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[14px] font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isGenerating || !coverLetter}
+                className="flex flex-1 items-center justify-center gap-2 h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[15px] font-bold shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
               >
-                <Check size={14} />
-                Done
+                <Check size={18} strokeWidth={3} />
+                Use this Letter
               </button>
             </div>
           </div>

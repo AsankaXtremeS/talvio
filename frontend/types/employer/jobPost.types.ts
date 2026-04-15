@@ -25,6 +25,7 @@ export interface JobPost {
   skills?: string[];
   createdAt?: string;
   updatedAt?: string;
+  isOffline?: boolean;
 }
 
 // ─── JobPostFormData ──────────────────────────────────────────────────────────

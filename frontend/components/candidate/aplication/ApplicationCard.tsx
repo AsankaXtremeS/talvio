@@ -107,7 +107,14 @@ export default function ApplicationCard({
       </div>
 
       {/* Interview Message or Progress Tracker */}
-      {job.interviewMessage ? (
+      {job.stage === "Rejected" ? (
+        <p className="mt-3 flex w-full items-center gap-2 rounded-full border border-[#FDA4AF] bg-[#FFF1F2] px-4 py-1.5 text-[11px] font-semibold text-[#E11D48]">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#E11D48] bg-white text-[10px] leading-none text-[#E11D48]">
+            ✕
+          </span>
+          <span>Application rejected</span>
+        </p>
+      ) : job.interviewMessage ? (
         <p className="mt-3 flex w-full items-center gap-2 rounded-full border border-[#9FE0B7] bg-[#E8FAEF] px-4 py-1.5 text-[11px] font-semibold text-[#1FA55B]">
           <span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1FA55B] bg-white text-[10px] leading-none">
             ✓
@@ -118,11 +125,11 @@ export default function ApplicationCard({
         <div className="mt-4">
           <div className="relative px-1">
             {/* Progress bar background */}
-            <span className="absolute left-[8px] right-[8px] top-2 block h-[2px] bg-[#CDD6EA]" />
+            <span className="absolute left-2 right-2 top-2 block h-0.5 bg-[#CDD6EA]" />
 
             {/* Progress bar fill */}
             <span
-              className="absolute left-[8px] top-2 block h-[2px] bg-[#22C55E] transition-all"
+              className="absolute left-2 top-2 block h-0.5 bg-[#22C55E] transition-all"
               style={{ width: `calc((100% - 16px) * ${stageProgressFunc(job.stage) / 100})` }}
             />
 

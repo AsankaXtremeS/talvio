@@ -10,11 +10,12 @@ import passport, { initializePassport } from "./config/passport";
 import { Request } from "express";
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', false);
 
 initializePassport();
 
 morgan.token("pathNoQuery", (req) => (req as Request).originalUrl.split("?")[0]);
+
 
 app.use(helmet());
 app.use(cors({
@@ -40,4 +41,4 @@ registerRoutes(app);
 
 app.use(errorHandler);
 
-export default app;
+export default app; 

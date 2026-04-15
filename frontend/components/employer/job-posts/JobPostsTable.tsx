@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, FileUser } from "lucide-react";
+import { Bot, Check, ChevronDown, FileUser } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { JobPost } from "@/types/employer/jobPost.types";
 
@@ -80,7 +80,7 @@ function StatusDropdown({
     return (
       <div className="relative inline-block">
         <span
-          className="inline-flex min-w-[108px] items-center justify-center rounded-lg border px-3 py-1.5 text-xs font-semibold"
+          className="inline-flex min-w-27 items-center justify-center rounded-lg border px-3 py-1.5 text-xs font-semibold"
           style={{
             borderColor: "#FF9500",
             color: "#FF9500",
@@ -100,7 +100,7 @@ function StatusDropdown({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         disabled={isClosing}
-        className="inline-flex min-w-[108px] items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex min-w-27 items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           borderColor: mainColor,
           color: mainColor,
@@ -121,7 +121,7 @@ function StatusDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1.5 min-w-[140px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+        <div className="absolute left-0 z-50 mt-1.5 min-w-35 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
           {isDraft && (
             <button
               type="button"
@@ -201,55 +201,37 @@ export default function JobPostsTable({
   };
 
   return (
-    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl ">
+    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
       </div>
 
-      <table className="w-full">
-        <thead className="bg-gray-50 sticky top-0 z-10">
-          <tr>
-            <ColHeader label="Job Title" />
-            <ColHeader label="Type" />
-            <ColHeader label="Closing Date" />
-            <ColHeader label="Status" />
-            <ColHeader label="Action" align="center" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {sortedPosts.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-12 text-sm text-center text-gray-400">
-                No job posts found. Click &quot;Post New Job&quot; to get started.
-              </td>
-            </tr>
-          ) : (
-            sortedPosts.map((post) => (
-              <tr key={post.id} className="transition-colors hover:bg-gray-50">
-                <td className="px-4 py-4 text-sm font-medium text-gray-800">
-                  {post.title}
-                </td>
-
-                <td className="px-4 py-4 text-sm text-gray-500">
-                  {post.type}
-                </td>
-
-                <td className="px-4 py-4 text-sm text-gray-500">
-                  {formatDate(post.closingDate)}
-                </td>
-
-                <td className="px-4 py-4">
-                  <StatusDropdown
-                    postId={post.id}
-                    status={post.status}
-                    onStatusChange={onStatusChange}
-                    isClosing={closingId === post.id}
-                  />
-                </td>
-
-                <td className="px-4 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {/* AI Matches & View - Show only if NOT Draft */}
+      {sortedPosts.length === 0 ? (
+        <div className="px-6 py-12 text-sm text-center text-gray-400">
+          No job posts found. Click &quot;Post New Job&quot; to get started.
+        </div>
+      ) : (
+        <>
+          <div className="space-y-4 lg:hidden px-4 pb-4">
+            {sortedPosts.map((post, idx) => (
+              <div key={post.id ?? `mobile-post-${idx}`} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{post.title}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                        <span>{post.type}</span>
+                        <span>{formatDate(post.closingDate)}</span>
+                      </div>
+                    </div>
+                    <StatusDropdown
+                      postId={post.id}
+                      status={post.status}
+                      onStatusChange={onStatusChange}
+                      isClosing={closingId === post.id}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     {post.status !== "Draft" && (
                       <>
                         <button
@@ -268,32 +250,108 @@ export default function JobPostsTable({
                         </button>
                       </>
                     )}
-
-                    {/* Edit - Show only if NOT Closed */}
                     {post.status !== "Closed" && (
                       <button
                         onClick={() => onEdit(post.id)}
-                        className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-500 bg-white text-xs font-semibold hover:bg-gray-50 transition-colors"
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-[11px] font-semibold text-gray-500 bg-white hover:bg-gray-50 transition-colors"
                       >
                         Edit
                       </button>
                     )}
-
-                    {/* Delete - Always show */}
                     <button
                       onClick={() => onDelete(post.id)}
                       disabled={deletingId === post.id}
-                      className="px-4 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-lg border border-red-300 px-3 py-2 text-[11px] font-semibold text-red-600 bg-white hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deletingId === post.id ? "Deleting..." : "Delete"}
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="table-auto min-w-full w-full">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <ColHeader label="Job Title" />
+                  <ColHeader label="Type" />
+                  <ColHeader label="Closing Date" />
+                  <ColHeader label="Status" />
+                  <ColHeader label="Action" align="center" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {sortedPosts.map((post, idx) => (
+                  <tr key={post.id ?? `desktop-post-${idx}`} className="transition-colors hover:bg-gray-50">
+                    <td className="px-4 py-4 text-sm font-medium text-gray-800">
+                      {post.title}
+                    </td>
+
+                    <td className="px-4 py-4 text-sm text-gray-500">
+                      {post.type}
+                    </td>
+
+                    <td className="px-4 py-4 text-sm text-gray-500">
+                      {formatDate(post.closingDate)}
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <StatusDropdown
+                        postId={post.id}
+                        status={post.status}
+                        onStatusChange={onStatusChange}
+                        isClosing={closingId === post.id}
+                      />
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        {post.status !== "Draft" && (
+                          <>
+                            <button
+                              onClick={() => onViewCandidates(post.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400 text-emerald-500 bg-white text-xs font-semibold hover:bg-emerald-50 transition-colors"
+                              title="View AI Shortlist"
+                            >
+                              <Bot size={14} />
+                              AI Matches
+                            </button>
+                            <button
+                              onClick={() => router.push(`/users/employer/job-posts/${post.id}`)}
+                              className="px-4 py-1.5 rounded-lg border border-indigo-400 text-indigo-500 bg-white text-xs font-semibold hover:bg-indigo-50 transition-colors"
+                            >
+                              View
+                            </button>
+                          </>
+                        )}
+
+                        {post.status !== "Closed" && (
+                          <button
+                            onClick={() => onEdit(post.id)}
+                            className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-500 bg-white text-xs font-semibold hover:bg-gray-50 transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => onDelete(post.id)}
+                          disabled={deletingId === post.id}
+                          className="px-4 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingId === post.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

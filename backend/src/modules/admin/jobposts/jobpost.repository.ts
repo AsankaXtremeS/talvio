@@ -15,6 +15,7 @@ const adminJobPostSelect = Prisma.validator<Prisma.JobPostSelect>()({
 	employmentType: true,
 	closingDate: true,
 	createdAt: true,
+	description: true,
 	_count: {
 		select: {
 			applications: true,

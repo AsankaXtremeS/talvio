@@ -7,6 +7,7 @@ import CompaniesTable from '@/components/admin/companies/CompaniesTable';
 import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
 import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
 import AdminTopbar from '@/components/admin/layout/AdminTopbar';
+import AdminDetailModal from '@/components/admin/shared/AdminDetailModal';
 import { companiesService } from '@/lib/admin/companies.service';
 import type { Company } from '@/types/admin/company.types';
 
@@ -20,6 +21,10 @@ export default function CompaniesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
+
+  // Detail Modal State
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -79,7 +84,8 @@ export default function CompaniesPage() {
   }, [companies, periodFilter]);
 
   const handleView = useCallback((company: Company) => {
-    window.alert(`Company profile for ${company.name} will be available after the company module is implemented.`);
+    setSelectedCompany(company);
+    setIsDetailOpen(true);
   }, []);
 
   const removeMutation = useMutation({
@@ -130,6 +136,14 @@ export default function CompaniesPage() {
           <CompaniesTable companies={filteredCompanies} onView={handleView} onRemove={handleRemove} />
         )}
       </div>
+
+      <AdminDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        title={selectedCompany?.name || 'Company Details'}
+        type="company"
+        data={selectedCompany}
+      />
     </div>
   );
 }

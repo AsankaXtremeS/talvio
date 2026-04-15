@@ -89,10 +89,12 @@ export default function JobPostsPage() {
   const filtered = useMemo(() => {
     return posts
       .filter((p) => {
-        const matchSearch = p.title.toLowerCase().includes(search.toLowerCase());
+        const title = p.title ?? "";
+        const statusValue = p.status ?? "";
+        const matchSearch = title.toLowerCase().includes(search.toLowerCase());
         // Convert "Close" filter to "Closed" status for matching
         const statusFilter = status === "Close" ? "Closed" : status;
-        const matchStatus = status === "Status" || p.status === statusFilter;
+        const matchStatus = status === "Status" || statusValue === statusFilter;
         const matchRole = jobRole === "Job Role";
         return matchSearch && matchStatus && matchRole;
       })

@@ -1,15 +1,78 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import RoleGate from "@/components/auth/RoleGate";
+import { profileService, CandidateProfile } from "@/lib/candidate/profile.service";
 import {
   CandidateSettingsProfile,
   CandidateSettingsView,
 } from "@/components/candidate/settings";
 import { useAuth } from "@/context/AuthContext";
+import Popup from "@/components/admin/layout/Popup";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function CandidateSettingsPage() {
   const { user } = useAuth();
+  const [realProfile, setRealProfile] = useState<CandidateProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  // Popup & Modal State
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
+    open: false,
+    message: "",
+    success: false,
+  });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      try {
+        setIsProfileLoading(true);
+        const data = await profileService.getProfile();
+        setRealProfile(data);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  const handleResumeUpdate = async (res: any) => {
+    if (res && res[0]) {
+      try {
+        const file = res[0];
+        const updated = await profileService.updateResume(file.ufsUrl || file.url, file.name);
+        setRealProfile(updated);
+        setPopup({ open: true, message: "Resume updated and skills extracted successfully!", success: true });
+      } catch (error: any) {
+        console.error("Failed to update resume:", error);
+        setPopup({ open: true, message: error.message || "Failed to save resume profile.", success: false });
+      }
+    }
+  };
+
+  const handleResumeError = (error: string) => {
+    setPopup({ open: true, message: error, success: false });
+  };
+
+  const handleRemoveResume = () => {
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmRemove = async () => {
+    setIsConfirmOpen(false);
+    try {
+      const updated = await profileService.removeResume();
+      setRealProfile(updated);
+      setPopup({ open: true, message: "Resume removed successfully.", success: true });
+    } catch (error: any) {
+      console.error("Failed to remove resume:", error);
+      setPopup({ open: true, message: error.message || "Failed to remove resume.", success: false });
+    }
+  };
 
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const displayName = fullName || "John Dob";
@@ -50,7 +113,36 @@ export default function CandidateSettingsPage() {
 
   return (
     <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
-      <CandidateSettingsView profile={profile} profileScore={75} />
+      <CandidateSettingsView 
+        profile={profile} 
+        profileScore={realProfile?.cvUrl ? 85 : 75} 
+        resumeData={realProfile ? {
+          cvUrl: realProfile.cvUrl,
+          cvFileName: realProfile.cvFileName,
+          updatedAt: realProfile.updatedAt
+        } : undefined}
+        onResumeUpdate={handleResumeUpdate}
+        onResumeError={handleResumeError}
+        onRemoveResume={handleRemoveResume}
+      />
+
+      <Popup
+        open={popup.open}
+        message={popup.message}
+        success={popup.success}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Remove Resume?"
+        message="Are you sure you want to remove your default resume? This will clear your extracted skills and affect your job recommendations."
+        confirmLabel="Remove Resume"
+        cancelLabel="Keep it"
+        variant="danger"
+        onConfirm={handleConfirmRemove}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </RoleGate>
   );
 }

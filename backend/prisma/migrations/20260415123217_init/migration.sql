@@ -104,6 +104,15 @@ CREATE TABLE "EmployerProfile" (
     "companyLogoUrl" TEXT,
     "companyWebsite" TEXT,
     "companyLocation" TEXT,
+    "coverImageUrl" TEXT,
+    "industry" TEXT,
+    "companyType" TEXT,
+    "companySize" TEXT,
+    "foundedYear" INTEGER,
+    "specialties" TEXT,
+    "linkedInUrl" TEXT,
+    "facebookUrl" TEXT,
+    "twitterUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -120,7 +129,6 @@ CREATE TABLE "JobPost" (
     "responsibilities" TEXT[],
     "skillsRequired" TEXT[],
     "additionalInformation" TEXT,
-    "skills" TEXT,
     "workMode" "WorkMode",
     "employmentType" "EmploymentType",
     "stipendType" "StipendType",
@@ -147,9 +155,11 @@ CREATE TABLE "CandidateProfile" (
     "linkedinUrl" TEXT,
     "githubUrl" TEXT,
     "portfolioUrl" TEXT,
-    "cvPath" TEXT,
+    "cvUrl" TEXT,
     "cvFileName" TEXT,
-    "cvText" TEXT,
+    "extractedSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "recommendationCache" JSONB,
+    "lastRecommendedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -161,56 +171,16 @@ CREATE TABLE "Application" (
     "id" TEXT NOT NULL,
     "candidateProfileId" TEXT NOT NULL,
     "jobPostId" TEXT NOT NULL,
-    "cvPath" TEXT NOT NULL,
+    "cvUrl" TEXT NOT NULL,
     "cvFileName" TEXT,
-    "cvText" TEXT,
     "coverLetter" TEXT,
     "aiScore" INTEGER,
-    "skillsMatchScore" INTEGER,
-    "experienceMatchScore" INTEGER,
-    "educationMatchScore" INTEGER,
-    "keywordsMatchScore" INTEGER,
-    "matchedSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "missingSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "aiSummary" TEXT,
+    "aiSuggestions" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "applicationStatus" "ApplicationStatus" NOT NULL DEFAULT 'PENDING',
-    "scoredAt" TIMESTAMP(3),
     "appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Application_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "CvSuggestion" (
-    "id" TEXT NOT NULL,
-    "applicationId" TEXT NOT NULL,
-    "overallScore" INTEGER NOT NULL,
-    "summaryScore" INTEGER NOT NULL,
-    "summaryFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "skillsScore" INTEGER NOT NULL,
-    "skillsFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "experienceScore" INTEGER NOT NULL,
-    "experienceFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "educationScore" INTEGER NOT NULL,
-    "educationFeedback" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "missingKeywords" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "strengthsToHighlight" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "CvSuggestion_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "GeneratedCoverLetter" (
-    "id" TEXT NOT NULL,
-    "applicationId" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "generatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "GeneratedCoverLetter_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -261,12 +231,6 @@ CREATE INDEX "Application_applicationStatus_idx" ON "Application"("applicationSt
 -- CreateIndex
 CREATE UNIQUE INDEX "Application_candidateProfileId_jobPostId_key" ON "Application"("candidateProfileId", "jobPostId");
 
--- CreateIndex
-CREATE UNIQUE INDEX "CvSuggestion_applicationId_key" ON "CvSuggestion"("applicationId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "GeneratedCoverLetter_applicationId_key" ON "GeneratedCoverLetter"("applicationId");
-
 -- AddForeignKey
 ALTER TABLE "AuthAccount" ADD CONSTRAINT "AuthAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -293,9 +257,3 @@ ALTER TABLE "Application" ADD CONSTRAINT "Application_candidateProfileId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "Application" ADD CONSTRAINT "Application_jobPostId_fkey" FOREIGN KEY ("jobPostId") REFERENCES "JobPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "CvSuggestion" ADD CONSTRAINT "CvSuggestion_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "Application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GeneratedCoverLetter" ADD CONSTRAINT "GeneratedCoverLetter_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "Application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
