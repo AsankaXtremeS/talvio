@@ -8,6 +8,10 @@ import RecommendationsFilterBar from "@/components/candidate/recommendations/Rec
 import JobCard from "@/components/candidate/recommendations/JobCards";
 import JobViewModal from "@/components/candidate/recommendations/JobViewModel";
 import { apiClient } from "@/lib/apiClient";
+import NotificationBell from "@/components/candidate/recommendations/NotificationBell";
+import { useRef } from "react";
+import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
+import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 
 interface Job {
   id: string;
@@ -38,152 +42,6 @@ interface Job {
   type?: string;
 }
 
-/* 
-//Mock data - kept for reference
-
-  const MOCK_JOBS: Job[] = [
-
-   //mock jobs only visible to students
-
-  {
-    id: "1",
-    title: "Software Engineer Intern",
-    company: "Google",
-    location: "Mountain View, CA",
-    postedAgo: "2 days ago",
-    matchPercent: 92,
-    tags: ["Remote", "Full time", "Paid", "6 months"],
-    companyLogoUrl: "google",
-    companyDescription: "Google is a global technology company focused on building innovative products that improve everyday life.",
-    companyProfileUrl: "https://google.com",
-    aboutRole: "As a Software Engineering Intern, you will work with experienced engineers to design, develop, and maintain scalable software solutions.",
-    responsibilities: ["Assist in developing web applications", "Write clean and maintainable code", "Collaborate with cross-functional teams"],
-    requirements: ["Undergraduate in Computer Science or related field", "Basic knowledge of JavaScript, React, or Java", "Good problem-solving skills"],
-    role: "INTERNSHIP",
-    duration: "6 months",
-    stipend: "Paid",
-    workMode: "Remote",
-  },
-  {
-    id: "2",
-    title: "Software Engineer Intern",
-    company: "Microsoft",
-    location: "Redmond, WA",
-    postedAgo: "1 day ago",
-    matchPercent: 85,
-    tags: ["Onsite", "Full time", "Paid", "3 months"],
-    companyLogoUrl: "microsoft",
-    companyDescription: "Microsoft is a global leader in software, services, devices, and solutions.",
-    companyProfileUrl: "https://microsoft.com",
-    aboutRole: "Join the Microsoft team to work on cutting-edge cloud and AI technologies.",
-    responsibilities: ["Develop scalable software", "Participate in code reviews", "Work with senior engineers"],
-    requirements: ["Pursuing a degree in Computer Science", "Experience with C# or Python", "Team player"],
-    role: "INTERNSHIP",
-    duration: "3 months",
-    stipend: "Paid",
-    workMode: "Onsite",
-  },
-  {
-    id: "3",
-    title: "Software Engineer Intern",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    postedAgo: "3 days ago",
-    matchPercent: 78,
-    tags: ["Hybrid", "Full time", "Paid", "6 months"],
-    companyLogoUrl: "meta",
-    companyDescription: "Meta builds technologies that help people connect, find communities, and grow businesses.",
-    companyProfileUrl: "https://meta.com",
-    aboutRole: "Work on social media platforms and large-scale distributed systems.",
-    responsibilities: ["Contribute to backend services", "Optimize performance", "Collaborate with product teams"],
-    requirements: ["Knowledge of distributed systems", "Experience with React or Node.js", "Strong communication skills"],
-    role: "INTERNSHIP",
-    duration: "6 months",
-    stipend: "Paid",
-    workMode: "Hybrid",
-  },
-  {
-    id: "4",
-    title: "UI/UX Designer Intern",
-    company: "Figma",
-    location: "San Francisco, CA",
-    postedAgo: "5 days ago",
-    matchPercent: 88,
-    tags: ["Remote", "Full time", "Paid", "3 months"],
-    companyLogoUrl: "figma",
-    companyDescription: "Figma is a collaborative interface design tool.",
-    companyProfileUrl: "https://figma.com",
-    aboutRole: "Design user interfaces and experiences for web and mobile apps.",
-    responsibilities: ["Create wireframes and prototypes", "Work with product managers", "Conduct user research"],
-    requirements: ["Experience with Figma or Sketch", "Portfolio of design work", "Attention to detail"],
-    role: "INTERNSHIP",
-    duration: "3 months",
-    stipend: "Paid",
-    workMode: "Remote",
-  },
-
-  //mock jobs only visible to professionals
-
-  {
-    id: "5",
-    title: "Senior Software Engineer",
-    company: "Google",
-    location: "Mountain View, CA",
-    postedAgo: "1 day ago",
-    matchPercent: 94,
-    tags: ["Remote", "Full time", "5+ years"],
-    companyLogoUrl: "google",
-    companyDescription: "Google is a global technology company focused on building innovative products.",
-    companyProfileUrl: "https://google.com",
-    aboutRole: "As a Senior Software Engineer, you will lead the design and development of scalable software solutions.",
-    responsibilities: ["Lead software architecture decisions", "Mentor junior engineers", "Drive technical roadmap"],
-    requirements: ["5+ years of software engineering experience", "Strong knowledge of distributed systems", "Experience with cloud platforms"],
-    role: "JOB",
-    duration: "Permanent",
-    stipend: "Competitive salary",
-    workMode: "Remote",
-  },
-  {
-    id: "6",
-    title: "Full Stack Developer",
-    company: "Microsoft",
-    location: "Redmond, WA",
-    postedAgo: "2 days ago",
-    matchPercent: 88,
-    tags: ["Hybrid", "Full time", "3+ years"],
-    companyLogoUrl: "microsoft",
-    companyDescription: "Microsoft is a global leader in software, services, devices, and solutions.",
-    companyProfileUrl: "https://microsoft.com",
-    aboutRole: "Build and maintain full stack web applications for enterprise clients.",
-    responsibilities: ["Develop frontend and backend features", "Optimize application performance", "Collaborate with design teams"],
-    requirements: ["3+ years with React and Node.js", "Experience with Azure", "Strong TypeScript skills"],
-    role: "JOB",
-    duration: "Permanent",
-    stipend: "Competitive salary",
-    workMode: "Hybrid",
-  },
-  {
-    id: "7",
-    title: "DevOps Engineer",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    postedAgo: "3 days ago",
-    matchPercent: 81,
-    tags: ["Onsite", "Full time", "4+ years"],
-    companyLogoUrl: "meta",
-    companyDescription: "Meta builds technologies that help people connect and grow businesses.",
-    companyProfileUrl: "https://meta.com",
-    aboutRole: "Manage CI/CD pipelines and cloud infrastructure at scale.",
-    responsibilities: ["Maintain cloud infrastructure", "Automate deployment pipelines", "Monitor system performance"],
-    requirements: ["4+ years DevOps experience", "Strong knowledge of AWS or GCP", "Experience with Kubernetes"],
-    role: "JOB",
-    duration: "Permanent",
-    stipend: "Competitive salary",
-    workMode: "Onsite",
-  },
-];
-
-*/
 
 export default function CandidateRecommendationsPage() {
   const { user } = useAuth();
@@ -198,13 +56,31 @@ export default function CandidateRecommendationsPage() {
   const [jobType, setJobType] = useState("Job type");
   const [skillMatch, setSkillMatch] = useState("Skill matched %");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const [coverLetterFileName, setCoverLetterFileName] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement | null>(null);
+  const coverLetterInputRef = useRef<HTMLInputElement | null>(null);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient<{ jobs: Job[] }>("/api/candidate/jobs");
+        const data = await apiClient<{ 
+          jobs: any[]; 
+          total: number; 
+          totalPages: number;
+          page: number;
+        }>(`/api/candidate/jobs?page=${currentPage}&limit=20`);
+
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
 
         const formatted: Job[] = data.jobs.map((job) => ({
           id: job.id,
@@ -241,8 +117,22 @@ export default function CandidateRecommendationsPage() {
     };
 
     fetchJobs();
-  }, []);
+  }, [currentPage]);
   
+  useEffect(() => {
+    const handler = (e: any) => {
+      const jobId = e.detail?.jobId;
+      if (jobId) {
+        const job = jobs.find((j) => j.id === jobId);
+        if (job) {
+          setSelectedJob(job);
+        }
+      }
+    };
+    window.addEventListener("open-recommendation-job-modal", handler);
+    return () => window.removeEventListener("open-recommendation-job-modal", handler);
+  }, [jobs]);
+
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
       const matchSearch =
@@ -281,10 +171,13 @@ export default function CandidateRecommendationsPage() {
 
       <div className="px-7 pt-7">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-indigo-700 flex items-center gap-2">
-            <span><Cog /></span>
-            {isProfessional ? "Jobs" : "Recommendations"}
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-indigo-700 flex items-center gap-2">
+              <span><Cog /></span>
+              {isProfessional ? "All Job Posts" : "All Internships"}
+            </h1>
+            <NotificationBell />
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             {isProfessional
               ? "Manage and review all job recommendations"
@@ -316,7 +209,10 @@ export default function CandidateRecommendationsPage() {
                 key={job.id}
                 {...job}
                 onView={(id) => setSelectedJob(jobs.find((j) => j.id === id) ?? null)}
-                onApply={(id) => router.push(`/users/candidate/jobs/${id}/apply`)}
+                onApply={(id) => {
+                  setSelectedJob(jobs.find((j) => j.id === id) ?? null);
+                  setShowApplyModal(true);
+                }}
               />
             ))}
 
@@ -331,15 +227,108 @@ export default function CandidateRecommendationsPage() {
         )}
       </div>
 
-      {selectedJob && (
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 && (
+      <div className="flex items-center justify-between mt-6">
+        <p className="text-sm text-gray-400">
+          Showing {((currentPage - 1) * 20) + 1}–{Math.min(currentPage * 20, total)} of {total} results
+        </p>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        > 
+          Previous
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((page) => 
+            page === 1 || 
+            page === totalPages || 
+            Math.abs(page - currentPage) <= 1
+          )
+          .map((page, index, arr) => (
+            <>
+              {index > 0 && arr[index - 1] !== page - 1 && (
+                <span key={`dots-${page}`} className="text-gray-400 px-1">...</span>
+              )}
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-9 h-9 text-sm font-medium rounded-xl transition ${
+                  currentPage === page
+                    ? "bg-indigo-600 text-white"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {page}
+              </button>
+            </>
+          ))
+        }
+
+        <button
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )}
+
+      {selectedJob && !showApplyModal && (
         <JobViewModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          onApply={(id) => {
-            setSelectedJob(null);
-            router.push(`/users/candidate/jobs/${id}/apply`);
-          }}
+          onApply={() => setShowApplyModal(true)}
         />
+      )}
+
+      {selectedJob && showApplyModal && (
+        <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
+            <div className="w-full max-w-2xl relative max-h-[80vh] overflow-y-auto rounded-2xl bg-white p-4">
+              <JobApplyModal
+                selectedJob={selectedJob}
+                resumeFileName={resumeFileName}
+                setResumeFileName={setResumeFileName}
+                resumeInputRef={resumeInputRef}
+                coverLetter={coverLetter}
+                setCoverLetter={setCoverLetter}
+                coverLetterFileName={coverLetterFileName}
+                setCoverLetterFileName={setCoverLetterFileName}
+                coverLetterInputRef={coverLetterInputRef}
+                showAIModal={showAIModal}
+                setShowAIModal={setShowAIModal}
+                closeModals={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                }}
+                openJobDetails={() => {
+                  setShowApplyModal(false);
+                }}
+                handleApplySubmission={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                }}
+              />
+            </div>
+          </div>
+          {showAIModal && selectedJob && (
+            <AICoverLetterModal
+              jobTitle={selectedJob.title}
+              candidateName={user?.name || "Your Name"}
+              onDone={(generatedCoverLetter) => {
+                setCoverLetter(generatedCoverLetter);
+                setShowAIModal(false);
+              }}
+              onClose={() => setShowAIModal(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );
