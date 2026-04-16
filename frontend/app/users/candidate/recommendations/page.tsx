@@ -319,6 +319,7 @@ export default function CandidateRecommendationsPage() {
           </div>
           {showAIModal && selectedJob && (
             <AICoverLetterModal
+              jobId={selectedJob.id}
               jobTitle={selectedJob.title}
               candidateName={user?.name || "Your Name"}
               onDone={(generatedCoverLetter) => {
