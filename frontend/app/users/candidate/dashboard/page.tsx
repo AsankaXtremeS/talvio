@@ -72,6 +72,8 @@ function useCandidateDashboard() {
     queryKey: ["candidate-recommendations", user?.id],
     queryFn: () => candidateJobService.getRecommendations(),
     enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   // 2. Applications Query
@@ -82,6 +84,8 @@ function useCandidateDashboard() {
     queryKey: ["candidate-applications", user?.id],
     queryFn: () => candidateJobService.getMyApplications(),
     enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   // 3. Profile Query (for CV storage)
@@ -92,6 +96,8 @@ function useCandidateDashboard() {
       return response.profile;
     },
     enabled: !!user?.id,
+    staleTime: 60000, // Profile changes rarely
+    refetchOnWindowFocus: false,
   });
 
   // 4. Apply Mutation

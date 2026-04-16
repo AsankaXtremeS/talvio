@@ -10,7 +10,7 @@ import passport, { initializePassport } from "./config/passport";
 import { Request } from "express";
 
 const app = express();
-app.set('trust proxy', false);
+app.set('trust proxy', 1);
 
 initializePassport();
 
