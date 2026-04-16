@@ -9,6 +9,7 @@ export interface DashboardJob {
   matchPercent: number;
   tags: string[];
   companyLogoUrl?: string;
+  isAiRecommended?: boolean;
 }
 
 interface RecommendationRowProps {
@@ -37,10 +38,12 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
-          <CheckCircle2 size={12} />
-          {job.matchPercent}% Match
-        </span>
+        {!showWithdraw && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
+            <CheckCircle2 size={12} />
+            {job.matchPercent}% Match
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

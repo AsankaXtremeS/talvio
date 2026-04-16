@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, RefreshCw, Check, Sparkles, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/apiClient";
+import { candidateJobService } from "@/lib/candidate/job.service";
 
 interface AICoverLetterModalProps {
   jobId: string;
@@ -10,6 +10,7 @@ interface AICoverLetterModalProps {
   candidateName?: string;
   onDone: (coverLetterText: string) => void;
   onClose: () => void;
+  isAiRecommended?: boolean;
 }
 
 export default function AICoverLetterModal({
@@ -18,19 +19,18 @@ export default function AICoverLetterModal({
   candidateName = "Your Name",
   onDone,
   onClose,
+  isAiRecommended,
 }: AICoverLetterModalProps) {
   const [coverLetter, setCoverLetter] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCoverLetter = async () => {
-    setIsGenerating(true);
-    setError(null);
     try {
-      const response = await apiClient<{ coverLetter: string }>(`/api/ai/generate-cover-letter/${jobId}`, {
-        method: "POST"
-      });
-      setCoverLetter(response.coverLetter);
+      setIsGenerating(true);
+      setError(null);
+      const generatedLetter = await candidateJobService.generateCoverLetter(jobId);
+      setCoverLetter(generatedLetter);
     } catch (err: any) {
       console.error("Failed to generate cover letter:", err);
       setError(err.message || "Failed to generate cover letter. Please try again.");
@@ -139,6 +139,7 @@ export default function AICoverLetterModal({
                 <Check size={16} className="text-emerald-600 mt-0.5 shrink-0" />
                 <p className="text-[12px] text-emerald-700 font-medium leading-relaxed">
                   Tailored based on your default CV and specific job requirements.
+                  {isAiRecommended && " Since this is a recommended job, we ensure the highest degree of personalization."}
                 </p>
               </div>
             )}

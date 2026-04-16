@@ -106,92 +106,6 @@ export const getRecommendations = async (req: Request, res: Response) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// APPLY FOR JOB
-// POST /api/ai/apply/:jobPostId
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const applyForJob = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-    const jobPostId = getParam(req.params.jobPostId, "jobPostId");
-    const { cvUrl, cvFileName } = req.body as { cvUrl?: string; cvFileName?: string };
-
-    // 1. Get Job Post
-    const jobPost = await aiRepository.findJobPostById(jobPostId);
-    if (!jobPost) return res.status(404).json({ message: "Job post not found" });
-
-    // 2. Handle CV: Priority to Application-Specific, then Profile-Default
-    let cvText = "";
-    let finalCvUrl = "";
-    let finalCvFileName = "";
-    let candidate = await aiRepository.findCandidateProfileByUserId(userId);
-
-    if (cvUrl) {
-      // SCENARIO: User uploaded a new CV for this specific application (UploadThing)
-      cvText = await aiService.extractCvText(cvUrl);
-      finalCvUrl = cvUrl;
-      finalCvFileName = cvFileName || "Application_CV.pdf";
-
-      // If candidate profile exists, we don't necessarily want to overwrite their DEFAULT CV
-      // unless you want the profile to always reflect the LATEST CV.
-      // The user specified: "company can be see that uploaded one not the profile default CV we stored"
-      // So we keep the profile CV as is.
-      if (!candidate) {
-        // If they have NO profile yet, create one using this CV
-        const extractedSkills = await aiService.extractSkills(cvText);
-        candidate = await aiRepository.upsertCandidateProfile(userId, {
-          cvUrl: finalCvUrl,
-          cvFileName: finalCvFileName,
-          extractedSkills
-        });
-      }
-    } else {
-      // SCENARIO: Use existing profile CV
-      if (!candidate?.cvUrl) {
-        return res.status(400).json({ message: "No CV on file. Please upload a CV to apply." });
-      }
-      finalCvUrl = candidate.cvUrl;
-      finalCvFileName = candidate.cvFileName || "Profile_CV.pdf";
-      // Re-extract text from URL since we no longer store it in DB
-      cvText = await aiService.extractCvText(finalCvUrl);
-    }
-
-    // 3. Create/Find Application (Store the specific CV URL used for this application)
-    let application = await aiRepository.findApplicationByCandidateAndJob(candidate.id, jobPostId);
-    if (application) return res.status(400).json({ message: "Already applied", applicationId: application.id });
-
-    application = await aiRepository.createApplication({
-      candidateProfileId: candidate.id,
-      jobPostId,
-      cvUrl: finalCvUrl,
-      cvFileName: finalCvFileName,
-    });
-
-    // 4. Run AI Analysis
-    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
-    const analysis = await aiService.analyzeCv(cvText, jobDescription);
-
-    // 5. Save Results
-    await aiRepository.saveAnalysisResult(application.id, {
-      aiScore: analysis.overallScore,
-      aiSuggestions: analysis.suggestions,
-      coverLetter: analysis.coverLetter
-    });
-
-    return res.status(201).json({
-      message: "Application submitted and analyzed",
-      applicationId: application.id,
-      analysis,
-      cvUrl: finalCvUrl
-    });
-  } catch (err: any) {
-    console.error("applyForJob error:", err);
-    return res.status(500).json({ message: err.message });
-  }
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GENERATE COVER LETTER ONLY
@@ -215,12 +129,24 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "No CV on file. Please upload a CV first." });
     }
 
-    // 3. Extract Text & Generate CL
+    // 3. Check Cache First
+    const cachedAnalysis = await aiRepository.findAnalysisInCache(userId, jobPostId);
+    if (cachedAnalysis) {
+      return res.status(200).json({
+        coverLetter: cachedAnalysis.coverLetter,
+        fromCache: true
+      });
+    }
+
+    // 4. Extract Text & Generate CL
     const cvText = await aiService.extractCvText(candidate.cvUrl);
     const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
     
     // We can use the same analyzeCv service but just take the cover letter
     const analysis = await aiService.analyzeCv(cvText, jobDescription);
+
+    // 5. Save to Cache
+    await aiRepository.updateAnalysisCache(userId, jobPostId, analysis);
 
     return res.status(200).json({
       coverLetter: analysis.coverLetter
@@ -286,3 +212,7 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMPLOYER: APPLICANTS
+// ─────────────────────────────────────────────────────────────────────────────

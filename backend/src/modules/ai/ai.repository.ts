@@ -44,6 +44,7 @@ export const aiRepository = {
         extractedSkills: [],
         recommendationCache: null,
         lastRecommendedAt: null,
+        jobAnalysisCache: {},
       },
     });
   },
@@ -56,6 +57,30 @@ export const aiRepository = {
         lastRecommendedAt: new Date(),
       },
     });
+  },
+
+  async updateAnalysisCache(userId: string, jobId: string, analysis: any) {
+    const profile = await this.findCandidateProfileByUserId(userId);
+    const existingCache = (profile?.jobAnalysisCache as Record<string, any>) || {};
+    
+    return prisma.candidateProfile.update({
+      where: { userId },
+      data: {
+        jobAnalysisCache: {
+          ...existingCache,
+          [jobId]: {
+            ...analysis,
+            cachedAt: new Date(),
+          },
+        },
+      },
+    });
+  },
+
+  async findAnalysisInCache(userId: string, jobId: string) {
+    const profile = await this.findCandidateProfileByUserId(userId);
+    const cache = (profile?.jobAnalysisCache as Record<string, any>) || {};
+    return cache[jobId] || null;
   },
 
   // ── Job Post ───────────────────────────────────────────────────────────────
@@ -119,6 +144,43 @@ export const aiRepository = {
           jobPostId,
         },
       },
+    });
+  },
+
+  async findApplicationsByUserId(userId: string) {
+    return prisma.application.findMany({
+      where: {
+        candidateProfile: { userId }
+      },
+      include: {
+        jobPost: {
+          include: {
+            employer: {
+              select: {
+                companyName: true,
+                companyLogoUrl: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { appliedAt: "desc" }
+    });
+  },
+
+  async withdrawApplication(id: string, userId: string) {
+    // Ensure the application belongs to the candidate
+    const application = await prisma.application.findFirst({
+      where: {
+        id,
+        candidateProfile: { userId }
+      }
+    });
+
+    if (!application) throw new Error("Application not found or unauthorized");
+
+    return prisma.application.delete({
+      where: { id }
     });
   },
 
