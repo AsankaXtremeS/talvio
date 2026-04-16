@@ -28,3 +28,49 @@ export const getApplications = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to fetch applications" });
   }
 };
+
+export const applyForJob = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { jobPostId } = req.params;
+    const { cvUrl, cvFileName, coverLetter } = req.body;
+
+    const application = await applicationsService.applyToJob(userId, jobPostId, {
+      cvUrl,
+      cvFileName,
+      coverLetter,
+    });
+
+    res.status(201).json({
+      message: "Applied successfully",
+      application,
+    });
+  } catch (error: any) {
+    console.error("Error applying for job:", error);
+    res.status(error.message === "Already applied to this job" ? 400 : 500).json({
+      message: error.message || "Failed to apply for job",
+    });
+  }
+};
+
+export const withdrawApplication = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { applicationId } = req.params;
+
+    await applicationsService.withdrawApplication(userId, applicationId);
+
+    res.status(200).json({
+      message: "Application withdrawn successfully",
+    });
+  } catch (error: any) {
+    console.error("Error withdrawing application:", error);
+    res.status(500).json({
+      message: error.message || "Failed to withdraw application",
+    });
+  }
+};

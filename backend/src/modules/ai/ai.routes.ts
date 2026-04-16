@@ -6,7 +6,6 @@ import { Router } from "express";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
 import {
-  applyForJob,
   generateCoverLetter,
   getRecommendations,
   getApplicationResult,
@@ -27,14 +26,7 @@ router.get(
   getRecommendations
 );
 
-// Apply for a job — upload CV, get scored
-// POST /api/ai/apply/:jobPostId
-router.post(
-  "/apply/:jobPostId",
-  authenticate,
-  requireRole(["STUDENT", "PROFESSIONAL"]),
-  applyForJob
-);
+
 
 // Generate a tailored cover letter using AI (without submitting application)
 // POST /api/ai/generate-cover-letter/:jobPostId
@@ -74,4 +66,4 @@ router.patch(
   updateApplicationStatus
 );
 
-export default router;
+export default router;

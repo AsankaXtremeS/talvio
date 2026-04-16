@@ -20,6 +20,22 @@ const flashModel = genAI?.getGenerativeModel({
   generationConfig: { responseMimeType: "application/json", temperature: 0.1 },
 });
 
+// JSON Cleaning Utility
+const cleanJson = (raw: string) => {
+  try {
+    // 1. Remove markdown code blocks if present
+    let cleaned = raw.replace(/```json|```/g, "").trim();
+    
+    // 2. Stripe ASCII control characters (0-31) which cause JSON.parse to fail
+    // This is a common issue with Mistral and other providers
+    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+    
+    return cleaned;
+  } catch (e) {
+    return raw;
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SEMAPHORE & HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,7 +144,6 @@ export const aiService = {
    */
   async extractSkills(cvText: string): Promise<string[]> {
     const prompt = EXTRACT_CV_SKILLS_PROMPT.replace("{cvText}", cvText.slice(0, 4000));
-    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
 
     return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
@@ -147,8 +162,6 @@ export const aiService = {
     const prompt = COMPREHENSIVE_ANALYSIS_PROMPT
       .replace("{cvText}", cvText.slice(0, 4000))
       .replace("{jobDescription}", jobDescription);
-
-    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
 
     return aiQueue.run(() => requestWithFallback(["gemini", "mistral", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
@@ -173,7 +186,6 @@ export const aiService = {
 
   async extractJdKeywords(jobDescription: string): Promise<string[]> {
     const prompt = EXTRACT_JD_KEYWORDS_PROMPT.replace("{jobDescription}", jobDescription);
-    const cleanJson = (raw: string) => raw.replace(/```json|```/g, "").trim();
 
     return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
       if (provider.type === "gemini") {
@@ -201,11 +213,6 @@ export const aiService = {
     const prompt = RANK_JOBS_PROMPT
       .replace("{candidateProfile}", JSON.stringify(candidateSummary))
       .replace("{jobsList}", JSON.stringify(jobsList));
-
-    const cleanJson = (raw: string) => {
-      // Remove markdown code blocks if present
-      return raw.replace(/```json|```/g, "").trim();
-    };
 
     return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter", "mistral"], async (provider) => {
       if (provider.type === "gemini") {

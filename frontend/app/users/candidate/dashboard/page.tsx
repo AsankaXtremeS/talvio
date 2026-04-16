@@ -4,6 +4,7 @@ import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, Sparkles, Upload, X, Pencil } from "lucide-react";
 import JobDetailsModal from "@/components/candidate/dashboard/JobDetailsModal";
 import { useAuth } from "@/context/AuthContext";
@@ -12,68 +13,16 @@ import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
 import RecommendationList from "@/components/candidate/dashboard/RecommendationList";
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
+import { candidateJobService } from "@/lib/candidate/job.service";
+import { apiClient } from "@/lib/apiClient";
 import Popup from "@/components/admin/layout/Popup";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
 import { INTERVIEWS } from "@/components/candidate/interviews/types";
-import axios from "axios";
+import { Check } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:8000/api";
 
-const MOCK_RECOMMENDED_JOBS: DashboardJob[] = [
-  {
-    id: "2",
-    title: "Data Analyst Intern",
-    company: "Microsoft",
-    location: "Redmond, WA",
-    postedAgo: "1 day ago",
-    matchPercent: 86,
-    tags: ["Onsite", "Full time", "Paid", "3 months"],
-    companyLogoUrl: "microsoft",
-  },
-  {
-    id: "3",
-    title: "UI/UX Design Intern",
-    company: "Figma",
-    location: "San Francisco, CA",
-    postedAgo: "3 days ago",
-    matchPercent: 84,
-    tags: ["Hybrid", "Full time", "Paid", "4 months"],
-    companyLogoUrl: "figma",
-  },
-  {
-    id: "4",
-    title: "Marketing Intern",
-    company: "Airbnb",
-    location: "Seattle, WA",
-    postedAgo: "4 days ago",
-    matchPercent: 81,
-    tags: ["Remote", "Part time", "Paid", "3 months"],
-    companyLogoUrl: "airbnb",
-  },
-];
 
-const ALL_DASHBOARD_JOBS: DashboardJob[] = (() => {
-  const byId = new Map<string, DashboardJob>(
-    MOCK_RECOMMENDED_JOBS.map((job) => [job.id, job]),
-  );
 
-  Object.values(APPLICATION_JOBS).forEach((job) => {
-    if (byId.has(job.id)) return;
-
-    byId.set(job.id, {
-      id: job.id,
-      title: job.title,
-      company: job.company,
-      location: job.location,
-      postedAgo: "Recently posted",
-      matchPercent: 80,
-      tags: [job.workLocation, job.jobType, "Paid", "3 months"],
-      companyLogoUrl: job.company.toLowerCase(),
-    });
-  });
-
-  return Array.from(byId.values());
-})();
 
 const APPLY_MODAL_CONTENT = {
   about: "Help plan and execute campaign ideas that connect with community and growth goals.",
@@ -93,34 +42,17 @@ const APPLY_MODAL_CONTENT = {
 const STORAGE_KEY = "candidateAppliedJobIds";
 const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
-function timeAgo(date: string | Date): string {
-  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " minutes ago";
-  return Math.floor(seconds) + " seconds ago";
-}
+
 
 function useCandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
-  const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
-  
-  // Real Data State
-  const [jobs, setJobs] = useState<DashboardJob[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const jobIdFromQuery = searchParams.get("jobId");
   const sourceFromQuery = searchParams.get("from");
@@ -132,47 +64,97 @@ function useCandidateDashboard() {
     success: false,
   });
 
-  // Fetch Recommendations from AI Module
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/ai/recommendations`, {
-          withCredentials: true 
-        });
-        
-        if (response.data?.recommendations) {
-          const mappedJobs: DashboardJob[] = response.data.recommendations.map((job: any) => ({
-            id: job.id,
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            postedAgo: timeAgo(job.createdAt),
-            matchPercent: job.matchPercent,
-            tags: job.tags || [],
-            companyLogoUrl: job.companyLogoUrl,
-          }));
-          setJobs(mappedJobs);
-        }
-      } catch (error) {
-        console.error("Failed to fetch recommendations:", error);
-        setJobs([]); // Clear on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // 1. Recommendations Query
+  const { 
+    data: recommendations = [], 
+    isLoading: isRecLoading 
+  } = useQuery({
+    queryKey: ["candidate-recommendations", user?.id],
+    queryFn: () => candidateJobService.getRecommendations(),
+    enabled: !!user?.id,
+  });
 
-    fetchRecommendations();
-  }, [user]);
+  // 2. Applications Query
+  const { 
+    data: myApplications = [], 
+    isLoading: isAppLoading 
+  } = useQuery({
+    queryKey: ["candidate-applications", user?.id],
+    queryFn: () => candidateJobService.getMyApplications(),
+    enabled: !!user?.id,
+  });
+
+  // 3. Profile Query (for CV storage)
+  const { data: profileData } = useQuery({
+    queryKey: ["candidate-profile", user?.id],
+    queryFn: async () => {
+      const response = await apiClient<{ profile: any }>('/api/candidate/profile');
+      return response.profile;
+    },
+    enabled: !!user?.id,
+  });
+
+  // 4. Apply Mutation
+  const applyMutation = useMutation({
+    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
+      const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
+      const finalCvFileName = data.cvFileName || profileData?.cvFileName || "Profile_CV.pdf";
+      
+      return candidateJobService.applyToJob(data.jobId, finalCvUrl, finalCvFileName, data.coverLetter);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
+      setPopup({ open: true, message: "Application submitted successfully!", success: true });
+      setActiveModal("details");
+    },
+    onError: (error: any) => {
+      setPopup({ 
+        open: true, 
+        message: error.message || "Failed to submit application.", 
+        success: false 
+      });
+    }
+  });
+
+  // 5. Withdraw Mutation
+  const withdrawMutation = useMutation({
+    mutationFn: (jobId: string) => {
+      const app = myApplications.find(a => a.job.id === jobId);
+      if (!app) throw new Error("Application not found");
+      return candidateJobService.withdrawApplication(app.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
+      setPopup({ open: true, message: "Application withdrawn successfully!", success: true });
+    },
+    onError: (error: any) => {
+      setPopup({ open: true, message: error.message || "Withdrawal failed.", success: false });
+    }
+  });
+
+  const isLoading = isRecLoading || isAppLoading || applyMutation.isPending || withdrawMutation.isPending;
+
+  // Derived state: List of IDs the user has applied for
+  const appliedJobIds = useMemo(() => {
+    return myApplications.map(app => app.job?.id).filter(Boolean) as string[];
+  }, [myApplications]);
+
+  // Merge all known jobs for easy lookup
+  const allKnownJobs = useMemo(() => {
+    const jobMap = new Map<string, DashboardJob>();
+    recommendations.forEach(j => {
+      if (j?.id) jobMap.set(j.id, j);
+    });
+    myApplications.forEach(a => {
+      if (a?.job?.id) jobMap.set(a.job.id, a.job);
+    });
+    return Array.from(jobMap.values());
+  }, [recommendations, myApplications]);
 
   const selectedJob = useMemo(() => {
-    if (!jobIdFromQuery) {
-      return null;
-    }
-    return jobs.find((job) => job.id === jobIdFromQuery) ?? null;
-  }, [jobIdFromQuery, jobs]);
+    if (!jobIdFromQuery) return null;
+    return allKnownJobs.find((job) => job.id === jobIdFromQuery) ?? null;
+  }, [jobIdFromQuery, allKnownJobs]);
 
   const [activeModal, setActiveModal] = useState<"none" | "details" | "apply">(
     jobIdFromQuery ? "details" : "none",
@@ -187,14 +169,14 @@ function useCandidateDashboard() {
   };
 
   const openJobDetails = (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
+    const job = allKnownJobs.find((j) => j.id === jobId);
     if (!job) return;
     setActiveModal("details");
     router.push(`/users/candidate/dashboard?jobId=${jobId}`);
   };
 
   const openApplyForm = (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
+    const job = allKnownJobs.find((j) => j.id === jobId);
     if (!job) return;
     setActiveModal("apply");
     router.push(`/users/candidate/dashboard?jobId=${jobId}`);
@@ -223,38 +205,6 @@ function useCandidateDashboard() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const syncAppliedJobs = () => {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        setAppliedJobIds([]);
-        return;
-      }
-
-      try {
-        const parsed: unknown = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setAppliedJobIds(parsed.filter((value): value is string => typeof value === "string"));
-        } else {
-          setAppliedJobIds([]);
-        }
-      } catch {
-        setAppliedJobIds([]);
-      }
-    };
-
-    syncAppliedJobs();
-    window.addEventListener("storage", syncAppliedJobs);
-    window.addEventListener("focus", syncAppliedJobs);
-
-    return () => {
-      window.removeEventListener("storage", syncAppliedJobs);
-      window.removeEventListener("focus", syncAppliedJobs);
-    };
   }, []);
 
   useEffect(() => {
@@ -353,51 +303,20 @@ function useCandidateDashboard() {
 
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return jobs;
-    return jobs.filter((job) => job.title.toLowerCase().includes(keyword));
-  }, [search, jobs]);
+    const sourceJobs = activeTab === "applications" ? myApplications.map(a => a.job) : recommendations;
+    if (!keyword) return sourceJobs;
+    return sourceJobs.filter((job) => job.title.toLowerCase().includes(keyword));
+  }, [search, activeTab, recommendations, myApplications]);
 
-  const shownJobs = useMemo(() => {
-    if (activeTab === "applications") {
-      return filteredJobs.filter((job) => appliedJobIds.includes(job.id));
-    }
-    return filteredJobs;
-  }, [activeTab, appliedJobIds, filteredJobs]);
+  const shownJobs = filteredJobs;
 
-  const submitApplication = async (jobId: string, coverLetter?: string) => {
-    try {
-      setIsLoading(true);
-      await axios.post(`${API_BASE_URL}/ai/apply/${jobId}`, {
-        coverLetter
-      }, { withCredentials: true });
-
-      setAppliedJobIds((prev) => [...new Set([...prev, jobId])]);
-      setPopup({ open: true, message: "Application submitted successfully!", success: true });
-      setActiveModal("details");
-    } catch (error: any) {
-      console.error("Failed to submit application:", error);
-      setPopup({ 
-        open: true, 
-        message: error.response?.data?.message || "Failed to submit application. Please try again.", 
-        success: false 
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string) => {
+    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName });
   };
 
   const handleWithdrawApplication = (jobId: string) => {
-    setAppliedJobIds((prev) => {
-      const next = prev.filter((id) => id !== jobId);
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // keep UI responsive
-      }
-      return next;
-    });
+    withdrawMutation.mutate(jobId);
   };
-
   return {
     search,
     setSearch,
@@ -468,10 +387,19 @@ export default function CandidateDashboardPage() {
   };
 
   const handleApplySubmission = () => {
-    if (!selectedJob || !resumeFileName) {
+    if (!selectedJob) return;
+    
+    // For non-recommended jobs, we require a resume upload
+    if (!selectedJob.isAiRecommended && !resumeFileName) {
+      setPopup({ 
+        open: true, 
+        message: "Please upload your resume first.", 
+        success: false 
+      });
       return;
     }
-    submitApplication(selectedJob.id, coverLetter);
+    
+    submitApplication(selectedJob.id, coverLetter, undefined, resumeFileName || undefined);
   };
 
   const handleAIDone = (generatedCoverLetter: string) => {
@@ -573,6 +501,8 @@ export default function CandidateDashboardPage() {
                 closeModals={closeModals}
                 openJobDetails={openJobDetails}
                 handleApplySubmission={handleApplySubmission}
+                isAiRecommended={selectedJob.isAiRecommended}
+                isLoading={isLoading}
               />
             )}
           </div>
@@ -583,6 +513,7 @@ export default function CandidateDashboardPage() {
           jobId={selectedJob.id}
           jobTitle={selectedJob.title}
           candidateName={user?.firstName ? `${user.firstName} ${user.lastName || ""}` : "Candidate"}
+          isAiRecommended={selectedJob.isAiRecommended}
           onDone={handleAIDone}
           onClose={() => setShowAIModal(false)}
         />

@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -139,6 +138,7 @@ model CandidateProfile {
   extractedSkills String[]      @default([])
   recommendationCache Json?
   lastRecommendedAt   DateTime?
+  jobAnalysisCache    Json?         @default("{}")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   applications    Application[]

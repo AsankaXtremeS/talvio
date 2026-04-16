@@ -9,6 +9,7 @@ export interface DashboardJob {
   matchPercent: number;
   tags: string[];
   companyLogoUrl?: string;
+  isAiRecommended?: boolean;
 }
 
 interface RecommendationRowProps {
