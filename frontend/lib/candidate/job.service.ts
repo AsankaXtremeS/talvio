@@ -28,6 +28,13 @@ export interface MyApplicationsResponse {
   applications: Application[];
 }
 
+export interface DashboardStats {
+  applicationsSent: number;
+  interviewsScheduled: number;
+  pendingMatches: number;
+  profileViews: number;
+}
+
 export const candidateJobService = {
   async getRecommendations(): Promise<DashboardJob[]> {
     const response = await apiClient<RecommendationResponse>('/api/ai/recommendations', {
@@ -84,6 +91,12 @@ export const candidateJobService = {
         companyLogoUrl: app.jobPost.employer.companyLogoUrl,
       }
     }));
+  },
+
+  async getDashboardStats(): Promise<DashboardStats> {
+    return apiClient<DashboardStats>('/api/candidate/applications/stats', {
+      method: 'GET',
+    });
   },
 
   async withdrawApplication(applicationId: string): Promise<void> {

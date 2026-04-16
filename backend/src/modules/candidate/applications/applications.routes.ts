@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middlewares/auth.middleware";
 import { 
   getApplications, 
+  getStats,
   applyForJob, 
   withdrawApplication 
 } from "./applications.controller";
@@ -10,6 +11,9 @@ const router = Router();
 
 // GET /api/candidate/applications
 router.get("/", authenticate, getApplications);
+
+// GET /api/candidate/applications/stats
+router.get("/stats", authenticate, getStats);
 
 // POST /api/candidate/applications/apply/:jobPostId
 router.post("/apply/:jobPostId", authenticate, applyForJob);

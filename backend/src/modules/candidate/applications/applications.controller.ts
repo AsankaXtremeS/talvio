@@ -74,3 +74,18 @@ export const withdrawApplication = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getStats = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const stats = await applicationsService.getCandidateStats(userId);
+    res.status(200).json(stats);
+  } catch (error: any) {
+    console.error("Error fetching candidate stats:", error);
+    res.status(500).json({
+      message: error.message || "Failed to fetch dashboard stats",
+    });
+  }
+};

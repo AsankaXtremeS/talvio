@@ -5,7 +5,7 @@ import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Sparkles, Upload, X, Pencil } from "lucide-react";
+import { LayoutDashboard, Sparkles, Upload, X, Pencil, CalendarDays, Briefcase, Globe2 } from "lucide-react";
 import JobDetailsModal from "@/components/candidate/dashboard/JobDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import DashboardHeader from "@/components/candidate/dashboard/DashboardHeader";
@@ -100,7 +100,43 @@ function useCandidateDashboard() {
     refetchOnWindowFocus: false,
   });
 
-  // 4. Apply Mutation
+  // 4. Stats Query
+  const { data: rawStats } = useQuery({
+    queryKey: ["candidate-stats", user?.id],
+    queryFn: () => candidateJobService.getDashboardStats(),
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
+
+  // Map raw stats to UI format
+  const stats = useMemo(() => {
+    if (!rawStats) return undefined;
+    
+    return [
+      { 
+        title: "Applications sent", 
+        value: String(rawStats.applicationsSent), 
+        icon: <Sparkles size={24} className="text-white" /> 
+      },
+      /* { 
+        title: "Interviews scheduled", 
+        value: String(rawStats.interviewsScheduled), 
+        icon: <CalendarDays size={24} className="text-white" /> 
+      }, */
+      { 
+        title: "Pending matches", 
+        value: String(rawStats.pendingMatches), 
+        icon: <Briefcase size={24} className="text-white" /> 
+      },
+      /* { 
+        title: "Profile views", 
+        value: String(rawStats.profileViews), 
+        icon: <Globe2 size={24} className="text-white" /> 
+      }, */
+    ];
+  }, [rawStats]);
+
+  // 5. Apply Mutation
   const applyMutation = useMutation({
     mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
       const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
@@ -328,6 +364,7 @@ function useCandidateDashboard() {
     setSearch,
     activeTab,
     setActiveTab,
+    stats,
     appliedJobIds,
     currentDateLabel,
     nearestInterviewDateLabel,
@@ -365,6 +402,7 @@ export default function CandidateDashboardPage() {
     setSearch,
     activeTab,
     setActiveTab,
+    stats,
     appliedJobIds,
     currentDateLabel,
     nearestInterviewDateLabel,
@@ -433,7 +471,7 @@ export default function CandidateDashboardPage() {
           </h1>
         </div>
 
-        <StatCardGrid />
+        <StatCardGrid cards={stats} />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">

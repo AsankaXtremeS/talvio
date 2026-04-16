@@ -105,6 +105,53 @@ export class ApplicationsService {
       where: { id: applicationId },
     });
   }
+
+  async getCandidateStats(userId: string) {
+    const candidateProfile = await prisma.candidateProfile.findUnique({
+      where: { userId },
+      include: {
+        applications: {
+          select: { jobPostId: true }
+        }
+      }
+    });
+
+    if (!candidateProfile) {
+      return {
+        applicationsSent: 0,
+        interviewsScheduled: 0,
+        pendingMatches: 0,
+        profileViews: 12, // Mocked for now
+      };
+    }
+
+    const [applicationsSent, interviewsScheduled] = await Promise.all([
+      prisma.application.count({
+        where: { candidateProfileId: candidateProfile.id },
+      }),
+      prisma.application.count({
+        where: {
+          candidateProfileId: candidateProfile.id,
+          applicationStatus: "SHORTLISTED",
+        },
+      }),
+    ]);
+
+    // Calculate pending matches from recommendation cache
+    let pendingMatches = 0;
+    const recommendations = (candidateProfile.recommendationCache as any[]) || [];
+    if (recommendations.length > 0) {
+      const appliedJobIds = new Set(candidateProfile.applications.map(a => a.jobPostId));
+      pendingMatches = recommendations.filter(rec => !appliedJobIds.has(rec.id)).length;
+    }
+
+    return {
+      applicationsSent,
+      interviewsScheduled,
+      pendingMatches,
+      profileViews: 12, // Realistic mock for "workable" UI
+    };
+  }
 }
 
 export const applicationsService = new ApplicationsService();
