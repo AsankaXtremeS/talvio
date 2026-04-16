@@ -1,145 +1,141 @@
-import { CandidateInfo, CandidateStatus } from "@/types/employer/candidate.types";
+// Candidates service for employer views.
+// getCandidates() fetches from the backend — falls back to MOCK_CANDIDATES
+// if the backend returns nothing or errors (useful during development).
+// SECURITY: Only fields needed for display are exposed — no raw DB rows.
 
-// ── Avatar gradients — all indigo family, matches design system ──
-const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg,#C7D2FE,#818CF8)",
-  "linear-gradient(135deg,#DDD6FE,#7C3AED)",
-  "linear-gradient(135deg,#E0E7FF,#6366F1)",
-  "linear-gradient(135deg,#C7D2FE,#4F46E5)",
-  "linear-gradient(135deg,#EDE9FE,#8B5CF6)",
-  "linear-gradient(135deg,#F0EFFF,#6366F1)",
-  "linear-gradient(135deg,#D4D4F7,#4338CA)",
-  "linear-gradient(135deg,#C4BBFB,#7C3AED)",
+import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
+
+// ─── Avatar gradient helper ───────────────────────────────────────────────────
+
+const GRADIENTS = [
+  "linear-gradient(135deg,#667eea 0%,#764ba2 100%)",
+  "linear-gradient(135deg,#f093fb 0%,#f5576c 100%)",
+  "linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)",
+  "linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)",
+  "linear-gradient(135deg,#fa709a 0%,#fee140 100%)",
+  "linear-gradient(135deg,#a18cd1 0%,#fbc2eb 100%)",
+  "linear-gradient(135deg,#fccb90 0%,#d57eeb 100%)",
+  "linear-gradient(135deg,#e0c3fc 0%,#8ec5fc 100%)",
 ];
 
+/** Return a consistent gradient for a candidate card based on its list index */
 export function getAvatarGradient(index: number): string {
-  return AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
+  return GRADIENTS[index % GRADIENTS.length];
 }
 
-// ── Mock data — remove when backend is ready ──
+// ─── 5 Dummy Candidates for Development/Testing ───────────────────────────────
+// These use proper UUIDs to pass backend validation.
+// Replace with real API calls once the backend candidates endpoint is ready.
+
 export const MOCK_CANDIDATES: CandidateInfo[] = [
   {
-    id: "1",
-    name: "Sarah Johnson",
-    role: "Senior Frontend Developer",
+    id: "a1b2c3d4-e5f6-47a8-9b1c-2d3e4f5a6b7c",
+    name: "Sachini Perera",
+    role: "Frontend Developer",
     initial: "S",
-    experience: "5 years",
-    appliedDaysAgo: 2,
-    matchScore: 92,
-    skills: ["React", "TypeScript", "Node.js", "UI/UX"],
-    email: "sarah@example.com",
-    status: "Applied",
-  },
-  {
-    id: "2",
-    name: "James Perera",
-    role: "UI/UX Designer",
-    initial: "J",
+    avatarGradient: GRADIENTS[0],
     experience: "3 years",
-    appliedDaysAgo: 1,
-    matchScore: 88,
-    skills: ["Figma", "Adobe XD", "Prototyping", "CSS"],
-    email: "james@example.com",
+    appliedDaysAgo: 2,
+    matchScore: 94,
+    skills: ["React", "TypeScript", "Tailwind CSS", "Next.js"],
+    email: "deheminayanamini@gmail.com",
     status: "Applied",
   },
   {
-    id: "3",
-    name: "Amara Silva",
-    role: "Backend Engineer",
-    initial: "A",
+    id: "b2c3d4e5-f6a7-48b9-0c2d-3e4f5a6b7c8d",
+    name: "Ravindu Jayasinghe",
+    role: "Full Stack Engineer",
+    initial: "R",
+    avatarGradient: GRADIENTS[1],
+    experience: "5 years",
+    appliedDaysAgo: 4,
+    matchScore: 88,
+    skills: ["Node.js", "React", "PostgreSQL", "Docker"],
+    email: "deheminayanamini@gmail.com",
+    status: "Applied",
+  },
+  {
+    id: "c3d4e5f6-a7b8-49ca-1d3e-4f5a6b7c8d9e",
+    name: "Nishani Fernando",
+    role: "UI/UX Designer",
+    initial: "N",
+    avatarGradient: GRADIENTS[2],
+    experience: "2 years",
+    appliedDaysAgo: 1,
+    matchScore: 81,
+    skills: ["Figma", "Adobe XD", "Prototyping", "User Research"],
+    email: "deheminayanamini@gmail.com",
+    status: "Shortlisted",
+  },
+  {
+    id: "d4e5f6a7-b8c9-40db-2e4f-5a6b7c8d9e0f",
+    name: "Kasun Bandara",
+    role: "DevOps Engineer",
+    initial: "K",
+    avatarGradient: GRADIENTS[3],
     experience: "4 years",
+    appliedDaysAgo: 7,
+    matchScore: 76,
+    skills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
+    email: "deheminayanamini@gmail.com",
+    status: "Shortlisted",
+  },
+  {
+    id: "e5f6a7b8-c9d0-41ec-3f50-6b7c8d9e0f1a",
+    name: "Tharushi Amarasinghe",
+    role: "Data Analyst",
+    initial: "T",
+    avatarGradient: GRADIENTS[4],
+    experience: "2 years",
     appliedDaysAgo: 3,
     matchScore: 85,
-    skills: ["Node.js", "Express", "PostgreSQL", "Docker"],
-    email: "amara@example.com",
-    status: "Shortlisted",
-  },
-  {
-    id: "4",
-    name: "David Nishantha",
-    role: "Full Stack Developer",
-    initial: "D",
-    experience: "6 years",
-    appliedDaysAgo: 5,
-    matchScore: 91,
-    skills: ["React", "Node.js", "AWS", "TypeScript"],
-    email: "david@example.com",
-    status: "Shortlisted",
-  },
-  {
-    id: "5",
-    name: "Priya Fernando",
-    role: "Data Analyst",
-    initial: "P",
-    experience: "2 years",
-    appliedDaysAgo: 4,
-    matchScore: 78,
-    skills: ["Python", "SQL", "Tableau", "Power BI"],
-    email: "priya@example.com",
+    skills: ["Python", "SQL", "Power BI", "Pandas"],
+    email: "deheminayanamini@gmail.com",
     status: "Interview Scheduled",
-  },
-  {
-    id: "6",
-    name: "Kasun Rathnayake",
-    role: "Mobile Developer",
-    initial: "K",
-    experience: "3 years",
-    appliedDaysAgo: 6,
-    matchScore: 83,
-    skills: ["React Native", "Flutter", "iOS", "Android"],
-    email: "kasun@example.com",
-    status: "Interview Scheduled",
-  },
-  {
-    id: "7",
-    name: "Nimasha Wickrama",
-    role: "Product Manager",
-    initial: "N",
-    experience: "5 years",
-    appliedDaysAgo: 7,
-    matchScore: 80,
-    skills: ["Agile", "Scrum", "Jira", "Roadmapping"],
-    email: "nimasha@example.com",
-    status: "Hired",
-  },
-  {
-    id: "8",
-    name: "Tharaka Mendis",
-    role: "DevOps Engineer",
-    initial: "T",
-    experience: "4 years",
-    appliedDaysAgo: 8,
-    matchScore: 86,
-    skills: ["AWS", "Docker", "Kubernetes", "CI/CD"],
-    email: "tharaka@example.com",
-    status: "Applied",
   },
 ];
 
-// ── API functions — uncomment when backend is ready ──
+// ─── API calls ────────────────────────────────────────────────────────────────
 
-export async function getCandidates(status: CandidateStatus): Promise<CandidateInfo[]> {
-  // TODO: uncomment when backend ready
-  // const res = await fetch(`${API}/employer/candidates?status=${status}`);
-  // if (!res.ok) throw new Error("Failed to fetch candidates");
-  // return res.json();
-
-  // Mock: simulate network delay
-  await new Promise((r) => setTimeout(r, 300));
-
-  if (status === "AI Matches") {
-    return MOCK_CANDIDATES.filter((c) => c.status === "Applied" && c.matchScore >= 85);
+/**
+ * Fetch candidates for a specific job post.
+ * Falls back to MOCK_CANDIDATES filtered by status if the API is unavailable.
+ */
+export async function getCandidates(
+  status: CandidateStatus,
+  jobPostId?: string
+): Promise<CandidateInfo[]> {
+  // If jobPostId provided, fetch from API
+  if (jobPostId) {
+    try {
+      const url = `/api/employer/job-posts/${jobPostId}/applications?status=${status}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`[getCandidates] Fetched ${data.length} candidates for job post ${jobPostId} with status ${status}`);
+        return data;
+      } else {
+        console.error(`[getCandidates] Failed to fetch candidates: ${res.status}`);
+      }
+    } catch (err) {
+      console.error("[getCandidates] Error fetching from API:", err);
+    }
   }
 
-  return MOCK_CANDIDATES.filter((c) => c.status === status);
+  // Fallback: return mock data filtered by status
+  console.log(`[getCandidates] Using mock data for status ${status}`);
+  return Promise.resolve(MOCK_CANDIDATES.filter((c) => c.status === status));
 }
 
-export async function getCandidateById(id: string): Promise<CandidateInfo | undefined> {
-  // TODO: uncomment when backend ready
-  // const res = await fetch(`${API}/employer/candidates/${id}`);
-  // if (!res.ok) throw new Error("Failed to fetch candidate");
-  // return res.json();
+/**
+ * Fetch a single candidate's profile by their candidateProfile ID.
+ * Used in the schedule interview page to display applicant info.
+ */
+export async function getCandidateById(candidateProfileId: string): Promise<CandidateInfo | null> {
+  // When the endpoint is available:
+  // const res = await fetch(`/api/employer/candidates/${candidateProfileId}`, { credentials: "include" });
+  // if (res.ok) return res.json();
 
-  await new Promise((r) => setTimeout(r, 200));
-  return MOCK_CANDIDATES.find((c) => c.id === id);
+  // For now: look up from mock data
+  return Promise.resolve(MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null);
 }

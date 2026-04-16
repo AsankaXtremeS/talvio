@@ -5,6 +5,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
+
 }
 
 model User {
@@ -92,6 +94,7 @@ model EmployerProfile {
   updatedAt            DateTime           @updatedAt
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobPosts             JobPost[]
+  interviews           Interview[]
 }
 
 model JobPost {
@@ -115,6 +118,7 @@ model JobPost {
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   applications          Application[]
+  interviews            Interview[]
   employer              EmployerProfile  @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
   @@index([employerId])
@@ -124,24 +128,25 @@ model JobPost {
 }
 
 model CandidateProfile {
-  id              String        @id @default(uuid())
-  userId          String        @unique
-  headline        String?
-  location        String?
-  skills          String[]      @default([])
-  bio             String?
-  linkedinUrl     String?
-  githubUrl       String?
-  portfolioUrl    String?
-  cvUrl           String?
-  cvFileName      String?
-  extractedSkills String[]      @default([])
+  id                  String        @id @default(uuid())
+  userId              String        @unique
+  headline            String?
+  location            String?
+  skills              String[]      @default([])
+  bio                 String?
+  linkedinUrl         String?
+  githubUrl           String?
+  portfolioUrl        String?
+  cvUrl               String?
+  cvFileName          String?
+  extractedSkills     String[]      @default([])
   recommendationCache Json?
   lastRecommendedAt   DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  applications    Application[]
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  applications        Application[]
+  interviews          Interview[]
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Application {
@@ -226,4 +231,46 @@ enum PostStatus {
   DRAFT
   ACTIVE
   CLOSED
+}
+
+enum InterviewMeetingType {
+  ONLINE
+  ONSITE
+  PHONE
+}
+
+enum InterviewStatus {
+  DRAFT
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+model Interview {
+  id                    String                  @id @default(uuid())
+  employerId            String
+  candidateProfileId    String
+  jobPostId             String
+  scheduledAt           DateTime
+  meetingType           InterviewMeetingType
+  status                InterviewStatus         @default(DRAFT)
+  location              String?
+  meetingLink           String?
+  additionalInfo        String?
+  emailBody             String?
+  googleCalendarEventId String?
+  googleCalendarLink    String?
+  candidateEmail        String
+  emailSentAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  employer              EmployerProfile         @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  candidate             CandidateProfile        @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  jobPost               JobPost                 @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@index([employerId, status])
+  @@index([employerId, scheduledAt])
+  @@index([candidateProfileId])
+  @@index([jobPostId])
 }

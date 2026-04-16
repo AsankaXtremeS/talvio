@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 import { MOCK_CANDIDATES } from "@/lib/employer/candidates.service";
@@ -11,6 +11,8 @@ import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
 export default function CandidatesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const postId = searchParams.get("postId"); // Get postId from URL if available
 
   const [status, setStatus]   = useState<CandidateStatus>("Applied");
   const [query, setQuery]     = useState("");
@@ -53,7 +55,8 @@ export default function CandidatesPage() {
   };
 
   const handleSchedule = (id: string) => {
-    router.push(`/users/employer/candidates/${id}/schedule`);
+    const url = `/users/employer/candidates/${id}/schedule${postId ? `?postId=${postId}` : ""}`;
+    router.push(url);
   };
 
   return (
@@ -107,5 +110,6 @@ export default function CandidatesPage() {
           />
         )}
       </div>
+    
   );
 }

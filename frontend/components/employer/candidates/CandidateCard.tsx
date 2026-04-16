@@ -23,7 +23,9 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
   const grad      = candidate.avatarGradient ?? getAvatarGradient(index);
   const daysLabel = candidate.appliedDaysAgo === 1 ? "day" : "days";
   const ms        = matchStyle(candidate.matchScore);
-  const [imgSrc, setImgSrc] = useState(`/images/avatar${candidate.id}.jpg`);
+  // Use index + 1 for avatar number (index 0 -> avatar1, index 1 -> avatar2, etc.)
+  const avatarNum = index + 1;
+  const [imgSrc, setImgSrc] = useState(`/images/avatar${avatarNum}.jpg`);
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -50,7 +52,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
               className="object-cover bg-gray-100 rounded-xl shrink-0"
               onError={() => {
                 if (imgSrc.endsWith('.jpg')) {
-                  setImgSrc(`/images/avatar${candidate.id}.png`);
+                  setImgSrc(`/images/avatar${avatarNum}.png`);
                 } else {
                   setImgError(true);
                 }

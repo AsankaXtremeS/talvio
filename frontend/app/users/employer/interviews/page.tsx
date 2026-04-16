@@ -1,229 +1,423 @@
+// Interviews Dashboard Page
+// Route: /users/employer/interviews
+//
+// Shows:
+// - List of upcoming scheduled interviews (real data from API)
+// - Interactive calendar with dots on days that have interviews
+// - Clicking a date filters the interview list
+// - Interview cards with options menu (Reschedule / Cancel)
+
 "use client";
 
-import { useState } from "react";
-import { CalendarDays, Video, MapPin, Phone, MoreVertical } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  CalendarDays,
+  Video,
+  MapPin,
+  Phone,
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+import { getInterviews, cancelInterview, getScheduledDates } from "@/lib/employer/interviews.service";
+import { InterviewDTO } from "@/types/employer/interview.types";
 
-// --- Mock Data ---
-const scheduledInterviews = [
-  {
-    id: 1,
-    candidateName: "Sarah Johnson",
-    role: "Senior Frontend Developer",
-    date: "24 Dec 25",
-    time: "10:00 AM - 11:00 AM",
-    type: "Google Meet",
-    status: "Upcoming",
-    initials: "SJ",
-  },
-  {
-    id: 2,
-    candidateName: "James Perera",
-    role: "UI/UX Designer",
-    date: "24 Dec 25",
-    time: "14:30 PM - 15:15 PM",
-    type: "Phone",
-    status: "Upcoming",
-    initials: "JP",
-  },
-  {
-    id: 3,
-    candidateName: "Tharaka Mendis",
-    role: "DevOps Engineer",
-    date: "26 Dec 25",
-    time: "11:00 AM - 12:00 PM",
-    type: "On-site",
-    status: "Upcoming",
-    initials: "TM",
-  },
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const WEEK_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
-const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const monthDays = Array.from({ length: 31 }, (_, i) => i + 1); 
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "UTC",
+    });
+  } catch { return "—"; }
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "2-digit",
+      timeZone: "UTC",
+    });
+  } catch { return "—"; }
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function getTypeIcon(type: string) {
+  const t = type?.toLowerCase() ?? "";
+  if (t === "online")  return <Video   size={22} className="text-[#595781] shrink-0" />;
+  if (t === "onsite") return <MapPin   size={22} className="text-[#595781] shrink-0" />;
+  if (t === "phone")  return <Phone    size={22} className="text-[#595781] shrink-0" />;
+  return <Video size={22} className="text-[#595781] shrink-0" />;
+}
+
+function getTypeLabel(type: string): string {
+  const t = type?.toLowerCase() ?? "";
+  if (t === "online") return "Google Meet";
+  if (t === "onsite") return "On-Site";
+  if (t === "phone")  return "Phone";
+  return type;
+}
+
+// Build first-day-of-month offset for calendar grid
+function getFirstDayOfWeek(year: number, month: number): number {
+  return new Date(year, month, 1).getDay();   // 0=Sun
+}
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InterviewsDashboardPage() {
-  const [selectedDate, setSelectedDate] = useState(24);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null); // State for the 3-dots menu
+  const router = useRouter();
 
-  const getInterviewIcon = (type: string) => {
-    const typeLower = type.toLowerCase();
-    if (typeLower.includes("on-site") || typeLower.includes("onsite")) {
-      return <MapPin size={24} className="text-[#595781] shrink-0" />;
+  // ── Calendar state ──
+  const today = new Date();
+  const [calYear, setCalYear]   = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());  // 0-based
+  const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
+
+  // ── Data state ──
+  const [interviews, setInterviews]           = useState<InterviewDTO[]>([]);
+  const [scheduledDates, setScheduledDates]   = useState<Set<string>>(new Set());
+  const [loading, setLoading]                 = useState(true);
+  const [error, setError]                     = useState<string | null>(null);
+
+  // ── UI state ──
+  const [openMenuId, setOpenMenuId]     = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // ── Fetch interviews + calendar dates ──────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [result, dates] = await Promise.all([
+        getInterviews({ status: "SCHEDULED", limit: 100 }),
+        getScheduledDates(calYear, calMonth + 1),   // API uses 1-based month
+      ]);
+      setInterviews(result.data);
+      setScheduledDates(new Set(dates));
+    } catch (err) {
+      setError("Failed to load interviews. Please refresh.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    if (typeLower.includes("phone")) {
-      return <Phone size={24} className="text-[#595781] shrink-0" />;
-    }
-    return <Video size={24} className="text-[#595781] shrink-0" />;
+  }, [calYear, calMonth]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Calendar navigation ────────────────────────────────────────────────────
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalYear((y) => y - 1); setCalMonth(11); }
+    else                { setCalMonth((m) => m - 1); }
+    setSelectedDay(null);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalYear((y) => y + 1); setCalMonth(0); }
+    else                 { setCalMonth((m) => m + 1); }
+    setSelectedDay(null);
   };
 
+  // ── Filter interviews by selected day ─────────────────────────────────────
+  const visibleInterviews = selectedDay
+    ? interviews.filter((iv) => {
+        const d = new Date(iv.scheduledAt);
+        return (
+          d.getUTCFullYear() === calYear &&
+          d.getUTCMonth()    === calMonth &&
+          d.getUTCDate()     === selectedDay
+        );
+      })
+    : interviews;
+
+  // ── Cancel interview ──────────────────────────────────────────────────────
+  const handleCancel = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this interview?")) return;
+    setCancellingId(id);
+    try {
+      await cancelInterview(id);
+      setInterviews((prev) => prev.filter((iv) => iv.id !== id));
+    } catch (err) {
+      alert("Failed to cancel: " + (err as Error).message);
+    } finally {
+      setCancellingId(null);
+      setOpenMenuId(null);
+    }
+  };
+
+  // ── Calendar cell helpers ──────────────────────────────────────────────────
+  const firstDow  = getFirstDayOfWeek(calYear, calMonth);
+  const daysInMon = getDaysInMonth(calYear, calMonth);
+
+  function hasScheduled(day: number): boolean {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return scheduledDates.has(dateStr);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="flex-1 min-h-screen bg-[#F7F9FC] p-0 font-sans">
-      <div className="max-w-6xl px-4 py-8 mx-auto pt-2">
-        
-        {/* Header */}
+    <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans">
+      <div className="max-w-5xl px-4 py-8 mx-auto pt-4">
+
+        {/* ── Header ── */}
         <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2 text-indigo-700 rounded-lg bg-indigo-50">
-                <CalendarDays size={28} />
+                <CalendarDays size={26} />
               </div>
-              <h1 className="text-3xl font-bold text-indigo-500">Interviews</h1>
+              <h1 className="text-2xl font-bold text-indigo-500">Interviews</h1>
             </div>
-            <p className="ml-12 text-base text-gray-600">
+            <p className="ml-11 text-sm text-gray-500">
               Manage your schedule and upcoming candidate interviews
             </p>
           </div>
         </div>
 
-        {/* Main Content Layout */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          
-          {/* LEFT COLUMN: Upcoming Interviews List */}
+        {/* ── Error ── */}
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* ── Main grid: interviews list + calendar ── */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+          {/* LEFT: Interview list */}
           <div className="lg:col-span-2 space-y-4 relative">
-            
-            {/* Invisible overlay to close the dropdown when clicking outside */}
+
+            {/* Close menu on outside click */}
             {openMenuId && (
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setOpenMenuId(null)}
-              ></div>
+              <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
             )}
 
-            <h2 className="mb-4 text-lg font-bold text-gray-900">Upcoming Interviews</h2>
-            
-            {scheduledInterviews.map((interview) => (
-              <div 
-                key={interview.id} 
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-bold text-gray-900">
+                {selectedDay
+                  ? `Interviews on ${MONTH_NAMES[calMonth]} ${selectedDay}`
+                  : "Upcoming Interviews"}
+              </h2>
+              {selectedDay && (
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="text-xs text-indigo-500 underline hover:text-indigo-700"
+                >
+                  Show all
+                </button>
+              )}
+            </div>
+
+            {/* Loading state */}
+            {loading && (
+              <div className="flex items-center justify-center h-40 text-gray-400 gap-2">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-sm">Loading interviews…</span>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && visibleInterviews.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-2 rounded-2xl border border-dashed border-gray-200 bg-white">
+                <CalendarDays size={28} className="opacity-40" />
+                <p className="text-sm">
+                  {selectedDay ? "No interviews on this day." : "No scheduled interviews yet."}
+                </p>
+              </div>
+            )}
+
+            {/* Interview cards */}
+            {!loading && visibleInterviews.map((iv) => (
+              <div
+                key={iv.id}
                 className="relative flex flex-col gap-3 rounded-2xl border border-[#dbe7ff] bg-white p-5"
               >
-                {/* Options Menu Button */}
-                <button 
-                  onClick={() => setOpenMenuId(openMenuId === interview.id ? null : interview.id)}
-                  className={`absolute p-1.5 transition-colors rounded-lg top-4 right-4 z-20 
-                    ${openMenuId === interview.id ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-900 hover:bg-gray-50"}`}
+                {/* Options menu button */}
+                <button
+                  onClick={() => setOpenMenuId(openMenuId === iv.id ? null : iv.id)}
+                  className={`absolute p-1.5 rounded-lg top-4 right-4 z-20 transition-colors
+                    ${openMenuId === iv.id ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-900 hover:bg-gray-50"}`}
                 >
-                  <MoreVertical size={20} />
+                  <MoreVertical size={18} />
                 </button>
 
-                {/* Dropdown Menu */}
-                {openMenuId === interview.id && (
-                  <div className="absolute right-4 top-14 z-30 w-48 rounded-xl border border-[#dbe7ff] bg-white py-2 duration-100 animate-in fade-in zoom-in-95">
-                    <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      View Candidate
-                    </button>
-                    <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                {/* Dropdown */}
+                {openMenuId === iv.id && (
+                  <div className="absolute right-4 top-12 z-30 w-44 rounded-xl border border-[#dbe7ff] bg-white py-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-100">
+                    <button
+                      onClick={() => {
+                        setOpenMenuId(null);
+                        router.push(`/users/employer/job-posts/${iv.jobPost.id}/candidates/${iv.candidate.id}/schedule`);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
                       Reschedule
                     </button>
-                    <div className="my-1 border-t border-gray-100"></div>
-                    <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                      Cancel Interview
+                    <div className="my-1 border-t border-gray-100" />
+                    <button
+                      onClick={() => handleCancel(iv.id)}
+                      disabled={cancellingId === iv.id}
+                      className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {cancellingId === iv.id ? "Cancelling…" : "Cancel Interview"}
                     </button>
                   </div>
                 )}
 
-                {/* Top: Dynamic Icon + Date & Time */}
-                <div className="flex items-center gap-3 pr-8">
-                  {getInterviewIcon(interview.type)}
-                  <span className="text-[18px] sm:text-xl font-bold text-gray-800 tracking-tight">
-                    {interview.date}, {interview.time}
+                {/* Date/time + icon */}
+                <div className="flex items-center gap-3 pr-10">
+                  {getTypeIcon(iv.meetingType)}
+                  <span className="text-lg font-bold text-gray-800 tracking-tight">
+                    {formatDate(iv.scheduledAt)}, {formatTime(iv.scheduledAt)}
                   </span>
                 </div>
 
-                {/* Faint Divider */}
-                <div className="my-1 border-t border-gray-100"></div>
+                <div className="my-0.5 border-t border-gray-100" />
 
-                {/* Middle: Candidate Pill */}
-                <div className="flex items-center gap-2.5 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
-                  {/* Avatar Circle */}
+                {/* Candidate pill */}
+                <div className="flex items-center gap-2 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-100 to-purple-100 text-[10px] font-bold text-indigo-700">
-                    {interview.initials}
+                    {getInitials(iv.candidate?.name ?? "?")}
                   </div>
-                  <span className="text-[15px] font-medium text-gray-900">
-                    {interview.candidateName}
+                  <span className="text-sm font-medium text-gray-900">{iv.candidate?.name ?? "—"}</span>
+                </div>
+
+                {/* Role + type pill */}
+                <div className="flex items-center gap-2 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
+                  <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                  <span className="text-sm font-medium text-gray-600">
+                    {iv.jobPost?.title ?? "—"} · {getTypeLabel(iv.meetingType)} Interview
                   </span>
                 </div>
 
-                {/* Bottom: Status & Role Pill */}
-                <div className="flex items-center gap-2.5 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
-                  {/* Green Status Dot */}
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></div>
-                  <span className="text-[14.5px] font-medium text-gray-600">
-                    {interview.role} • {interview.type} Interview
-                  </span>
-                </div>
-
+                {/* Meet link if online */}
+                {iv.meetingType === "ONLINE" && iv.meetingLink && (
+                  <a
+                    href={iv.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-500 underline ml-1 hover:text-indigo-700 truncate"
+                  >
+                    {iv.meetingLink}
+                  </a>
+                )}
+                {iv.meetingType === "ONSITE" && iv.location && (
+                  <p className="text-xs text-gray-400 ml-1">📍 {iv.location}</p>
+                )}
               </div>
             ))}
           </div>
 
-          {/* RIGHT COLUMN: Calendar View */}
+          {/* RIGHT: Calendar */}
           <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-6">
-              
-              {/* Calendar Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-900">December 2025</h2>
-                <div className="flex gap-2">
-                  <button className="p-1.5 text-gray-400 hover:text-gray-900 rounded hover:bg-gray-50 transition-colors">
-                     &lt;
+            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-5 sticky top-4">
+
+              {/* Calendar header */}
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-bold text-gray-900">
+                  {MONTH_NAMES[calMonth]} {calYear}
+                </h2>
+                <div className="flex gap-1">
+                  <button
+                    onClick={prevMonth}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  >
+                    <ChevronLeft size={16} />
                   </button>
-                  <button className="p-1.5 text-gray-400 hover:text-gray-900 rounded hover:bg-gray-50 transition-colors">
-                     &gt;
+                  <button
+                    onClick={nextMonth}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  >
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Days of week */}
-              <div className="grid grid-cols-7 mb-4">
-                {weekDays.map((day) => (
-                  <div key={day} className="text-xs font-semibold text-center text-gray-400">
-                    {day}
+              {/* Day labels */}
+              <div className="grid grid-cols-7 mb-3">
+                {WEEK_DAYS.map((d) => (
+                  <div key={d} className="text-[10px] font-semibold text-center text-gray-400 uppercase">
+                    {d}
                   </div>
                 ))}
               </div>
 
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-x-1 gap-y-2">
-                <div className="p-2"></div>
-                {monthDays.map((day) => {
-                  const isSelected = day === selectedDate;
-                  const hasInterview = day === 24 || day === 26; 
-                  
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-y-1">
+                {/* Leading empty cells */}
+                {Array.from({ length: firstDow }).map((_, i) => (
+                  <div key={`empty-${i}`} />
+                ))}
+
+                {/* Day cells */}
+                {Array.from({ length: daysInMon }, (_, i) => i + 1).map((day) => {
+                  const isSelected = day === selectedDay;
+                  const isToday    = day === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
+                  const hasIv      = hasScheduled(day);
+
                   return (
                     <button
                       key={day}
-                      onClick={() => setSelectedDate(day)}
+                      onClick={() => setSelectedDay(isSelected ? null : day)}
                       className={`
-                        w-8 h-8 mx-auto flex items-center justify-center rounded-full text-sm font-medium relative transition-colors
-                        ${isSelected ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"}
+                        relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors
+                        ${isSelected
+                          ? "bg-indigo-600 text-white"
+                          : isToday
+                          ? "bg-indigo-50 text-indigo-700 font-bold"
+                          : "text-gray-700 hover:bg-gray-100"
+                        }
                       `}
                     >
                       {day}
-                      
-                      {/* 🚀 Updated: Green Line Indicator instead of Blue Dot */}
-                      {hasInterview && (
-                        <span 
-                          className={`absolute bottom-0.5 h-0.75 w-3.5 rounded-full 
-                            ${isSelected ? "bg-white/90" : "bg-indigo-500"}
-                          `}
-                        ></span>
+                      {/* Interview dot indicator */}
+                      {hasIv && (
+                        <span
+                          className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-3.5 rounded-full
+                            ${isSelected ? "bg-white/90" : "bg-indigo-500"}`}
+                        />
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Quick Stats below calendar */}
-              <div className="pt-6 mt-8 space-y-4 border-t border-gray-100">
+              {/* Stats below calendar */}
+              <div className="pt-5 mt-5 space-y-3 border-t border-gray-100">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Interviews this week</span>
-                  <span className="font-bold text-gray-900">5</span>
+                  <span className="text-gray-500">Scheduled this month</span>
+                  <span className="font-bold text-gray-900">{scheduledDates.size}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Pending feedback</span>
-                  <span className="font-bold text-amber-600">2</span>
+                  <span className="text-gray-500">Total upcoming</span>
+                  <span className="font-bold text-indigo-600">{interviews.length}</span>
                 </div>
               </div>
-
             </div>
           </div>
 
