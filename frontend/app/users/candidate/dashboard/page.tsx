@@ -49,6 +49,7 @@ function useCandidateDashboard() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isProfessional = user?.role === "PROFESSIONAL";
 
   const [search, setSearch] = useState("");
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
@@ -114,25 +115,25 @@ function useCandidateDashboard() {
     
     return [
       { 
+        title: isProfessional ? "All Jobs" : "All Internships", 
+        value: String(rawStats.totalAvailable), 
+        icon: <Briefcase size={24} className="text-white" /> 
+      },
+      { 
+        title: "Interviews scheduled", 
+        value: String(rawStats.interviewsScheduled), 
+        icon: <CalendarDays size={24} className="text-white" /> 
+      },
+      { 
         title: "Applications sent", 
         value: String(rawStats.applicationsSent), 
         icon: <Sparkles size={24} className="text-white" /> 
       },
-      /* { 
-        title: "Interviews scheduled", 
-        value: String(rawStats.interviewsScheduled), 
-        icon: <CalendarDays size={24} className="text-white" /> 
-      }, */
       { 
         title: "Pending matches", 
         value: String(rawStats.pendingMatches), 
-        icon: <Briefcase size={24} className="text-white" /> 
+        icon: <Sparkles size={24} className="text-white" /> 
       },
-      /* { 
-        title: "Profile views", 
-        value: String(rawStats.profileViews), 
-        icon: <Globe2 size={24} className="text-white" /> 
-      }, */
     ];
   }, [rawStats]);
 

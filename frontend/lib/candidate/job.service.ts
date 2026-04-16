@@ -32,6 +32,7 @@ export interface DashboardStats {
   applicationsSent: number;
   interviewsScheduled: number;
   pendingMatches: number;
+  totalAvailable: number;
   profileViews: number;
 }
 

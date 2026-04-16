@@ -121,11 +121,19 @@ export class ApplicationsService {
         applicationsSent: 0,
         interviewsScheduled: 0,
         pendingMatches: 0,
+        totalAvailable: 0,
         profileViews: 12, // Mocked for now
       };
     }
 
-    const [applicationsSent, interviewsScheduled] = await Promise.all([
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    const jobType = user?.role === "PROFESSIONAL" ? "JOB" : "INTERNSHIP";
+
+    const [applicationsSent, interviewsScheduled, totalAvailable] = await Promise.all([
       prisma.application.count({
         where: { candidateProfileId: candidateProfile.id },
       }),
@@ -133,6 +141,12 @@ export class ApplicationsService {
         where: {
           candidateProfileId: candidateProfile.id,
           applicationStatus: "SHORTLISTED",
+        },
+      }),
+      prisma.jobPost.count({
+        where: {
+          type: jobType,
+          status: "ACTIVE",
         },
       }),
     ]);
@@ -149,6 +163,7 @@ export class ApplicationsService {
       applicationsSent,
       interviewsScheduled,
       pendingMatches,
+      totalAvailable,
       profileViews: 12, // Realistic mock for "workable" UI
     };
   }
