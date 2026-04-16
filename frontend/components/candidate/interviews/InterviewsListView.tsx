@@ -3,7 +3,7 @@
 import Link from "next/link";
 import InterviewCard from "@/components/candidate/interviews/InterviewCard";
 import { INTERVIEWS } from "@/components/candidate/interviews/types";
-import { CalendarDays, Cog } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 export default function InterviewsListView() {
   const now = new Date();
@@ -48,7 +48,7 @@ export default function InterviewsListView() {
           <header className="mb-4">
             <h1 className="flex items-center gap-2 text-3xl font-bold text-indigo-700">
               <span>
-                <Cog />
+                <CalendarDays />
               </span>
               Interview Schedule
             </h1>
