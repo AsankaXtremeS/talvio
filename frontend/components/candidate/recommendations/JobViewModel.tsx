@@ -83,6 +83,8 @@ export default function JobViewModal({ job, onClose, onApply }: JobViewModalProp
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
                   {job.companyLogoUrl === "google" ? (
                     <div className="w-8 h-8"><GoogleLogo /></div>
+                  ) : job.companyLogoUrl ? (
+                    <img src={job.companyLogoUrl} alt={job.company} className="h-full w-full object-cover" />
                   ) : (
                     <span className="text-lg font-bold text-indigo-600">{job.company.charAt(0)}</span>
                   )}
@@ -130,11 +132,13 @@ export default function JobViewModal({ job, onClose, onApply }: JobViewModalProp
             {/* Company */}
             <div className="rounded-xl border border-[#E3EAF3] bg-[#F7FAFC] p-5">
               <h3 className="font-bold text-gray-800 mb-4">Company</h3>
-              <div className="w-24 h-10 mb-3">
+              <div className="w-24 h-10 mb-3 flex items-center">
                 {job.companyLogoUrl === "google" ? (
                   <GoogleLogo />
+                ) : job.companyLogoUrl ? (
+                  <img src={job.companyLogoUrl} alt={job.company} className="max-h-full max-w-full object-contain" />
                 ) : (
-                  <span className="text-2xl font-bold text-indigo-600">{job.company}</span>
+                  <span className="text-2xl font-bold text-indigo-600 truncate">{job.company}</span>
                 )}
               </div>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">

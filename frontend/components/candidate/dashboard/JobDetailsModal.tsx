@@ -34,8 +34,12 @@ export default function JobDetailsModal({
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-[#F4F7FF] text-base font-bold text-indigo-600">
-              {selectedJob.company.charAt(0)}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-[#F4F7FF] overflow-hidden">
+              {selectedJob.companyLogoUrl ? (
+                <img src={selectedJob.companyLogoUrl} alt={selectedJob.company} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-base font-bold text-indigo-600">{selectedJob.company.charAt(0)}</span>
+              )}
             </div>
             <div>
               <h3 className="text-lg font-bold leading-tight text-slate-800">{selectedJob.title}</h3>
@@ -71,7 +75,13 @@ export default function JobDetailsModal({
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <h4 className="text-lg font-semibold text-slate-800">Company</h4>
-          <p className="mt-2 text-2xl font-bold text-indigo-600">{selectedJob.company}</p>
+          <div className="mt-2 flex items-center h-10">
+            {selectedJob.companyLogoUrl ? (
+              <img src={selectedJob.companyLogoUrl} alt={selectedJob.company} className="max-h-full max-w-[120px] object-contain" />
+            ) : (
+              <p className="text-2xl font-bold text-indigo-600 truncate">{selectedJob.company}</p>
+            )}
+          </div>
           <p className="mt-2 text-xs leading-6 text-slate-600 sm:text-sm">{APPLY_MODAL_CONTENT.companyAbout}</p>
           <button className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700">Visit company profile</button>
         </div>
