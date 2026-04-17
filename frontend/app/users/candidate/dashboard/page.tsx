@@ -393,9 +393,7 @@ export default function CandidateDashboardPage() {
   const isProfessional = user?.role === "PROFESSIONAL";
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const [coverLetterFileName, setCoverLetterFileName] = useState("");
   const resumeInputRef = useRef<HTMLInputElement>(null);
-  const coverLetterInputRef = useRef<HTMLInputElement>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   const {
@@ -538,9 +536,6 @@ export default function CandidateDashboardPage() {
                 resumeInputRef={resumeInputRef}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
-                coverLetterFileName={coverLetterFileName}
-                setCoverLetterFileName={setCoverLetterFileName}
-                coverLetterInputRef={coverLetterInputRef}
                 showAIModal={showAIModal}
                 setShowAIModal={setShowAIModal}
                 closeModals={closeModals}

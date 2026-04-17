@@ -62,9 +62,7 @@ export default function CandidateRecommendationsPage() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const [coverLetterFileName, setCoverLetterFileName] = useState("");
   const resumeInputRef = useRef<HTMLInputElement | null>(null);
-  const coverLetterInputRef = useRef<HTMLInputElement | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   useEffect(() => {
@@ -298,9 +296,6 @@ export default function CandidateRecommendationsPage() {
                 resumeInputRef={resumeInputRef}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
-                coverLetterFileName={coverLetterFileName}
-                setCoverLetterFileName={setCoverLetterFileName}
-                coverLetterInputRef={coverLetterInputRef}
                 showAIModal={showAIModal}
                 setShowAIModal={setShowAIModal}
                 closeModals={() => {

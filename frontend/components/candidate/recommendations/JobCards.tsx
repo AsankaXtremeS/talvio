@@ -48,6 +48,8 @@ export default function JobCard({
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
             {companyLogoUrl === "google" ? (
               <div className="w-8 h-8"><GoogleLogo /></div>
+            ) : companyLogoUrl ? (
+              <img src={companyLogoUrl} alt={company} className="h-full w-full object-cover" />
             ) : (
               <span className="text-lg font-bold text-indigo-600">{company.charAt(0)}</span>
             )}

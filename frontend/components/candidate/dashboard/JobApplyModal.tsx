@@ -9,9 +9,6 @@ interface JobApplyModalProps {
   resumeInputRef: RefObject<HTMLInputElement | null>;
   coverLetter: string;
   setCoverLetter: (text: string) => void;
-  coverLetterFileName: string;
-  setCoverLetterFileName: (name: string) => void;
-  coverLetterInputRef: RefObject<HTMLInputElement | null>;
   showAIModal: boolean;
   setShowAIModal: (show: boolean) => void;
   closeModals: () => void;
@@ -28,9 +25,6 @@ export default function JobApplyModal({
   resumeInputRef,
   coverLetter,
   setCoverLetter,
-  coverLetterFileName,
-  setCoverLetterFileName,
-  coverLetterInputRef,
   showAIModal,
   setShowAIModal,
   closeModals,
@@ -44,9 +38,14 @@ export default function JobApplyModal({
       <button onClick={closeModals} className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 hover:text-gray-600 transition-colors"><X size={14} strokeWidth={2.5} /></button>
 
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white overflow-hidden">
-          {/* Optionally show logo or initials */}
-          <div className="flex h-full w-full items-center justify-center rounded-xl bg-indigo-100 text-sm font-semibold text-indigo-600">{selectedJob.company?.slice(0, 3)}</div>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white overflow-hidden shadow-sm">
+          {selectedJob.companyLogoUrl ? (
+            <img src={selectedJob.companyLogoUrl} alt={selectedJob.company} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-indigo-100 text-sm font-semibold text-indigo-600">
+              {selectedJob.company?.slice(0, 3)}
+            </div>
+          )}
         </div>
         <div>
           <p className="text-xs text-gray-400">Applying for</p>
@@ -81,23 +80,24 @@ export default function JobApplyModal({
       )}
 
       <div>
-        <p className="mb-2 text-sm font-medium text-slate-700">Cover letter</p>
-        <input ref={coverLetterInputRef} type="file" accept=".txt,.doc,.docx,.pdf" className="hidden" onChange={(e) => setCoverLetterFileName(e.target.files?.[0]?.name ?? "")} />
-        <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200">
-          <button onClick={() => coverLetterInputRef.current?.click()} className="flex flex-col items-center justify-center gap-1.5 border-r border-gray-200 px-4 py-5 text-center transition-colors hover:bg-slate-50">
-            <Upload size={20} className="text-indigo-300" />
-            <p className="text-xs text-gray-400">Drag and drop</p>
-            <p className="text-sm font-semibold text-indigo-600">Browse</p>
-          </button>
-          <button onClick={() => setShowAIModal(true)} className="flex flex-col items-center justify-center gap-1.5 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-            <Sparkles size={20} className="text-indigo-300" />
-            <p className="text-xs text-gray-400">Skip the writing</p>
-            <p className="text-sm font-semibold text-indigo-600">Generate with AI</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-slate-700">Cover letter</p>
+          <button 
+            onClick={() => setShowAIModal(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+          >
+            <Sparkles size={14} />
+            Generate with AI
           </button>
         </div>
-        {coverLetterFileName && <p className="mt-2 text-xs text-gray-400">Uploaded: {coverLetterFileName}</p>}
-        {coverLetter && <p className="mt-2 text-xs text-slate-600 whitespace-pre-wrap">{coverLetter}</p>}
+        <textarea
+          value={coverLetter}
+          onChange={(e) => setCoverLetter(e.target.value)}
+          placeholder="Paste or type your cover letter here..."
+          className="w-full min-h-[160px] rounded-2xl border border-gray-200 bg-slate-50/30 p-4 text-sm text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 transition-all resize-none"
+        />
       </div>
+
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <button onClick={() => openJobDetails(selectedJob.id)} className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-5 py-2 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"><Pencil size={13} strokeWidth={2.2} />Edit</button>

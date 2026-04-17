@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import RoleGate from "@/components/auth/RoleGate";
 import { profileService, CandidateProfile } from "@/lib/candidate/profile.service";
 import {
@@ -13,6 +14,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function CandidateSettingsPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [realProfile, setRealProfile] = useState<CandidateProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
@@ -46,6 +48,12 @@ export default function CandidateSettingsPage() {
         const file = res[0];
         const updated = await profileService.updateResume(file.ufsUrl || file.url, file.name);
         setRealProfile(updated);
+        
+        // Invalidate recommendations query to refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
+        queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
+        queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
+
         setPopup({ open: true, message: "Resume updated and skills extracted successfully!", success: true });
       } catch (error: any) {
         console.error("Failed to update resume:", error);
@@ -67,6 +75,12 @@ export default function CandidateSettingsPage() {
     try {
       const updated = await profileService.removeResume();
       setRealProfile(updated);
+
+      // Invalidate recommendations query to refresh dashboard data
+      queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
+
       setPopup({ open: true, message: "Resume removed successfully.", success: true });
     } catch (error: any) {
       console.error("Failed to remove resume:", error);
