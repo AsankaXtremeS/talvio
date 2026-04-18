@@ -46,8 +46,10 @@ export default function EmailPreviewPanel({ subject, body, onBodyChange, isSavin
   };
 
   return (
-    <div className="mt-6 bg-white border border-indigo-100 shadow-sm rounded-xl overflow-hidden">
-
+    <div
+      className={`mt-6 bg-white rounded-xl overflow-hidden ${mode === "edit" ? "no-border-edit-mode" : "border border-indigo-100 shadow-sm"}`}
+      style={mode === "edit" ? { border: 'none', outline: 'none', boxShadow: 'none' } : {}}
+    >
       {/* ── Header bar ── */}
       <div className="flex items-center justify-between px-6 py-4 bg-indigo-50 border-b border-indigo-100">
         <div className="flex items-center gap-2.5">
@@ -116,7 +118,8 @@ export default function EmailPreviewPanel({ subject, body, onBodyChange, isSavin
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             rows={18}
-            className="w-full px-4 py-3 text-xs font-mono text-gray-700 bg-gray-50 border border-gray-200 rounded-lg outline-none resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-3 text-xs font-mono text-gray-700 bg-gray-50 rounded-lg resize-none"
+            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
             spellCheck={false}
           />
           <div className="flex justify-end gap-3">

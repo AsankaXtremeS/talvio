@@ -49,7 +49,7 @@ export default function JobPostPanel({ jobPostId, postId }: Props) {
   // ── Skeleton ──
   if (loading) {
     return (
-      <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
+      <div className="flex flex-col min-h-0 p-1 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-md bg-gray-200 shrink-0" />
           <div className="flex-1 space-y-2">
@@ -69,7 +69,7 @@ export default function JobPostPanel({ jobPostId, postId }: Props) {
   // ── Error / no ID ──
   if (error || !post) {
     return (
-      <div className="flex flex-col min-h-0 p-6 bg-white border border-red-100 shadow-sm rounded-xl">
+      <div className="flex flex-col min-h-0 p-4 bg-white border border-red-100 shadow-sm rounded-xl">
         <p className="text-sm text-red-500">{error ?? "No job post selected."}</p>
       </div>
     );
@@ -85,26 +85,26 @@ export default function JobPostPanel({ jobPostId, postId }: Props) {
   const initial = (post.companyName ?? post.title ?? "?")[0]?.toUpperCase() ?? "?";
 
   return (
-    <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl">
+    <div className="flex flex-col min-h-0 p-2 bg-white border border-gray-100 shadow-sm rounded-xl" style={{maxHeight:'180px'}}>
 
       {/* ── Header: company logo + title ── */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 font-bold text-white bg-gray-900 rounded-md shrink-0">
+          <div className="flex items-center justify-center w-8 h-8 font-bold text-white bg-gray-900 rounded-md shrink-0">
             {initial}
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 leading-snug">{post.title}</h3>
-            <p className="text-sm text-blue-500">{post.companyName ?? "—"}</p>
+            <h3 className="text-base font-semibold text-gray-900 leading-snug">{post.title}</h3>
+            <p className="text-xs text-blue-500">{post.companyName ?? "—"}</p>
           </div>
         </div>
-        <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusColor}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor}`}>
           {post.status}
         </span>
       </div>
 
       {/* ── Badges ── */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-1 mb-2">
         {post.employmentType && (
           <span className="px-3 py-1 text-xs text-blue-600 rounded-full bg-blue-50">
             {post.employmentType}
@@ -152,9 +152,9 @@ export default function JobPostPanel({ jobPostId, postId }: Props) {
       <div className="flex justify-end mt-auto">
         <button
           onClick={() => id && router.push(`/users/employer/job-posts/${id}`)}
-          className="flex items-center gap-2 px-6 py-2 font-medium text-indigo-600 transition-colors border-2 border-indigo-600 rounded-lg hover:bg-indigo-50"
+          className="flex items-center gap-2 px-4 py-1 font-medium text-indigo-600 transition-colors border-2 border-indigo-600 rounded-lg hover:bg-indigo-50"
         >
-          <ExternalLink size={15} />
+          <ExternalLink size={13} />
           View Post
         </button>
       </div>

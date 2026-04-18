@@ -2,7 +2,7 @@
 
 import { use, useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, UserSquare } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Hourglass, UserSquare } from "lucide-react";
 import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
 import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
 import DateCalendar from "@/components/employer/interviews/DateCalendar";
@@ -204,8 +204,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2 min-h-[380px]">
+          <div className="space-y-4 flex flex-col h-full min-h-full">
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
             </div>
@@ -213,7 +213,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
             <ApplicantPanel candidateId={realCandidateId} />
           </div>
 
-          <div>
+          <div className="flex flex-col h-full min-h-full justify-stretch">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
             <DateCalendar 
               selectedDate={date} 
@@ -273,21 +273,21 @@ export default function ScheduleInterviewPage({ params }: Props) {
       {/* Loading IDs Alert */}
       {loadingIds && (
         <div className="fixed bottom-4 left-4 right-4 z-40 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-          ⏳ Loading candidate and job post information...
+          <Hourglass size={20} /> Loading candidate and job post information...
         </div>
       )}
 
       {/* Load Error Alert */}
       {loadError && !loadingIds && (
         <div className="fixed bottom-4 left-4 right-4 z-40 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">
-          ⚠️ {loadError}
+          <AlertTriangle size={20}/> {loadError}
         </div>
       )}
 
       {/* Schedule Error Alert */}
       {scheduleError && (
         <div className="fixed top-4 left-4 right-4 z-40 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          ⚠️ {scheduleError}
+          <AlertTriangle size={20}/> {scheduleError}
         </div>
       )}
 

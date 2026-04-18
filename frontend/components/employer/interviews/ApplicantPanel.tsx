@@ -5,7 +5,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 import { CandidateInfo } from "@/types/candidate/candidate.types";
 import { getCandidateById } from "@/lib/employer/candidates.service";
 
@@ -46,7 +46,7 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
   // ── Skeleton ──
   if (loading) {
     return (
-      <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
+      <div className="flex flex-col min-h-0 p-4 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-gray-200 shrink-0" />
           <div className="flex-1 space-y-2">
@@ -66,7 +66,7 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
   // ── Error or no data ──
   if (error || !candidate) {
     return (
-      <div className="flex flex-col min-h-0 p-6 bg-white border border-red-100 shadow-sm rounded-xl">
+      <div className="flex flex-col min-h-0 p-4 bg-white border border-red-100 shadow-sm rounded-xl">
         <p className="text-sm text-red-500">{error ?? "Candidate not found."}</p>
       </div>
     );
@@ -88,39 +88,39 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
       : "text-amber-600 border-amber-200 bg-amber-50";
 
   return (
-    <div className="flex flex-col min-h-0 p-6 bg-white border border-gray-100 shadow-sm rounded-xl">
+    <div className="flex flex-col min-h-0 p-2 bg-white border border-gray-100 shadow-sm rounded-xl" style={{maxHeight:'180px'}}>
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
           {/* Avatar — gradient fallback */}
           <div
-            className="flex items-center justify-center w-12 h-12 rounded-full text-sm font-bold text-white shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shrink-0"
             style={{ background: candidate.avatarGradient ?? "linear-gradient(135deg,#4F46E5,#7C3AED)" }}
           >
             {initials}
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{candidate.name}</h3>
-            <p className="text-sm text-blue-500">{candidate.role}</p>
+            <h3 className="text-base font-semibold text-gray-900">{candidate.name}</h3>
+            <p className="text-xs text-blue-500">{candidate.role}</p>
           </div>
         </div>
 
         {/* Match score badge */}
-        <span className={`flex items-center gap-1 px-3 py-1 text-xs font-medium border rounded-full ${scoreColor}`}>
+        <span className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium border rounded-full ${scoreColor}`}>
           <CheckCircle2 size={13} />
           {candidate.matchScore}% Match
         </span>
       </div>
 
       {/* ── Meta ── */}
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-2 text-xs text-gray-500">
         {candidate.experience} experience · Applied {candidate.appliedDaysAgo}{" "}
         {candidate.appliedDaysAgo === 1 ? "day" : "days"} ago
       </p>
 
       {/* ── Skills ── */}
-      <div className="flex flex-wrap gap-2 pb-4 mb-4 border-b border-gray-100">
+      <div className="flex flex-wrap gap-1 pb-2 mb-2 border-b border-gray-100">
         {candidate.skills.map((skill) => (
           <span
             key={skill}
@@ -133,7 +133,7 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
 
       {/* ── Email info ── */}
       <p className="mb-4 text-xs text-gray-400 truncate">
-        📧 {candidate.email}
+        <Mail size={16} className="inline mr-1" /> {candidate.email}
       </p>
 
       {/* ── CTA — Note: candidate profile not implemented yet ── */}

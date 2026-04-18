@@ -104,7 +104,7 @@ export default function ReadyToScheduleBar({
             </div>
             {candidateEmail && (
               <p className="text-xs text-gray-400 ml-6">
-                📧 Invite will be sent to: <span className="font-medium text-gray-600">{candidateEmail}</span>
+                <Mail size={16} className="inline mr-1" /> Invite will be sent to: <span className="font-medium text-gray-600">{candidateEmail}</span>
               </p>
             )}
           </div>

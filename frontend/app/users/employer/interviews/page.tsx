@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { getInterviews, cancelInterview, getScheduledDates } from "@/lib/employer/interviews.service";
 import { InterviewDTO } from "@/types/employer/interview.types";
@@ -202,7 +203,7 @@ export default function InterviewsDashboardPage() {
         {/* ── Error ── */}
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-            ⚠️ {error}
+            <AlertTriangle size={20}/> {error}
           </div>
         )}
 

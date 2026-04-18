@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 interface InterviewCalendarProps {
@@ -23,7 +23,25 @@ export default function InterviewCalendar({
   onDateChange,
   onTimeChange,
 }: InterviewCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 11)); // Dec 2025
+  // Set default selected date to today if not set
+  useEffect(() => {
+    if (!selectedDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      onDateChange(`${yyyy}-${mm}-${dd}`);
+    }
+  }, [selectedDate, onDateChange]);
+
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (selectedDate) {
+      const [yyyy, mm] = selectedDate.split("-");
+      return new Date(Number(yyyy), Number(mm) - 1);
+    }
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth());
+  });
   
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const monthName = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -55,7 +73,7 @@ export default function InterviewCalendar({
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       {/* Calendar Section */}
-      <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-sm">
+      <div className="p-5 bg-white border border-gray-200 rounded-2xl shadow-sm" style={{height:'110px', minHeight:'110px', maxHeight:'110px', overflow:'hidden'}}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900">{monthName}</h3>
           <div className="flex gap-2">
@@ -97,24 +115,29 @@ export default function InterviewCalendar({
             const dateStr = getDateString(day);
             const isSelected = selectedDate === dateStr;
             const hasInterviews = day === 24 || day === 26; // Mock data
-            
+            const today = new Date();
+            const thisDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+            const isPast = thisDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
             return (
               <button
                 key={day}
-                onClick={() => onDateChange(dateStr)}
+                onClick={() => !isPast && onDateChange(dateStr)}
+                disabled={isPast}
                 className={`
-                  h-10 rounded-lg text-sm font-medium transition-all relative
+                  h-8 rounded-lg text-sm font-medium transition-all relative
                   ${isSelected 
                     ? "bg-indigo-600 text-white shadow-md" 
-                    : "text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                    : isPast
+                      ? "text-gray-300 bg-gray-50 cursor-not-allowed"
+                      : "text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
                   }
                 `}
               >
                 {day}
-                {hasInterviews && !isSelected && (
+                {hasInterviews && !isSelected && !isPast && (
                   <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-400" />
                 )}
-                {hasInterviews && isSelected && (
+                {hasInterviews && isSelected && !isPast && (
                   <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
                 )}
               </button>

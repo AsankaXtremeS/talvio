@@ -15,6 +15,7 @@ import {
   Phone,
   Building2,
   Link2,
+  Mail,
   Info,
 } from "lucide-react";
 import { MeetingType } from "@/types/employer/interview.types";
@@ -243,7 +244,7 @@ export default function ScheduleForm({
             </>
           ) : (
             <>
-              ✉️ Generate Email
+              <Mail size={16} /> Generate Email
             </>
           )}
         </button>
