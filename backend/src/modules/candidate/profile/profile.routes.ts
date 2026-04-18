@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../../../middlewares/auth.middleware";
 import { requireRole } from "../../../middlewares/role.middleware";
-import { getProfile, updateResume, removeResume } from "./profile.controller";
+import { getProfile, updateProfile, updateResume, removeResume } from "./profile.controller";
 
 const router = Router();
 
@@ -12,6 +12,13 @@ router.get(
   authenticate,
   requireRole(["STUDENT", "PROFESSIONAL"]),
   getProfile
+);
+
+router.put(
+  "/",
+  authenticate,
+  requireRole(["STUDENT", "PROFESSIONAL"]),
+  updateProfile
 );
 
 // Update default resume

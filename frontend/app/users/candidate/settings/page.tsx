@@ -18,7 +18,6 @@ export default function CandidateSettingsPage() {
   const [realProfile, setRealProfile] = useState<CandidateProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
-  // Popup & Modal State
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
     open: false,
     message: "",
@@ -88,20 +87,23 @@ export default function CandidateSettingsPage() {
     }
   };
 
+  const handleProfileSaved = (data: any) => {
+    setRealProfile((prev) => prev ? { ...prev, ...data } : prev);
+    setPopup({ open: true, message: "Profile updated successfully!", success: true });
+  };
+
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
-  const displayName = fullName || "John Dob";
+  const displayName = fullName || "John Doe";
 
   const profile = useMemo<CandidateSettingsProfile>(() => {
     return {
       fullName: displayName,
-      title: user?.role === "PROFESSIONAL" ? "Frontend Engineer" : "Frontend Developer",
-      location: "Ottawa, ON, Canada",
+      title: realProfile?.headline || (user?.role === "PROFESSIONAL" ? "Frontend Engineer" : "Frontend Developer"),
+      location: realProfile?.location || "Ottawa, ON, Canada",
       email: user?.email || "example@example.com",
       phone: "+1123-456-7890",
-      bio: "A motivated web developer with 2 years of experience in React and Next.js.",
-      skills: ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
-      githubUrl: "https://github.com/#name",
-      linkedinUrl: "https://linkedin.com/#name",
+      bio: realProfile?.bio || "A motivated web developer with 2 years of experience in React and Next.js.",
+      skills: realProfile?.skills?.length ? realProfile.skills : ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
       education: {
         degree: "Bachelor's of Science",
         field: "Computer Science",
@@ -122,22 +124,23 @@ export default function CandidateSettingsPage() {
         period: "Jun 2022-Present",
       },
     };
-  }, [displayName, user?.email, user?.role]);
-
+  }, [displayName, user?.email, user?.role, realProfile]);
 
   return (
     <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
-      <CandidateSettingsView 
-        profile={profile} 
-        profileScore={realProfile?.cvUrl ? 85 : 75} 
+      <CandidateSettingsView
+        profile={profile}
+        profileScore={realProfile?.cvUrl ? 85 : 75}
         resumeData={realProfile ? {
           cvUrl: realProfile.cvUrl,
           cvFileName: realProfile.cvFileName,
-          updatedAt: realProfile.updatedAt
+          updatedAt: realProfile.updatedAt,
         } : undefined}
         onResumeUpdate={handleResumeUpdate}
         onResumeError={handleResumeError}
         onRemoveResume={handleRemoveResume}
+        onProfileSaved={handleProfileSaved}
+        userRole={user?.role}
       />
 
       <Popup
