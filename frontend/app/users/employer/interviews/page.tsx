@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { getInterviews, cancelInterview, getScheduledDates } from "@/lib/employer/interviews.service";
 import { InterviewDTO } from "@/types/employer/interview.types";
+import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,8 @@ export default function InterviewsDashboardPage() {
   // ── UI state ──
   const [openMenuId, setOpenMenuId]     = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedInterview, setSelectedInterview] = useState<InterviewDTO | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // ── Fetch interviews + calendar dates ──────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -169,7 +172,17 @@ export default function InterviewsDashboardPage() {
       setOpenMenuId(null);
     }
   };
+  // ── Open interview details modal ────────────────────────────────────────
+  const handleOpenDetails = (interview: InterviewDTO) => {
+    setSelectedInterview(interview);
+    setIsModalOpen(true);
+  };
 
+  // ── Close interview details modal ──────────────────────────────────────
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedInterview(null), 200); // Wait for animation
+  };
   // ── Calendar cell helpers ──────────────────────────────────────────────────
   const firstDow  = getFirstDayOfWeek(calYear, calMonth);
   const daysInMon = getDaysInMonth(calYear, calMonth);
@@ -256,11 +269,15 @@ export default function InterviewsDashboardPage() {
             {!loading && visibleInterviews.map((iv) => (
               <div
                 key={iv.id}
-                className="relative flex flex-col gap-3 rounded-2xl border border-[#dbe7ff] bg-white p-5"
+                onClick={() => handleOpenDetails(iv)}
+                className="relative flex flex-col gap-3 rounded-2xl border border-[#dbe7ff] bg-white p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-indigo-400 hover:-translate-y-0.5 group"
               >
                 {/* Options menu button */}
                 <button
-                  onClick={() => setOpenMenuId(openMenuId === iv.id ? null : iv.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuId(openMenuId === iv.id ? null : iv.id);
+                  }}
                   className={`absolute p-1.5 rounded-lg top-4 right-4 z-20 transition-colors
                     ${openMenuId === iv.id ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-900 hover:bg-gray-50"}`}
                 >
@@ -271,7 +288,8 @@ export default function InterviewsDashboardPage() {
                 {openMenuId === iv.id && (
                   <div className="absolute right-4 top-12 z-30 w-44 rounded-xl border border-[#dbe7ff] bg-white py-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-100">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setOpenMenuId(null);
                         router.push(`/users/employer/job-posts/${iv.jobPost.id}/candidates/${iv.candidate.id}/schedule`);
                       }}
@@ -281,7 +299,10 @@ export default function InterviewsDashboardPage() {
                     </button>
                     <div className="my-1 border-t border-gray-100" />
                     <button
-                      onClick={() => handleCancel(iv.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancel(iv.id);
+                      }}
                       disabled={cancellingId === iv.id}
                       className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
@@ -424,6 +445,13 @@ export default function InterviewsDashboardPage() {
 
         </div>
       </div>
+
+      {/* Interview Details Modal */}
+      <InterviewDetailsModal
+        interview={selectedInterview}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }

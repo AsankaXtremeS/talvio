@@ -106,6 +106,7 @@ export const getInterview = async (req: Request, res: Response) => {
     if (!id) return res.status(400).json({ message: "Invalid interview id" });
 
     const interview = await interviewService.getById(id, employerId);
+    console.log(`[getInterview] ID: ${id}, MeetingType: ${interview.meetingType}, MeetingLink: ${interview.meetingLink}`);
     return res.json(interview);
   } catch (err) {
     console.error("getInterview error:", err);

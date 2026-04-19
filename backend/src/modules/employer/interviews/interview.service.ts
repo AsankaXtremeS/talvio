@@ -181,28 +181,38 @@ export const interviewService = {
     // 3. Parse scheduledAt
     const scheduledAt = new Date(input.scheduledAt);
 
-    // 4. For ONLINE: create Google Calendar event with Meet link
+    // 4. For ONLINE: create Google Calendar event with Meet link (or use fallback)
     let meetingLink: string | undefined;
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
 
-    if (input.meetingType === "ONLINE" && googleCalendarService.isConfigured()) {
-      try {
-        const calEvent = await googleCalendarService.createEvent({
-          title: `Interview – ${candidateName} | ${jobPost.title}`,
-          description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
-          startTime: scheduledAt,
-          durationMinutes: 60,
-          attendeeEmails: [candidateEmail],
-          generateMeetLink: true,
-        });
+    if (input.meetingType === "ONLINE") {
+      if (googleCalendarService.isConfigured()) {
+        // Try to create Google Calendar event with Meet link
+        try {
+          const calEvent = await googleCalendarService.createEvent({
+            title: `Interview – ${candidateName} | ${jobPost.title}`,
+            description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
+            startTime: scheduledAt,
+            durationMinutes: 60,
+            attendeeEmails: [candidateEmail],
+            generateMeetLink: true,
+          });
 
-        meetingLink = calEvent.meetLink;
-        googleCalendarEventId = calEvent.eventId;
-        googleCalendarLink = calEvent.calendarLink;
-      } catch (calErr) {
-        // Log but don't fail — calendar is optional enhancement
-        console.error("Google Calendar event creation failed:", calErr);
+          meetingLink = calEvent.meetLink;
+          googleCalendarEventId = calEvent.eventId;
+          googleCalendarLink = calEvent.calendarLink;
+        } catch (calErr) {
+          // Log but don't fail — calendar is optional enhancement
+          console.error("Google Calendar event creation failed:", calErr);
+          // Fallback: generate a simple meeting link using interview ID
+          meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
+        }
+      } else {
+        // No Google Calendar configured — generate fallback meeting link
+        // Use Jitsi Meet (free, no setup required)
+        meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
+        console.log(`Generated fallback Jitsi Meet link: ${meetingLink}`);
       }
     } else if (input.meetingType === "ONSITE" && googleCalendarService.isConfigured()) {
       // Create calendar event without Meet link for ONSITE
@@ -233,6 +243,7 @@ export const interviewService = {
       { meetingLink, googleCalendarEventId, googleCalendarLink }
     );
 
+    console.log(`[Interview Created] ID: ${created.id}, Type: ${input.meetingType}, MeetingLink: ${meetingLink}`);
     return mapToDTO(created);
   },
 
@@ -390,6 +401,7 @@ export const interviewService = {
     const emailData = buildEmailData(existing as any);
 
     // Send the email — throws if SMTP fails
+    console.log(`[ScheduleAndSend] Interview ID: ${id}, Email recipient: ${emailData.candidateEmail}, MeetingType: ${emailData.meetingType}, MeetingLink: ${emailData.meetingLink}`);
     await sendInterviewEmail(emailData);
 
     // Update status to SCHEDULED and record send time
