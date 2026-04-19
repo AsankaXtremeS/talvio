@@ -68,6 +68,35 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
     if (type === 'company') {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-2">Company Logo</p>
+            {data.companyLogoUrl ? (
+              <div className="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img
+                  src={data.companyLogoUrl}
+                  alt={`${data.name || 'Company'} logo`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="hidden h-full w-full items-center justify-center bg-indigo-600 text-xs font-bold text-white"
+                  aria-hidden="true"
+                >
+                  {(data.name || 'CO').slice(0, 2).toUpperCase()}
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200 bg-indigo-600 text-xs font-bold text-white">
+                {(data.name || 'CO').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
           <DetailField icon={<Building2 size={18} />} label="Company Name" value={data.name} />
           <DetailField icon={<Mail size={18} />} label="Admin Email" value={data.email} />
           <DetailField icon={<FileText size={18} />} label="Active Posts" value={data.postCount} />
@@ -128,7 +157,7 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100"
         >
           {/* Header */}
-          <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-white to-indigo-50/30">
+          <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-linear-to-r from-white to-indigo-50/30">
             <div>
               <h3 className="text-xl font-bold text-gray-900 leading-tight">{title}</h3>
               <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mt-1">Detailed Profile View</p>

@@ -67,6 +67,7 @@ export const companiesRepository = {
             select: {
               id: true,
               companyName: true,
+              companyLogoUrl: true,
               verificationStatus: true,
               createdAt: true,
               _count: {
@@ -106,6 +107,7 @@ export const companiesRepository = {
           select: {
             id: true,
             companyName: true,
+            companyLogoUrl: true,
             verificationStatus: true,
             createdAt: true,
             _count: {
