@@ -7,6 +7,8 @@ const normalizeStringList = (value: string | string[]): string[] => {
   return parts.map((item) => item.trim()).filter(Boolean);
 };
 
+const jobPostStatusEnum = z.enum(["Draft", "Active", "Closed"]);
+
 
 // Accept exactly the frontend's field names and types
 export const createJobPostSchema = z.object({
@@ -21,10 +23,23 @@ export const createJobPostSchema = z.object({
   skills: z.string().max(1000),
   workMode: z.enum(["On site", "Remote", "Hybrid"]),
   employmentType: z.enum(["Full-time", "Part-time", "Contract"]),
-  status: z.enum(["Draft", "Active", "Closed"]),
+  status: jobPostStatusEnum.optional().default("Active"),
 });
 
-export const updateJobPostSchema = createJobPostSchema.partial();
+export const updateJobPostSchema = z.object({
+  title: z.string().min(1).max(150).trim().optional(),
+  type: z.enum(["Job", "Internship"]).optional(),
+  closingDate: z.string().max(30).optional(),
+  location: z.string().max(255).optional(),
+  description: z.string().min(20).max(700).optional(),
+  responsibilities: z.string().min(20).max(700).optional().or(z.literal("")),
+  requirements: z.string().min(20).max(700).optional(),
+  additionalInformation: z.string().min(20).max(700).optional().or(z.literal("")),
+  skills: z.string().max(1000).optional(),
+  workMode: z.enum(["On site", "Remote", "Hybrid"]).optional(),
+  employmentType: z.enum(["Full-time", "Part-time", "Contract"]).optional(),
+  status: jobPostStatusEnum.optional(),
+});
 
 export const jobPostQuerySchema = z.object({
   status: z.enum(["DRAFT", "ACTIVE", "CLOSED"]).optional(),
