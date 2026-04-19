@@ -21,6 +21,7 @@ export interface CompanyDTO {
   id: string;           // user ID (primary key we use for delete/view)
   companyName: string;
   email: string;
+  companyLogoUrl?: string | null;
   postCount: number;
   joinedAt: string;     // ISO date string — frontend formats as needed
 }
@@ -59,6 +60,7 @@ export const companiesService = {
       id: user.id,
       companyName: user.employerProfile?.companyName ?? "Unknown",
       email: user.email,
+      companyLogoUrl: user.employerProfile?.companyLogoUrl ?? null,
       postCount: user.employerProfile?._count.jobPosts ?? 0,
       joinedAt: user.createdAt.toISOString(),
     }));
@@ -91,6 +93,7 @@ export const companiesService = {
       id: user.id,
       companyName: user.employerProfile?.companyName ?? "Unknown",
       email: user.email,
+      companyLogoUrl: user.employerProfile?.companyLogoUrl ?? null,
       postCount: user.employerProfile?._count.jobPosts ?? 0,
       joinedAt: user.createdAt.toISOString(),
     };
