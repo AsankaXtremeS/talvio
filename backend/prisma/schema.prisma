@@ -186,11 +186,17 @@ model Interview {
   googleCalendarLink    String?
   candidateEmail        String
   emailSentAt           DateTime?
+  rescheduledFromId     String?
+  rescheduledToId       String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   candidate             CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
   employer              EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
   jobPost               JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  rescheduledFrom       Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
+  rescheduledTo         Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id], onDelete: SetNull)
+  rescheduledInterviews Interview[]          @relation("RescheduleFrom")
+  reschedulesToInterviews Interview[]        @relation("RescheduleTo")
 
   @@index([employerId])
   @@index([employerId, status])

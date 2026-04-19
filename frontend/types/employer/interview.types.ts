@@ -25,6 +25,9 @@ export interface InterviewDTO {
   emailBody?: string | null;
   emailSentAt?: string | null;
   candidateEmail: string;
+  isReschedule?: boolean;       // Temporary flag to indicate reschedule mode
+  rescheduledFromId?: string | null;  // ID of the interview being rescheduled
+  rescheduledToId?: string | null;    // ID of the interview this one was rescheduled to
   candidate: {
     id: string;
     name: string;
@@ -63,6 +66,19 @@ export interface CreateInterviewPayload {
   location?: string;
   additionalInfo?: string;
   emailBody?: string;
+  isReschedule?: boolean;
+  rescheduledFromId?: string;
+}
+
+/** Payload for updating an existing interview */
+export interface UpdateInterviewPayload {
+  scheduledAt?: string;
+  meetingType?: MeetingType;
+  location?: string;
+  additionalInfo?: string;
+  emailBody?: string;
+  isReschedule?: boolean;
+  rescheduledFromId?: string | null;
 }
 
 /** Payload for generating an email preview — maps to backend GenerateEmailInput */
@@ -74,4 +90,5 @@ export interface GenerateEmailPayload {
   location?: string;
   meetingLink?: string;
   additionalInfo?: string;
+  isReschedule?: boolean;
 }

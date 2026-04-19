@@ -62,6 +62,8 @@ function mapToDTO(raw: any): InterviewDTO {
     emailBody: raw.emailBody ?? null,
     emailSentAt: raw.emailSentAt ? raw.emailSentAt.toISOString() : null,
     candidateEmail: raw.candidateEmail,
+    rescheduledFromId: raw.rescheduledFromId ?? null,
+    rescheduledToId: raw.rescheduledToId ?? null,
     candidate: {
       id: raw.candidate?.id ?? "",
       name: candidateName,
@@ -101,6 +103,9 @@ function buildEmailData(raw: any, customBody?: string | null): InterviewEmailDat
     .filter(Boolean)
     .join(" ") || raw.employer?.companyName || "Hiring Team";
 
+  // Check if this is a reschedule by looking at rescheduledFromId or isReschedule flag
+  const isReschedule = !!(raw.rescheduledFromId || raw.isReschedule);
+
   return {
     candidateName,
     candidateEmail: raw.candidateEmail ?? raw.candidate?.user?.email ?? "",
@@ -113,6 +118,7 @@ function buildEmailData(raw: any, customBody?: string | null): InterviewEmailDat
     location: raw.location,
     meetingLink: raw.meetingLink,
     additionalInfo: raw.additionalInfo,
+    isReschedule,
     customBody: customBody ?? raw.emailBody ?? null,
   };
 }
@@ -373,6 +379,7 @@ export const interviewService = {
       location: input.location,
       meetingLink: input.meetingLink,
       additionalInfo: input.additionalInfo,
+      isReschedule: input.isReschedule,
       customBody: null,
     };
 
@@ -433,7 +440,9 @@ export const interviewService = {
       }
     }
 
-    await interviewRepository.delete(id, employerProfileId);
+    // Mark as CANCELLED instead of hard delete (keeps record for history/reference)
+    await interviewRepository.update(id, employerProfileId, { status: "CANCELLED" });
+    console.log(`[Interview Cancelled] ID: ${id}`);
   },
 
   /**

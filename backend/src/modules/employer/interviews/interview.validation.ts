@@ -37,6 +37,10 @@ export const createInterviewSchema = z
 
     // Email body is optional — backend can generate a default template
     emailBody: z.string().max(10000).optional(),
+    
+    // Reschedule fields
+    isReschedule: z.boolean().optional().default(false),
+    rescheduledFromId: z.string().uuid().optional().nullable(),
   })
   .superRefine((data, ctx) => {
     // Enforce location presence for ONSITE interviews
@@ -65,6 +69,9 @@ export const updateInterviewSchema = z
     additionalInfo: z.string().max(2000).optional().nullable(),
     emailBody: z.string().max(10000).optional().nullable(),
     status: z.enum(["DRAFT", "SCHEDULED", "CANCELLED", "COMPLETED"]).optional(),
+    isReschedule: z.boolean().optional(),
+    rescheduledFromId: z.string().uuid().optional().nullable(),
+    rescheduledToId: z.string().uuid().optional().nullable(),
   })
   .superRefine((data, ctx) => {
     // If changing to ONSITE and no location, reject
@@ -92,6 +99,7 @@ export const generateEmailSchema = z.object({
   location: z.string().max(500).optional(),
   meetingLink: z.string().url().optional(),    // Pre-existing link if already generated
   additionalInfo: z.string().max(2000).optional(),
+  isReschedule: z.boolean().optional().default(false),  // Flag for reschedule email
 });
 
 // ─── Query Params for Interview List ─────────────────────────────────────────

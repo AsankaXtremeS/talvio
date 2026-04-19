@@ -15,6 +15,8 @@ export interface CreateInterviewInput {
   location?: string;         // Required when meetingType === ONSITE
   additionalInfo?: string;
   emailBody?: string;        // Custom email body from employer
+  isReschedule?: boolean;
+  rescheduledFromId?: string;
 }
 
 export interface UpdateInterviewInput {
@@ -24,6 +26,9 @@ export interface UpdateInterviewInput {
   additionalInfo?: string;
   emailBody?: string;
   status?: InterviewStatus;
+  isReschedule?: boolean;
+  rescheduledFromId?: string | null;
+  rescheduledToId?: string | null;
 }
 
 // ─── DTO Types (sent to frontend) ─────────────────────────────────────────────
@@ -41,6 +46,9 @@ export interface InterviewDTO {
   emailBody?: string | null;
   emailSentAt?: string | null;
   candidateEmail: string;
+  isReschedule?: boolean;     // Temporary flag to indicate reschedule mode
+  rescheduledFromId?: string | null;  // ID of the interview being rescheduled
+  rescheduledToId?: string | null;    // ID of the interview this one was rescheduled to
   candidate: {
     id: string;
     name: string;

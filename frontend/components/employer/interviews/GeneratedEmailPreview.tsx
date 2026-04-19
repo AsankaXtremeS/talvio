@@ -16,6 +16,7 @@ interface Props {
   employerCompany?: string;
   employerName?: string;
   employerEmail?: string;
+  isReschedule?: boolean;
   onConfirm?: (emailContent: string) => void;
 }
 
@@ -31,6 +32,7 @@ export default function GeneratedEmailPreview({
   employerCompany = "Talvio Tech",
   employerName = "Hiring Team",
   employerEmail = "recruitment@talvio.com",
+  isReschedule = false,
   onConfirm,
 }: Props) {
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -45,7 +47,16 @@ export default function GeneratedEmailPreview({
   });
 
   // Build email content
-  const emailContent = `Dear ${candidateName},
+  const greeting = isReschedule
+    ? `Dear ${candidateName},
+
+We hope this message finds you well. We would like to reschedule your upcoming interview due to unforeseen circumstances. We sincerely apologize for any inconvenience this may cause.
+
+Please see the updated interview details below:
+
+📅 Date: ${formattedDate}
+⏰ Time: ${time}`
+    : `Dear ${candidateName},
 
 Congratulations on your application! We are excited to move forward with you in our interview process.
 
@@ -53,6 +64,8 @@ We would like to schedule an interview with you at the following details:
 
 📅 Date: ${formattedDate}
 ⏰ Time: ${time}`;
+
+  const emailContent = greeting;
 
   let meetingDetails = "";
   if (meetingType === "ONLINE" && meetingLink) {
@@ -66,11 +79,15 @@ We would like to schedule an interview with you at the following details:
    We will call you at your registered phone number.`;
   }
 
+  const closingMessage = isReschedule
+    ? "If you have any questions or concerns regarding the rescheduled time, please don't hesitate to reach out."
+    : "We look forward to hearing from you. If you have any questions or need to reschedule, please feel free to reach out.";
+
   const fullEmail = `${emailContent}
 ${meetingDetails}
 
 ${additionalInfo ? `Additional Information:\n${additionalInfo}\n` : ""}
-We look forward to hearing from you. If you have any questions or need to reschedule, please feel free to reach out.
+${closingMessage}
 
 Best regards,
 ${employerName}

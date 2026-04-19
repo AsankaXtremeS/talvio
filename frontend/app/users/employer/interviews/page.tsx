@@ -16,15 +16,16 @@ import {
   Video,
   MapPin,
   Phone,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
   Loader2,
   AlertTriangle,
+  Clock
 } from "lucide-react";
-import { getInterviews, cancelInterview, getScheduledDates } from "@/lib/employer/interviews.service";
+import { getInterviews, cancelInterview, getScheduledDates, getInterview } from "@/lib/employer/interviews.service";
 import { InterviewDTO } from "@/types/employer/interview.types";
 import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
+import InterviewCard from "@/components/employer/interviews/InterviewCard";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ export default function InterviewsDashboardPage() {
 
   // ── Data state ──
   const [interviews, setInterviews]           = useState<InterviewDTO[]>([]);
+  const [oldInterviews, setOldInterviews]     = useState<Map<string, InterviewDTO>>(new Map());
   const [scheduledDates, setScheduledDates]   = useState<Set<string>>(new Set());
   const [loading, setLoading]                 = useState(true);
   const [error, setError]                     = useState<string | null>(null);
@@ -124,6 +126,29 @@ export default function InterviewsDashboardPage() {
       ]);
       setInterviews(result.data);
       setScheduledDates(new Set(dates));
+      console.log("Fetched interviews:", result.data);
+      console.log("Rescheduled count:", result.data.filter(iv => iv.rescheduledFromId).length);
+
+      // Fetch old interview details for rescheduled ones
+      const rescheduledInterviews = result.data.filter(iv => iv.rescheduledFromId);
+      if (rescheduledInterviews.length > 0) {
+        const oldInterviewMap = new Map<string, InterviewDTO>();
+        for (const iv of rescheduledInterviews) {
+          if (iv.rescheduledFromId && !oldInterviewMap.has(iv.rescheduledFromId)) {
+            try {
+              console.log(`[Fetching old interview] ${iv.rescheduledFromId} for new interview ${iv.id}`);
+              const oldData = await getInterview(iv.rescheduledFromId);
+              oldInterviewMap.set(iv.rescheduledFromId, oldData);
+              console.log(`[Old interview loaded] ${iv.rescheduledFromId}:`, oldData);
+            } catch (err) {
+              console.error(`[Failed to fetch old interview ${iv.rescheduledFromId}]:`, err instanceof Error ? err.message : err);
+              // Old interview might be cancelled - try to continue anyway
+            }
+          }
+        }
+        setOldInterviews(oldInterviewMap);
+        console.log(`[Reschedule data loaded] ${rescheduledInterviews.length} rescheduled, ${oldInterviewMap.size} old interviews fetched`);
+      }
     } catch (err) {
       setError("Failed to load interviews. Please refresh.");
       console.error(err);
@@ -133,6 +158,19 @@ export default function InterviewsDashboardPage() {
   }, [calYear, calMonth]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Auto-refresh when page becomes visible (after reschedule) ──
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("Page became visible - refreshing interviews");
+        fetchData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [fetchData]);
 
   // ── Calendar navigation ────────────────────────────────────────────────────
   const prevMonth = () => {
@@ -148,15 +186,17 @@ export default function InterviewsDashboardPage() {
 
   // ── Filter interviews by selected day ─────────────────────────────────────
   const visibleInterviews = selectedDay
-    ? interviews.filter((iv) => {
-        const d = new Date(iv.scheduledAt);
-        return (
-          d.getUTCFullYear() === calYear &&
-          d.getUTCMonth()    === calMonth &&
-          d.getUTCDate()     === selectedDay
-        );
-      })
-    : interviews;
+    ? interviews
+        .filter((iv) => iv.status !== "CANCELLED") // Hide cancelled interviews
+        .filter((iv) => {
+          const d = new Date(iv.scheduledAt);
+          return (
+            d.getUTCFullYear() === calYear &&
+            d.getUTCMonth()    === calMonth &&
+            d.getUTCDate()     === selectedDay
+          );
+        })
+    : interviews.filter((iv) => iv.status !== "CANCELLED"); // Hide cancelled interviews
 
   // ── Cancel interview ──────────────────────────────────────────────────────
   const handleCancel = async (id: string) => {
@@ -195,36 +235,41 @@ export default function InterviewsDashboardPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans">
-      <div className="max-w-5xl px-4 py-8 mx-auto pt-4">
-
-        {/* ── Header ── */}
-        <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="p-2 text-indigo-700 rounded-lg bg-indigo-50">
-                <CalendarDays size={26} />
+    <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans flex flex-col">
+      {/* ── Sticky Header ── */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+        <div className="max-w-7xl px-4 py-6 mx-auto">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="p-2 text-indigo-700 rounded-lg bg-indigo-50">
+                  <CalendarDays size={26} />
+                </div>
+                <h1 className="text-2xl font-bold text-indigo-500">Interviews</h1>
               </div>
-              <h1 className="text-2xl font-bold text-indigo-500">Interviews</h1>
+              <p className="ml-11 text-sm text-gray-500">
+                Manage your schedule and upcoming candidate interviews
+              </p>
             </div>
-            <p className="ml-11 text-sm text-gray-500">
-              Manage your schedule and upcoming candidate interviews
-            </p>
           </div>
         </div>
+      </div>
+
+      {/* ── Main Content ── */}
+      <div className="flex-1 max-w-7xl w-full px-4 py-8 mx-auto">
 
         {/* ── Error ── */}
         {error && (
-          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div className="mb-4 px-3 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
             <AlertTriangle size={20}/> {error}
           </div>
         )}
 
         {/* ── Main grid: interviews list + calendar ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
 
           {/* LEFT: Interview list */}
-          <div className="lg:col-span-2 space-y-4 relative">
+          <div className="lg:col-span-3 space-y-4 relative">
 
             {/* Close menu on outside click */}
             {openMenuId && (
@@ -267,97 +312,36 @@ export default function InterviewsDashboardPage() {
 
             {/* Interview cards */}
             {!loading && visibleInterviews.map((iv) => (
-              <div
+              <InterviewCard
                 key={iv.id}
-                onClick={() => handleOpenDetails(iv)}
-                className="relative flex flex-col gap-3 rounded-2xl border border-[#dbe7ff] bg-white p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-indigo-400 hover:-translate-y-0.5 group"
-              >
-                {/* Options menu button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenuId(openMenuId === iv.id ? null : iv.id);
-                  }}
-                  className={`absolute p-1.5 rounded-lg top-4 right-4 z-20 transition-colors
-                    ${openMenuId === iv.id ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-900 hover:bg-gray-50"}`}
-                >
-                  <MoreVertical size={18} />
-                </button>
-
-                {/* Dropdown */}
-                {openMenuId === iv.id && (
-                  <div className="absolute right-4 top-12 z-30 w-44 rounded-xl border border-[#dbe7ff] bg-white py-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-100">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(null);
-                        router.push(`/users/employer/job-posts/${iv.jobPost.id}/candidates/${iv.candidate.id}/schedule`);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Reschedule
-                    </button>
-                    <div className="my-1 border-t border-gray-100" />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCancel(iv.id);
-                      }}
-                      disabled={cancellingId === iv.id}
-                      className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {cancellingId === iv.id ? "Cancelling…" : "Cancel Interview"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Date/time + icon */}
-                <div className="flex items-center gap-3 pr-10">
-                  {getTypeIcon(iv.meetingType)}
-                  <span className="text-lg font-bold text-gray-800 tracking-tight">
-                    {formatDate(iv.scheduledAt)}, {formatTime(iv.scheduledAt)}
-                  </span>
-                </div>
-
-                <div className="my-0.5 border-t border-gray-100" />
-
-                {/* Candidate pill */}
-                <div className="flex items-center gap-2 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-100 to-purple-100 text-[10px] font-bold text-indigo-700">
-                    {getInitials(iv.candidate?.name ?? "?")}
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{iv.candidate?.name ?? "—"}</span>
-                </div>
-
-                {/* Role + type pill */}
-                <div className="flex items-center gap-2 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                  <span className="text-sm font-medium text-gray-600">
-                    {iv.jobPost?.title ?? "—"} · {getTypeLabel(iv.meetingType)} Interview
-                  </span>
-                </div>
-
-                {/* Meet link if online */}
-                {iv.meetingType === "ONLINE" && iv.meetingLink && (
-                  <a
-                    href={iv.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-indigo-500 underline ml-1 hover:text-indigo-700 truncate"
-                  >
-                    {iv.meetingLink}
-                  </a>
-                )}
-                {iv.meetingType === "ONSITE" && iv.location && (
-                  <p className="text-xs text-gray-400 ml-1">📍 {iv.location}</p>
-                )}
-              </div>
+                interview={iv}
+                openMenuId={openMenuId}
+                cancellingId={cancellingId}
+                onMenuClick={(id) => setOpenMenuId(id === openMenuId ? null : id)}
+                onCardClick={handleOpenDetails}
+                onReschedule={(interview) => {
+                  if (!interview.jobPost?.id || !interview.candidate?.id || !interview.id) {
+                    alert("Interview data is incomplete. Please refresh and try again.");
+                    return;
+                  }
+                  setOpenMenuId(null);
+                  const rescheduleUrl = `/users/employer/job-posts/${interview.jobPost.id}/candidates/${interview.candidate.id}/schedule?interviewId=${interview.id}`;
+                  console.log("Navigating to reschedule:", rescheduleUrl);
+                  router.push(rescheduleUrl);
+                }}
+                onCancel={handleCancel}
+                getTypeIcon={getTypeIcon}
+                getTypeLabel={getTypeLabel}
+                getInitials={getInitials}
+                formatDate={formatDate}
+                formatTime={formatTime}
+              />
             ))}
           </div>
 
-          {/* RIGHT: Calendar */}
-          <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-5 sticky top-4">
+          {/* RIGHT: Calendar + Notifications */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-5">
 
               {/* Calendar header */}
               <div className="flex items-center justify-between mb-5">
@@ -440,6 +424,95 @@ export default function InterviewsDashboardPage() {
                   <span className="font-bold text-indigo-600">{interviews.length}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Reschedule Interview Notifications Card */}
+            <div className="rounded-2xl border border-[#dbe7ff] bg-white p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 text-indigo-600 rounded-lg bg-indigo-50">
+                  <Clock size={18} />
+                </div>
+                <h3 className="text-sm font-bold text-gray-900">Reschedule Notifications</h3>
+                <span className="ml-auto px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
+                  {interviews.filter(iv => iv.rescheduledFromId).length}
+                </span>
+              </div>
+
+              {interviews.filter(iv => iv.rescheduledFromId).length > 0 ? (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-2 relative">
+                  {/* Scroll indicator when content overflows */}
+                  {interviews.filter(iv => iv.rescheduledFromId).length > 3 && (
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-indigo-400 animate-bounce text-xs">↓</div>
+                  )}
+                  {interviews
+                    .filter(iv => iv.rescheduledFromId)
+                    .map((newIv) => {
+                      const oldIv = newIv.rescheduledFromId ? oldInterviews.get(newIv.rescheduledFromId) : null;
+                      console.log(`[Reschedule notification] newIv: ${newIv.id}, rescheduledFromId: ${newIv.rescheduledFromId}, oldIv loaded: ${!!oldIv}`);
+                      return (
+                        <div
+                          key={newIv.id}
+                          onClick={() => handleOpenDetails(newIv)}
+                          className="group cursor-pointer p-3 rounded-lg bg-indigo-50 border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+                        >
+                          {/* Horizontal compact layout */}
+                          <div className="space-y-2">
+                            {/* First row: Candidate + Job Title */}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-200 text-[8px] font-bold text-indigo-700 shrink-0">
+                                {getInitials(newIv.candidate?.name ?? "?")}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-gray-800 truncate">
+                                  {newIv.candidate?.name ?? "—"}
+                                </p>
+                                <p className="text-[10px] text-gray-500 truncate">
+                                  {newIv.jobPost?.title ?? "—"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Second row: Date/Time and Meeting Type */}
+                            <div className="space-y-1.5 ml-9">
+                              {oldIv ? (
+                                <>
+                                  {/* Date and Time row */}
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <span className="text-gray-600 font-medium">
+                                      {formatDate(oldIv.scheduledAt)}, {formatTime(oldIv.scheduledAt)}
+                                    </span>
+                                    <span className="text-indigo-400 font-bold">→</span>
+                                    <span className="text-indigo-600 font-medium">
+                                      {formatDate(newIv.scheduledAt)}, {formatTime(newIv.scheduledAt)}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Meeting Type row */}
+                                  <div className="flex items-center gap-2 text-[9px]">
+                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+                                      {getTypeLabel(oldIv.meetingType)}
+                                    </span>
+                                    
+                                    <span className="px-2 py-0.5 ml-9.5 bg-indigo-100 text-indigo-600 rounded font-medium">
+                                      {getTypeLabel(newIv.meetingType)}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-gray-400 text-[10px]">Loading...</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-gray-400 gap-2">
+                  <Clock size={24} className="opacity-30" />
+                  <p className="text-xs text-center">No rescheduled interviews yet</p>
+                </div>
+              )}
             </div>
           </div>
 

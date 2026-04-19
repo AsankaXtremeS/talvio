@@ -22,6 +22,7 @@ export interface InterviewEmailData {
   location?: string | null;    // For ONSITE
   meetingLink?: string | null; // For ONLINE (Google Meet)
   additionalInfo?: string | null;
+  isReschedule?: boolean;      // Flag for reschedule email
   // Optional override — employer can edit before sending
   customBody?: string | null;
 }
@@ -81,6 +82,27 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
     ? `<div style="font-size:14px;color:#374151;line-height:1.7;">${data.customBody}</div>`
     : buildDefaultBody(data);
 
+  const bannerContent = data.isReschedule
+    ? `
+      <p style="margin:0;font-size:20px;font-weight:700;color:#7C2D12;">
+        Interview Rescheduled ⏰
+      </p>
+      <p style="margin:8px 0 0;font-size:14px;color:#B45309;">
+        Your interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong> has been rescheduled.
+      </p>
+    `
+    : `
+      <p style="margin:0;font-size:20px;font-weight:700;color:#3730A3;">
+        Congratulations, ${data.candidateName}! 🎊
+      </p>
+      <p style="margin:8px 0 0;font-size:14px;color:#4F46E5;">
+        You have been selected for an interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>.
+      </p>
+    `;
+
+  const bannerBg = data.isReschedule ? "#FFEDD5" : "#EEF2FF";
+  const bannerBorder = data.isReschedule ? "#FED7AA" : "#E0E7FF";
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -105,7 +127,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                   </td>
                   <td align="right">
                     <div style="background:rgba(255,255,255,0.15);border-radius:50%;width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;">
-                      <span style="font-size:24px;">🎉</span>
+                      <span style="font-size:24px;">${data.isReschedule ? "⏰" : "🎉"}</span>
                     </div>
                   </td>
                 </tr>
@@ -113,15 +135,10 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
             </td>
           </tr>
 
-          <!-- ── CONGRATULATIONS BANNER ── -->
+          <!-- ── BANNER ── -->
           <tr>
-            <td style="background:#EEF2FF;padding:24px 40px;border-bottom:2px solid #E0E7FF;">
-              <p style="margin:0;font-size:20px;font-weight:700;color:#3730A3;">
-                Congratulations, ${data.candidateName}! 🎊
-              </p>
-              <p style="margin:8px 0 0;font-size:14px;color:#4F46E5;">
-                You have been selected for an interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>.
-              </p>
+            <td style="background:${bannerBg};padding:24px 40px;border-bottom:2px solid ${bannerBorder};">
+              ${bannerContent}
             </td>
           </tr>
 
@@ -266,15 +283,35 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
  * Build the default body paragraphs when no custom body is provided.
  */
 function buildDefaultBody(data: InterviewEmailData): string {
+  const rescheduleMessage = data.isReschedule ? `
+    <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:16px;border-radius:8px;margin:0 0 16px;">
+      <p style="margin:0;font-size:14px;color:#92400E;font-weight:600;">
+        ⏰ Interview Rescheduled
+      </p>
+      <p style="margin:8px 0 0;font-size:13px;color:#B45309;line-height:1.6;">
+        We apologize for any inconvenience. Your interview has been rescheduled due to scheduling changes. 
+        Please see the updated details below.
+      </p>
+    </div>
+  ` : "";
+
+  const greeting = data.isReschedule 
+    ? `<p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Hi ${data.candidateName},</p>`
+    : `<p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Dear ${data.candidateName},</p>`;
+
+  const introMessage = data.isReschedule
+    ? `Your interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong> has been rescheduled.`
+    : `We are pleased to inform you that you have been shortlisted for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>. We were impressed with your application and would like to invite you for an interview.`;
+
   return `
-    <p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Dear ${data.candidateName},</p>
+    ${greeting}
+    ${rescheduleMessage}
     <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-      We are pleased to inform you that you have been shortlisted for the
-      <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>.
-      We were impressed with your application and would like to invite you for an interview.
+      ${introMessage}
+      ${!data.isReschedule ? `We would like to invite you for an interview.` : ``}
     </p>
     <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-      Please review the interview details below and make sure you are available at the scheduled time.
+      Please review the updated interview details below and confirm your availability.
       ${data.meetingType === "ONLINE" ? "A Google Meet link has been provided for your convenience." : ""}
       ${data.meetingType === "ONSITE" ? "Please arrive 10 minutes early at the location provided." : ""}
       ${data.meetingType === "PHONE" ? "We will call you at your registered phone number." : ""}
@@ -286,7 +323,8 @@ function buildDefaultBody(data: InterviewEmailData): string {
  * Build the email subject line.
  */
 export function buildInterviewEmailSubject(data: InterviewEmailData): string {
-  return `Interview Invitation – ${data.jobTitle} at ${data.companyName} | ${formatDateOnly(data.scheduledAt)}`;
+  const prefix = data.isReschedule ? "[Rescheduled] " : "";
+  return `${prefix}Interview Invitation – ${data.jobTitle} at ${data.companyName} | ${formatDateOnly(data.scheduledAt)}`;
 }
 
 // ─── Nodemailer Sender ────────────────────────────────────────────────────────

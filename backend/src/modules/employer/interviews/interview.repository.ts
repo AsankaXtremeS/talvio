@@ -22,6 +22,8 @@ const interviewSelect = {
   emailBody: true,
   emailSentAt: true,
   candidateEmail: true,
+  rescheduledFromId: true,
+  rescheduledToId: true,
   createdAt: true,
   updatedAt: true,
 
@@ -105,6 +107,7 @@ export const interviewRepository = {
         googleCalendarEventId: options?.googleCalendarEventId ?? null,
         googleCalendarLink: options?.googleCalendarLink ?? null,
         candidateEmail,
+        rescheduledFromId: data.rescheduledFromId ?? null,
       },
       select: interviewSelect,
     });
@@ -226,6 +229,8 @@ export const interviewRepository = {
       googleCalendarEventId: string | null;
       googleCalendarLink: string | null;
       emailSentAt: Date | null;
+      rescheduledFromId: string | null;
+      rescheduledToId: string | null;
     }>
   ) {
     return prisma.interview.update({
