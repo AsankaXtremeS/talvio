@@ -47,7 +47,8 @@ const normalizeJobType = (value: string): JobSummary["jobType"] => {
 
 const mapBackendToFrontend = (app: CandidateApplication): ApplicationCardType => {
   return {
-    id: app.id,
+    id: app.jobPost.id, // Use Job ID for dashboard navigation
+    applicationId: app.id, // Keep application ID just in case
     title: app.jobPost.title,
     company: app.jobPost.employer.companyName,
     location: app.jobPost.location || "N/A",

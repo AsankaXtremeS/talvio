@@ -1,16 +1,12 @@
 "use client";
 
 import ContactInfoCard from "@/components/candidate/settings/ContactInfoCard";
-import EducationCard from "@/components/candidate/settings/EducationCard";
-import ProfileCompletionCard from "@/components/candidate/settings/ProfileCompletionCard";
 import ProfileHeader from "@/components/candidate/settings/ProfileHeader";
 import ProfileSummaryCard from "@/components/candidate/settings/ProfileSummaryCard";
-import ProjectsCard from "@/components/candidate/settings/ProjectsCard";
-import QuickActionsCard from "@/components/candidate/settings/QuickActionsCard";
 import SettingsTopBar from "@/components/candidate/settings/SettingsTopBar";
-import WorkExperienceCard from "@/components/candidate/settings/WorkExperienceCard";
-import { CandidateSettingsProfile } from "@/components/candidate/settings/types";
-import ResumeCard, { type ResumeUploadResult } from "@/components/candidate/settings/ResumeCard";
+import ResumeCard from "@/components/candidate/settings/ResumeCard";
+import UpgradeToProfessionalCard from "@/components/candidate/settings/UpgradeToProfessionalCard";
+import type { CandidateSettingsProfile } from "@/components/candidate/settings/types";
 
 interface ResumeData {
   cvUrl?: string;
@@ -25,6 +21,8 @@ interface CandidateSettingsViewProps {
   onResumeUpdate: (res: ResumeUploadResult) => void;
   onResumeError: (error: string) => void;
   onRemoveResume: () => void;
+  onProfileSaved: (data: any) => void;
+  userRole?: string;
 }
 
 export default function CandidateSettingsView({
@@ -34,6 +32,8 @@ export default function CandidateSettingsView({
   onResumeUpdate,
   onResumeError,
   onRemoveResume,
+  onProfileSaved,
+  userRole,
 }: CandidateSettingsViewProps) {
   return (
     <div className="space-y-4 rounded-3xl bg-[#F4F6FB] p-4 md:p-5">
@@ -50,9 +50,10 @@ export default function CandidateSettingsView({
             phone={profile.phone}
             bio={profile.bio}
             skills={profile.skills}
+            onProfileUpdate={onProfileSaved}
           />
 
-          <ResumeCard 
+          <ResumeCard
             cvUrl={resumeData?.cvUrl}
             cvFileName={resumeData?.cvFileName}
             updatedAt={resumeData?.updatedAt}
@@ -60,30 +61,10 @@ export default function CandidateSettingsView({
             onUploadError={onResumeError}
             onRemove={onRemoveResume}
           />
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <EducationCard
-              degree={profile.education.degree}
-              field={profile.education.field}
-              period={profile.education.period}
-            />
-            <ProjectsCard
-              company={profile.project.company}
-              role={profile.project.role}
-              period={profile.project.period}
-              bullets={profile.project.bullets}
-            />
-            <WorkExperienceCard
-              company={profile.experience.company}
-              role={profile.experience.role}
-              period={profile.experience.period}
-            />
-          </div>
         </div>
 
         <aside className="space-y-4">
-          <ProfileCompletionCard score={profileScore} />
-          <QuickActionsCard />
+          {userRole === "STUDENT" && <UpgradeToProfessionalCard />}
           <ContactInfoCard githubUrl={profile.githubUrl} linkedinUrl={profile.linkedinUrl} />
         </aside>
       </div>

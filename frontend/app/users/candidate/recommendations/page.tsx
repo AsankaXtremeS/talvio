@@ -8,6 +8,10 @@ import RecommendationsFilterBar from "@/components/candidate/recommendations/Rec
 import JobCard from "@/components/candidate/recommendations/JobCards";
 import JobViewModal from "@/components/candidate/recommendations/JobViewModel";
 import { apiClient } from "@/lib/apiClient";
+import NotificationBell from "@/components/candidate/recommendations/NotificationBell";
+import { useRef } from "react";
+import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
+import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 
 interface Job {
   id: string;
@@ -52,13 +56,29 @@ export default function CandidateRecommendationsPage() {
   const [jobType, setJobType] = useState("Job type");
   const [skillMatch, setSkillMatch] = useState("Skill matched %");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement | null>(null);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient<{ jobs: Job[] }>("/api/candidate/jobs");
+        const data = await apiClient<{ 
+          jobs: any[]; 
+          total: number; 
+          totalPages: number;
+          page: number;
+        }>(`/api/candidate/jobs?page=${currentPage}&limit=20`);
+
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
 
         const formatted: Job[] = data.jobs.map((job) => ({
           id: job.id,
@@ -95,8 +115,22 @@ export default function CandidateRecommendationsPage() {
     };
 
     fetchJobs();
-  }, []);
+  }, [currentPage]);
   
+  useEffect(() => {
+    const handler = (e: any) => {
+      const jobId = e.detail?.jobId;
+      if (jobId) {
+        const job = jobs.find((j) => j.id === jobId);
+        if (job) {
+          setSelectedJob(job);
+        }
+      }
+    };
+    window.addEventListener("open-recommendation-job-modal", handler);
+    return () => window.removeEventListener("open-recommendation-job-modal", handler);
+  }, [jobs]);
+
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
       const matchSearch =
@@ -135,10 +169,13 @@ export default function CandidateRecommendationsPage() {
 
       <div className="px-7 pt-7">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-indigo-700 flex items-center gap-2">
-            <span><Cog /></span>
-            {isProfessional ? "Jobs" : "Recommendations"}
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-indigo-700 flex items-center gap-2">
+              <span><Cog /></span>
+              {isProfessional ? "All Job Posts" : "All Internships"}
+            </h1>
+            <NotificationBell />
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             {isProfessional
               ? "Manage and review all job recommendations"
@@ -170,7 +207,10 @@ export default function CandidateRecommendationsPage() {
                 key={job.id}
                 {...job}
                 onView={(id) => setSelectedJob(jobs.find((j) => j.id === id) ?? null)}
-                onApply={(id) => router.push(`/users/candidate/jobs/${id}/apply`)}
+                onApply={(id) => {
+                  setSelectedJob(jobs.find((j) => j.id === id) ?? null);
+                  setShowApplyModal(true);
+                }}
               />
             ))}
 
@@ -185,15 +225,106 @@ export default function CandidateRecommendationsPage() {
         )}
       </div>
 
-      {selectedJob && (
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 && (
+      <div className="flex items-center justify-between mt-6">
+        <p className="text-sm text-gray-400">
+          Showing {((currentPage - 1) * 20) + 1}–{Math.min(currentPage * 20, total)} of {total} results
+        </p>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        > 
+          Previous
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((page) => 
+            page === 1 || 
+            page === totalPages || 
+            Math.abs(page - currentPage) <= 1
+          )
+          .map((page, index, arr) => (
+            <>
+              {index > 0 && arr[index - 1] !== page - 1 && (
+                <span key={`dots-${page}`} className="text-gray-400 px-1">...</span>
+              )}
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-9 h-9 text-sm font-medium rounded-xl transition ${
+                  currentPage === page
+                    ? "bg-indigo-600 text-white"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {page}
+              </button>
+            </>
+          ))
+        }
+
+        <button
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )}
+
+      {selectedJob && !showApplyModal && (
         <JobViewModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          onApply={(id) => {
-            setSelectedJob(null);
-            router.push(`/users/candidate/jobs/${id}/apply`);
-          }}
+          onApply={() => setShowApplyModal(true)}
         />
+      )}
+
+      {selectedJob && showApplyModal && (
+        <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
+            <div className="w-full max-w-2xl relative max-h-[80vh] overflow-y-auto rounded-2xl bg-white p-4">
+              <JobApplyModal
+                selectedJob={selectedJob}
+                resumeFileName={resumeFileName}
+                setResumeFileName={setResumeFileName}
+                resumeInputRef={resumeInputRef}
+                coverLetter={coverLetter}
+                setCoverLetter={setCoverLetter}
+                showAIModal={showAIModal}
+                setShowAIModal={setShowAIModal}
+                closeModals={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                }}
+                openJobDetails={() => {
+                  setShowApplyModal(false);
+                }}
+                handleApplySubmission={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                }}
+              />
+            </div>
+          </div>
+          {showAIModal && selectedJob && (
+            <AICoverLetterModal
+              jobId={selectedJob.id}
+              jobTitle={selectedJob.title}
+              candidateName={user?.name || "Your Name"}
+              onDone={(generatedCoverLetter) => {
+                setCoverLetter(generatedCoverLetter);
+                setShowAIModal(false);
+              }}
+              onClose={() => setShowAIModal(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );

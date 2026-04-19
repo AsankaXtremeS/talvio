@@ -9,6 +9,7 @@ export interface DashboardJob {
   matchPercent: number;
   tags: string[];
   companyLogoUrl?: string;
+  isAiRecommended?: boolean;
 }
 
 interface RecommendationRowProps {
@@ -25,8 +26,12 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
     <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
-            <span className="text-sm font-bold text-indigo-700">{job.company.charAt(0)}</span>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            {job.companyLogoUrl ? (
+              <img src={job.companyLogoUrl} alt={job.company} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-indigo-700">{job.company.charAt(0)}</span>
+            )}
           </div>
           <div>
             <p className="text-md font-semibold leading-5 text-gray-900">{job.title}</p>
@@ -37,10 +42,12 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
-          <CheckCircle2 size={12} />
-          {job.matchPercent}% Match
-        </span>
+        {!showWithdraw && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
+            <CheckCircle2 size={12} />
+            {job.matchPercent}% Match
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

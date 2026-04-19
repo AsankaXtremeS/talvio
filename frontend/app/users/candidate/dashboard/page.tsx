@@ -1,14 +1,20 @@
+
 "use client";
+import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CalendarDays, Clock3, DollarSign, Globe2, LayoutDashboard, Sparkles, Upload, X, Pencil } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LayoutDashboard, Sparkles, Upload, X, Pencil, CalendarDays, Briefcase, Globe2 } from "lucide-react";
+import JobDetailsModal from "@/components/candidate/dashboard/JobDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import DashboardHeader from "@/components/candidate/dashboard/DashboardHeader";
 import StatCardGrid from "@/components/candidate/dashboard/StatCardGrid";
 import RecommendationList from "@/components/candidate/dashboard/RecommendationList";
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
+import { candidateJobService } from "@/lib/candidate/job.service";
+import { apiClient } from "@/lib/apiClient";
 import Popup from "@/components/admin/layout/Popup";
 import { INTERVIEWS } from "@/components/candidate/interviews/types";
 import axios from "axios";
@@ -67,15 +73,12 @@ function useCandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const isProfessional = user?.role === "PROFESSIONAL";
 
   const [search, setSearch] = useState("");
-  const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [now, setNow] = useState(() => new Date());
-  
-  // Real Data State
-  const [jobs, setJobs] = useState<DashboardJob[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const jobIdFromQuery = searchParams.get("jobId");
   const sourceFromQuery = searchParams.get("from");
@@ -87,10 +90,83 @@ function useCandidateDashboard() {
     success: false,
   });
 
-  // Fetch Recommendations from AI Module
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (!user) return;
+  // 1. Recommendations Query
+  const { 
+    data: recommendations = [], 
+    isLoading: isRecLoading 
+  } = useQuery({
+    queryKey: ["candidate-recommendations", user?.id],
+    queryFn: () => candidateJobService.getRecommendations(),
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  // 2. Applications Query
+  const { 
+    data: myApplications = [], 
+    isLoading: isAppLoading 
+  } = useQuery({
+    queryKey: ["candidate-applications", user?.id],
+    queryFn: () => candidateJobService.getMyApplications(),
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  // 3. Profile Query (for CV storage)
+  const { data: profileData } = useQuery({
+    queryKey: ["candidate-profile", user?.id],
+    queryFn: async () => {
+      const response = await apiClient<{ profile: any }>('/api/candidate/profile');
+      return response.profile;
+    },
+    enabled: !!user?.id,
+    staleTime: 60000, // Profile changes rarely
+    refetchOnWindowFocus: false,
+  });
+
+  // 4. Stats Query
+  const { data: rawStats } = useQuery({
+    queryKey: ["candidate-stats", user?.id],
+    queryFn: () => candidateJobService.getDashboardStats(),
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
+
+  // Map raw stats to UI format
+  const stats = useMemo(() => {
+    if (!rawStats) return undefined;
+    
+    return [
+      { 
+        title: isProfessional ? "All Jobs" : "All Internships", 
+        value: String(rawStats.totalAvailable), 
+        icon: <Briefcase size={24} className="text-white" /> 
+      },
+      { 
+        title: "Interviews scheduled", 
+        value: String(rawStats.interviewsScheduled), 
+        icon: <CalendarDays size={24} className="text-white" /> 
+      },
+      { 
+        title: "Applications sent", 
+        value: String(rawStats.applicationsSent), 
+        icon: <Sparkles size={24} className="text-white" /> 
+      },
+      { 
+        title: "Pending matches", 
+        value: String(rawStats.pendingMatches), 
+        icon: <Sparkles size={24} className="text-white" /> 
+      },
+    ];
+  }, [rawStats]);
+
+  // 5. Apply Mutation
+  const applyMutation = useMutation({
+    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
+      const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
+      const finalCvFileName = data.cvFileName || profileData?.cvFileName || "Profile_CV.pdf";
       
       try {
         setIsLoading(true);
@@ -119,15 +195,27 @@ function useCandidateDashboard() {
       }
     };
 
-    fetchRecommendations();
-  }, [user]);
+  // Derived state: List of IDs the user has applied for
+  const appliedJobIds = useMemo(() => {
+    return myApplications.map(app => app.job?.id).filter(Boolean) as string[];
+  }, [myApplications]);
+
+  // Merge all known jobs for easy lookup
+  const allKnownJobs = useMemo(() => {
+    const jobMap = new Map<string, DashboardJob>();
+    recommendations.forEach(j => {
+      if (j?.id) jobMap.set(j.id, j);
+    });
+    myApplications.forEach(a => {
+      if (a?.job?.id) jobMap.set(a.job.id, a.job);
+    });
+    return Array.from(jobMap.values());
+  }, [recommendations, myApplications]);
 
   const selectedJob = useMemo(() => {
-    if (!jobIdFromQuery) {
-      return null;
-    }
-    return jobs.find((job) => job.id === jobIdFromQuery) ?? null;
-  }, [jobIdFromQuery, jobs]);
+    if (!jobIdFromQuery) return null;
+    return allKnownJobs.find((job) => job.id === jobIdFromQuery) ?? null;
+  }, [jobIdFromQuery, allKnownJobs]);
 
   const [activeModal, setActiveModal] = useState<"none" | "details" | "apply">(
     jobIdFromQuery ? "details" : "none",
@@ -142,14 +230,14 @@ function useCandidateDashboard() {
   };
 
   const openJobDetails = (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
+    const job = allKnownJobs.find((j) => j.id === jobId);
     if (!job) return;
     setActiveModal("details");
     router.push(`/users/candidate/dashboard?jobId=${jobId}`);
   };
 
   const openApplyForm = (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
+    const job = allKnownJobs.find((j) => j.id === jobId);
     if (!job) return;
     setActiveModal("apply");
     router.push(`/users/candidate/dashboard?jobId=${jobId}`);
@@ -178,38 +266,6 @@ function useCandidateDashboard() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const syncAppliedJobs = () => {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        setAppliedJobIds([]);
-        return;
-      }
-
-      try {
-        const parsed: unknown = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setAppliedJobIds(parsed.filter((value): value is string => typeof value === "string"));
-        } else {
-          setAppliedJobIds([]);
-        }
-      } catch {
-        setAppliedJobIds([]);
-      }
-    };
-
-    syncAppliedJobs();
-    window.addEventListener("storage", syncAppliedJobs);
-    window.addEventListener("focus", syncAppliedJobs);
-
-    return () => {
-      window.removeEventListener("storage", syncAppliedJobs);
-      window.removeEventListener("focus", syncAppliedJobs);
-    };
   }, []);
 
   useEffect(() => {
@@ -314,23 +370,12 @@ function useCandidateDashboard() {
 
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return jobs;
-    return jobs.filter((job) => job.title.toLowerCase().includes(keyword));
-  }, [search, jobs]);
+    const sourceJobs = activeTab === "applications" ? myApplications.map(a => a.job) : recommendations;
+    if (!keyword) return sourceJobs;
+    return sourceJobs.filter((job) => job.title.toLowerCase().includes(keyword));
+  }, [search, activeTab, recommendations, myApplications]);
 
-  const shownJobs = useMemo(() => {
-    if (activeTab === "applications") {
-      return filteredJobs.filter((job) => appliedJobIds.includes(job.id));
-    }
-    return filteredJobs;
-  }, [activeTab, appliedJobIds, filteredJobs]);
-
-  const submitApplication = async (jobId: string, coverLetter?: string) => {
-    try {
-      setIsLoading(true);
-      await axios.post(`${API_BASE_URL}/ai/apply/${jobId}`, {
-        coverLetter
-      }, { withCredentials: true });
+  const shownJobs = filteredJobs;
 
       setAppliedJobIds((prev) => [...new Set([...prev, jobId])]);
       setPopup({ open: true, message: "Application submitted successfully!", success: true });
@@ -351,22 +396,14 @@ function useCandidateDashboard() {
   };
 
   const handleWithdrawApplication = (jobId: string) => {
-    setAppliedJobIds((prev) => {
-      const next = prev.filter((id) => id !== jobId);
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // keep UI responsive
-      }
-      return next;
-    });
+    withdrawMutation.mutate(jobId);
   };
-
   return {
     search,
     setSearch,
     activeTab,
     setActiveTab,
+    stats,
     appliedJobIds,
     currentDateLabel,
     nearestInterviewDateLabel,
@@ -393,9 +430,7 @@ export default function CandidateDashboardPage() {
   const { user } = useAuth();
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const [coverLetterFileName, setCoverLetterFileName] = useState("");
   const resumeInputRef = useRef<HTMLInputElement>(null);
-  const coverLetterInputRef = useRef<HTMLInputElement>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   const {
@@ -403,6 +438,7 @@ export default function CandidateDashboardPage() {
     setSearch,
     activeTab,
     setActiveTab,
+    stats,
     appliedJobIds,
     currentDateLabel,
     nearestInterviewDateLabel,
@@ -426,10 +462,19 @@ export default function CandidateDashboardPage() {
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
 
   const handleApplySubmission = () => {
-    if (!selectedJob || !resumeFileName) {
+    if (!selectedJob) return;
+    
+    // For non-recommended jobs, we require a resume upload
+    if (!selectedJob.isAiRecommended && !resumeFileName) {
+      setPopup({ 
+        open: true, 
+        message: "Please upload your resume first.", 
+        success: false 
+      });
       return;
     }
-    submitApplication(selectedJob.id, coverLetter);
+    
+    submitApplication(selectedJob.id, coverLetter, undefined, resumeFileName || undefined);
   };
 
   const handleAIDone = (generatedCoverLetter: string) => {
@@ -457,7 +502,7 @@ export default function CandidateDashboardPage() {
           </h1>
         </div>
 
-        <StatCardGrid />
+        <StatCardGrid cards={stats} />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -505,127 +550,32 @@ export default function CandidateDashboardPage() {
           <div
             className={`w-full shadow-xl ${activeModal === "apply" ? "relative max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4" : "relative max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl bg-white p-4"}`}
           >
-            {activeModal === "details" && (
-              <div className="space-y-3">
-                <button
-                  onClick={closeModals}
-                  className="absolute right-3 top-3 rounded-lg border border-slate-300 bg-white px-2 py-0.5 text-lg leading-none text-slate-500 hover:text-slate-700"
-                >
-                  ×
-                </button>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-[#F4F7FF] text-base font-bold text-indigo-600">
-                        {selectedJob.company.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold leading-tight text-slate-800">{selectedJob.title}</h3>
-                        <p className="text-sm font-semibold text-indigo-500">{selectedJob.company} - {selectedJob.location}</p>
-                      </div>
-                    </div>
-
-                    {isSelectedJobApplied ? (
-                      <button disabled className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">Applied</button>
-                    ) : (
-                      <button onClick={() => openApplyForm(selectedJob.id)} className="rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Apply now</button>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedJob.tags.map((tag) => (
-                      <span key={tag} className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <h4 className="text-lg font-semibold text-slate-800">Job Overview</h4>
-                    <div className="mt-3 space-y-2 text-xs text-slate-600 sm:text-sm">
-                      <p className="flex items-center gap-2"><Briefcase size={16} className="text-slate-400" />Role: <span className="font-semibold text-slate-700">{selectedJob.title}</span></p>
-                      <p className="flex items-center gap-2"><Clock3 size={16} className="text-slate-400" />Duration: <span className="font-semibold text-slate-700">3 months</span></p>
-                      <p className="flex items-center gap-2"><DollarSign size={16} className="text-slate-400" />Stipend: <span className="font-semibold text-slate-700">Paid</span></p>
-                      <p className="flex items-center gap-2"><Globe2 size={16} className="text-slate-400" />Work Mode: <span className="font-semibold text-slate-700">Remote</span></p>
-                      <p className="flex items-center gap-2"><CalendarDays size={16} className="text-slate-400" />Posted: <span className="font-semibold text-slate-700">{selectedJob.postedAgo}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <h4 className="text-lg font-semibold text-slate-800">Company</h4>
-                    <p className="mt-2 text-2xl font-bold text-indigo-600">{selectedJob.company}</p>
-                    <p className="mt-2 text-xs leading-6 text-slate-600 sm:text-sm">{APPLY_MODAL_CONTENT.companyAbout}</p>
-                    <button className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700">Visit company profile</button>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <h4 className="text-lg font-semibold text-slate-800">About the Role</h4>
-                  <p className="mt-3 text-xs leading-6 text-slate-600 sm:text-sm">{APPLY_MODAL_CONTENT.about}</p>
-
-                  <h5 className="mt-4 text-base font-semibold text-slate-800">Responsibilities</h5>
-                  <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-slate-600 sm:text-sm">
-                    {APPLY_MODAL_CONTENT.responsibilities.map((item) => (<li key={item}>{item}</li>))}
-                  </ul>
-
-                  <h5 className="mt-4 text-base font-semibold text-slate-800">Requirements</h5>
-                  <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-slate-600 sm:text-sm">
-                    {APPLY_MODAL_CONTENT.requirements.map((item) => (<li key={item}>{item}</li>))}
-                  </ul>
-                </div>
-              </div>
+            {activeModal === "details" && selectedJob && (
+              <JobDetailsModal
+                selectedJob={selectedJob}
+                isSelectedJobApplied={isSelectedJobApplied}
+                closeModals={closeModals}
+                openApplyForm={openApplyForm}
+                APPLY_MODAL_CONTENT={APPLY_MODAL_CONTENT}
+              />
             )}
 
-            {activeModal === "apply" && (
-              <div className="space-y-5 p-6">
-                <button onClick={closeModals} className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 hover:text-gray-600 transition-colors"><X size={14} strokeWidth={2.5} /></button>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white overflow-hidden">
-                    {/* Optionally show logo or initials */}
-                    <div className="flex h-full w-full items-center justify-center rounded-xl bg-indigo-100 text-sm font-semibold text-indigo-600">{selectedJob.company?.slice(0, 3)}</div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Applying for</p>
-                    <h3 className="text-[17px] font-semibold text-indigo-600">{selectedJob.title}</h3>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Resume</p>
-                  <input ref={resumeInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResumeFileName(e.target.files?.[0]?.name ?? "")} />
-                  <button onClick={() => resumeInputRef.current?.click()} className="w-full rounded-2xl border-2 border-dashed border-indigo-300 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-                    <Upload size={22} className="mx-auto mb-1.5 text-indigo-300" />
-                    <p className="text-sm font-medium text-slate-500">{resumeFileName ? resumeFileName : "Drag and drop resume"}</p>
-                    <p className="mt-1 text-sm font-semibold text-indigo-600">Browse CV</p>
-                  </button>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Cover letter</p>
-                  <input ref={coverLetterInputRef} type="file" accept=".txt,.doc,.docx,.pdf" className="hidden" onChange={(e) => setCoverLetterFileName(e.target.files?.[0]?.name ?? "")} />
-                  <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200">
-                    <button onClick={() => coverLetterInputRef.current?.click()} className="flex flex-col items-center justify-center gap-1.5 border-r border-gray-200 px-4 py-5 text-center transition-colors hover:bg-slate-50">
-                      <Upload size={20} className="text-indigo-300" />
-                      <p className="text-xs text-gray-400">Drag and drop</p>
-                      <p className="text-sm font-semibold text-indigo-600">Browse</p>
-                    </button>
-                    <button onClick={() => setShowAIModal(true)} className="flex flex-col items-center justify-center gap-1.5 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-                      <Sparkles size={20} className="text-indigo-300" />
-                      <p className="text-xs text-gray-400">Skip the writing</p>
-                      <p className="text-sm font-semibold text-indigo-600">Generate with AI</p>
-                    </button>
-                  </div>
-                  {coverLetterFileName && <p className="mt-2 text-xs text-gray-400">Uploaded: {coverLetterFileName}</p>}
-                  {coverLetter && <p className="mt-2 text-xs text-slate-600 whitespace-pre-wrap">{coverLetter}</p>}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <button onClick={() => openJobDetails(selectedJob.id)} className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-5 py-2 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"><Pencil size={13} strokeWidth={2.2} />Edit</button>
-                  <button onClick={handleApplySubmission} disabled={!resumeFileName} className="rounded-xl px-6 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50" style={{ background: "linear-gradient(90deg, #5F33E2 0%, #7C3AED 100%)", boxShadow: "0 4px 14px rgba(95,51,226,0.3)" }}>Apply now</button>
-                </div>
-              </div>
+            {activeModal === "apply" && selectedJob && (
+              <JobApplyModal
+                selectedJob={selectedJob}
+                resumeFileName={resumeFileName}
+                setResumeFileName={setResumeFileName}
+                resumeInputRef={resumeInputRef}
+                coverLetter={coverLetter}
+                setCoverLetter={setCoverLetter}
+                showAIModal={showAIModal}
+                setShowAIModal={setShowAIModal}
+                closeModals={closeModals}
+                openJobDetails={openJobDetails}
+                handleApplySubmission={handleApplySubmission}
+                isAiRecommended={selectedJob.isAiRecommended}
+                isLoading={isLoading}
+              />
             )}
           </div>
         </div>
@@ -635,6 +585,7 @@ export default function CandidateDashboardPage() {
           jobId={selectedJob.id}
           jobTitle={selectedJob.title}
           candidateName={user?.firstName ? `${user.firstName} ${user.lastName || ""}` : "Candidate"}
+          isAiRecommended={selectedJob.isAiRecommended}
           onDone={handleAIDone}
           onClose={() => setShowAIModal(false)}
         />

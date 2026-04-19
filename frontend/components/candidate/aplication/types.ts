@@ -18,7 +18,9 @@ export type ApplicationMeta = {
   interviewMessage?: string;
 };
 
-export type ApplicationCard = JobSummary & ApplicationMeta;
+export type ApplicationCard = JobSummary & ApplicationMeta & {
+  applicationId?: string;
+};
 
 export type CompanyBadge = {
   icon: string;
