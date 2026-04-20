@@ -6,7 +6,6 @@ import { InterviewDTO } from "@/types/employer/interview.types";
 interface InterviewCardProps {
   interview: InterviewDTO;
   openMenuId: string | null;
-  cancellingId: string | null;
   onMenuClick: (id: string) => void;
   onCardClick: (interview: InterviewDTO) => void;
   onReschedule: (interview: InterviewDTO) => void;
@@ -21,7 +20,6 @@ interface InterviewCardProps {
 export default function InterviewCard({
   interview: iv,
   openMenuId,
-  cancellingId,
   onMenuClick,
   onCardClick,
   onReschedule,
@@ -54,20 +52,31 @@ export default function InterviewCard({
       {openMenuId === iv.id && (
         <div className="absolute right-4 top-12 z-30 w-44 rounded-xl border border-[#dbe7ff] bg-white py-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-100">
           <button
+            type="button"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
-              
+              console.log("[Reschedule Button] Clicked - Interview ID:", iv.id);
+              console.log("[Reschedule Button] Data:", {
+                interviewId: iv.id,
+                jobPostId: iv.jobPost?.id,
+                candidateId: iv.candidate?.id,
+              });
+
               // Verify data exists before navigating
               if (!iv.jobPost?.id || !iv.candidate?.id || !iv.id) {
+                console.error("[Reschedule Button] Missing data:", {
+                  jobPostId: iv.jobPost?.id,
+                  candidateId: iv.candidate?.id,
+                  interviewId: iv.id,
+                });
                 alert("Interview data is incomplete. Please refresh and try again.");
-                console.error("Missing interview data:", { jobPostId: iv.jobPost?.id, candidateId: iv.candidate?.id, interviewId: iv.id });
                 return;
               }
 
+              // Call the reschedule handler
               onReschedule(iv);
             }}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
           >
             Reschedule
           </button>
@@ -77,10 +86,9 @@ export default function InterviewCard({
               e.stopPropagation();
               onCancel(iv.id);
             }}
-            disabled={cancellingId === iv.id}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           >
-            {cancellingId === iv.id ? "Cancelling…" : "Cancel Interview"}
+            Cancel Interview
           </button>
         </div>
       )}

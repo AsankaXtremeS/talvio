@@ -187,6 +187,8 @@ model Interview {
   googleCalendarLink    String?
   candidateEmail        String
   emailSentAt           DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
   rescheduledFromId     String?
   rescheduledToId       String?
   createdAt             DateTime             @default(now())

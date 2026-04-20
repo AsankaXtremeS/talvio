@@ -5,13 +5,14 @@
 
 "use client";
 
-import { CheckCircle2, CalendarDays, Mail } from "lucide-react";
+import { CheckCircle2, XCircle, CalendarDays, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { MeetingType } from "@/types/employer/interview.types";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  type?: "scheduled" | "cancelled";
   candidateName?: string;
   candidateEmail?: string;
   jobTitle?: string;
@@ -48,6 +49,7 @@ function formatDateTime(iso?: string): string {
 export default function SuccessModal({
   isOpen,
   onClose,
+  type = "scheduled",
   candidateName,
   candidateEmail,
   jobTitle,
@@ -59,6 +61,8 @@ export default function SuccessModal({
   const router = useRouter();
   if (!isOpen) return null;
 
+  const isCancelled = type === "cancelled";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div
@@ -67,13 +71,28 @@ export default function SuccessModal({
       >
         {/* ── Top icon ── */}
         <div className="px-6 pt-8 pb-4 text-center border-b border-gray-100">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full">
-            <CheckCircle2 size={32} className="text-green-600" />
+          <div className={`flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full ${isCancelled ? "bg-red-100" : "bg-green-100"}`}>
+            {isCancelled ? (
+              <XCircle size={32} className="text-red-600" />
+            ) : (
+              <CheckCircle2 size={32} className="text-green-600" />
+            )}
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Interview Scheduled! 🎉</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {isCancelled ? "Interview Cancelled ❌" : "Interview Scheduled! 🎉"}
+          </h2>
           <p className="mt-2 text-sm text-gray-500">
-            The invitation email has been sent to{" "}
-            <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
+            {isCancelled ? (
+              <>
+                The cancellation email has been sent to{" "}
+                <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
+              </>
+            ) : (
+              <>
+                The invitation email has been sent to{" "}
+                <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
+              </>
+            )}
           </p>
         </div>
 

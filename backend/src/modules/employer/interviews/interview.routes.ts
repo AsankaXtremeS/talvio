@@ -23,6 +23,8 @@ import {
   scheduleAndSend,
   saveEmailBody,
   cancelInterview,
+  generateCancelEmailPreview,
+  cancelAndSendEmail,
 } from "./interview.controller";
 
 const router = Router();
@@ -62,5 +64,11 @@ router.post("/:id/schedule", scheduleAndSend);
 
 // PATCH /api/employer/interviews/:id/email-body    — Save custom email body
 router.patch("/:id/email-body", saveEmailBody);
+
+// POST  /api/employer/interviews/:id/generate-cancel-email  — Generate cancellation email preview
+router.post("/:id/generate-cancel-email", generateCancelEmailPreview);
+
+// POST  /api/employer/interviews/:id/cancel-and-send        — Cancel interview + send email
+router.post("/:id/cancel-and-send", cancelAndSendEmail);
 
 export default router;

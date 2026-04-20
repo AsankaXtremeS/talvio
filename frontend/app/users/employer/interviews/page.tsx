@@ -22,7 +22,7 @@ import {
   AlertTriangle,
   Clock
 } from "lucide-react";
-import { getInterviews, cancelInterview, getScheduledDates, getInterview } from "@/lib/employer/interviews.service";
+import { getInterviews, getScheduledDates, getInterview } from "@/lib/employer/interviews.service";
 import { InterviewDTO } from "@/types/employer/interview.types";
 import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import InterviewCard from "@/components/employer/interviews/InterviewCard";
@@ -111,7 +111,6 @@ export default function InterviewsDashboardPage() {
 
   // ── UI state ──
   const [openMenuId, setOpenMenuId]     = useState<string | null>(null);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [selectedInterview, setSelectedInterview] = useState<InterviewDTO | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -199,18 +198,10 @@ export default function InterviewsDashboardPage() {
     : interviews.filter((iv) => iv.status !== "CANCELLED"); // Hide cancelled interviews
 
   // ── Cancel interview ──────────────────────────────────────────────────────
-  const handleCancel = async (id: string) => {
-    if (!confirm("Are you sure you want to cancel this interview?")) return;
-    setCancellingId(id);
-    try {
-      await cancelInterview(id);
-      setInterviews((prev) => prev.filter((iv) => iv.id !== id));
-    } catch (err) {
-      alert("Failed to cancel: " + (err as Error).message);
-    } finally {
-      setCancellingId(null);
-      setOpenMenuId(null);
-    }
+  const handleCancel = (id: string) => {
+    // Navigate to cancel page instead of directly cancelling
+    console.log("[handleCancel] Navigating to cancel page for interview:", id);
+    router.push(`/users/employer/interviews/${id}/cancel`);
   };
   // ── Open interview details modal ────────────────────────────────────────
   const handleOpenDetails = (interview: InterviewDTO) => {
@@ -237,7 +228,7 @@ export default function InterviewsDashboardPage() {
   return (
     <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans flex flex-col">
       {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="sticky top-0 z-40 bg-[#F7F9FC] backdrop-blur border-b ">
         <div className="max-w-7xl px-4 py-6 mx-auto">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -316,18 +307,41 @@ export default function InterviewsDashboardPage() {
                 key={iv.id}
                 interview={iv}
                 openMenuId={openMenuId}
-                cancellingId={cancellingId}
                 onMenuClick={(id) => setOpenMenuId(id === openMenuId ? null : id)}
                 onCardClick={handleOpenDetails}
                 onReschedule={(interview) => {
+                  console.log("[onReschedule] Handler called with interview:", interview.id);
+                  
                   if (!interview.jobPost?.id || !interview.candidate?.id || !interview.id) {
+                    console.error("[onReschedule] Missing required data:", {
+                      interviewId: interview.id,
+                      jobPostId: interview.jobPost?.id,
+                      candidateId: interview.candidate?.id,
+                    });
                     alert("Interview data is incomplete. Please refresh and try again.");
                     return;
                   }
-                  setOpenMenuId(null);
-                  const rescheduleUrl = `/users/employer/job-posts/${interview.jobPost.id}/candidates/${interview.candidate.id}/schedule?interviewId=${interview.id}`;
-                  console.log("Navigating to reschedule:", rescheduleUrl);
-                  router.push(rescheduleUrl);
+                  
+                  try {
+                    setOpenMenuId(null);
+                    const rescheduleUrl = `/users/employer/job-posts/${interview.jobPost.id}/candidates/${interview.candidate.id}/schedule?interviewId=${interview.id}`;
+                    console.log("[onReschedule] Navigating to:", rescheduleUrl);
+                    console.log("[onReschedule] Full interview data:", {
+                      interviewId: interview.id,
+                      jobPostId: interview.jobPost.id,
+                      jobPostTitle: interview.jobPost.title,
+                      candidateId: interview.candidate.id,
+                      candidateName: interview.candidate.name,
+                    });
+                    
+                    // Use setTimeout to ensure menu closes before navigation
+                    setTimeout(() => {
+                      router.push(rescheduleUrl);
+                    }, 100);
+                  } catch (error) {
+                    console.error("[onReschedule] Error:", error);
+                    alert("Failed to navigate to reschedule page. Please try again.");
+                  }
                 }}
                 onCancel={handleCancel}
                 getTypeIcon={getTypeIcon}
