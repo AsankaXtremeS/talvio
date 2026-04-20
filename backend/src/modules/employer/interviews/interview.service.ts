@@ -466,4 +466,156 @@ export const interviewService = {
 
     return mapToDTO(updated);
   },
+
+  /**
+   * Generate a cancellation email preview.
+   * Returns subject and body for the cancellation email.
+   */
+  async generateCancelEmailPreview(
+    id: string,
+    employerId: string,
+    reason: string
+  ): Promise<{ subject: string; body: string }> {
+    const employerProfileId = await getEmployerProfileId(employerId);
+    const interview = await interviewRepository.findById(id, employerProfileId);
+    if (!interview) {
+      throw buildHttpError("Interview not found", 404);
+    }
+
+    const candidateName = [
+      (interview as any).candidate?.user?.firstName,
+      (interview as any).candidate?.user?.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ") || "Candidate";
+
+    const companyName =
+      (interview as any).employer?.companyName || "Hiring Team";
+
+    const scheduledDate = new Date((interview as any).scheduledAt);
+    const formattedDate = scheduledDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const formattedTime = scheduledDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const subject = `Interview Cancellation – ${(interview as any).jobPost?.title || "Position"}`;
+
+    const body = `Dear ${candidateName},
+
+We regret to inform you that we need to cancel the interview that was scheduled for ${formattedDate} at ${formattedTime}.
+
+Cancellation Reason:
+${reason}
+
+We sincerely apologize for any inconvenience this may cause. We remain interested in your profile and may reach out in the future with other opportunities that align with your background and experience.
+
+If you have any questions or concerns, please don't hesitate to contact us.
+
+Best regards,
+${companyName}`;
+
+    return { subject, body };
+  },
+
+  /**
+   * Cancel an interview and send cancellation email to the candidate.
+   * Changes status SCHEDULED → CANCELLED.
+   * Removes Google Calendar event.
+   * Sends email with cancellation reason.
+   */
+  async cancelAndSendEmail(
+    id: string,
+    employerId: string,
+    reason: string,
+    emailBody: string
+  ): Promise<InterviewDTO> {
+    const employerProfileId = await getEmployerProfileId(employerId);
+    const existing = await interviewRepository.findById(id, employerProfileId);
+    if (!existing) {
+      throw buildHttpError("Interview not found", 404);
+    }
+
+    // Only cancel SCHEDULED interviews (not DRAFT)
+    if ((existing as any).status !== "SCHEDULED") {
+      throw buildHttpError(
+        "Only scheduled interviews can be cancelled this way",
+        400
+      );
+    }
+
+    // Send cancellation email
+    try {
+      console.log(
+        `[CancelAndSendEmail] Sending cancellation email to ${(existing as any).candidateEmail}`
+      );
+      
+      // Create and send email
+      const candidateName = [
+        (existing as any).candidate?.user?.firstName,
+        (existing as any).candidate?.user?.lastName,
+      ]
+        .filter(Boolean)
+        .join(" ") || "Candidate";
+
+      await sendInterviewEmail({
+        candidateName,
+        candidateEmail: (existing as any).candidateEmail,
+        jobTitle: (existing as any).jobPost?.title || "",
+        companyName: (existing as any).employer?.companyName || "",
+        senderName: [
+          (existing as any).employer?.user?.firstName,
+          (existing as any).employer?.user?.lastName,
+        ]
+          .filter(Boolean)
+          .join(" ") || (existing as any).employer?.companyName,
+        senderEmail: (existing as any).employer?.user?.email || "",
+        scheduledAt: new Date((existing as any).scheduledAt),
+        meetingType: (existing as any).meetingType,
+        location: (existing as any).location,
+        meetingLink: (existing as any).meetingLink,
+        additionalInfo: (existing as any).additionalInfo,
+        customBody: emailBody,
+        isCancellation: true,
+        cancellationReason: reason,
+      } as any);
+    } catch (err) {
+      console.error("Failed to send cancellation email:", err);
+      throw buildHttpError(
+        `Failed to send cancellation email: ${(err as Error).message}`,
+        500
+      );
+    }
+
+    // Remove Google Calendar event
+    const googleEventId = (existing as any).googleCalendarEventId;
+    if (googleEventId && googleCalendarService.isConfigured()) {
+      try {
+        await googleCalendarService.deleteEvent(googleEventId);
+        console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
+      } catch (err) {
+        console.error(
+          "Failed to delete Google Calendar event:",
+          err
+        );
+        // Don't fail the operation if calendar delete fails
+      }
+    }
+
+    // Update status to CANCELLED
+    const updated = await interviewRepository.update(id, employerProfileId, {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+      cancellationReason: reason,
+    });
+
+    console.log(`[CancelAndSendEmail] Interview cancelled: ${id}`);
+    return mapToDTO(updated);
+  },
 };

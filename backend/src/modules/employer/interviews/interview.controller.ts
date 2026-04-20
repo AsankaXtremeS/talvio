@@ -257,3 +257,60 @@ export const cancelInterview = async (req: Request, res: Response) => {
     return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
   }
 };
+
+/**
+ * POST /api/employer/interviews/:id/generate-cancel-email
+ * Generate a cancellation email preview.
+ * Returns EmailPreviewDTO { subject, body }.
+ */
+export const generateCancelEmailPreview = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const id = getParamAsString(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid interview id" });
+
+    const { reason } = req.body;
+    if (typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ message: "reason is required" });
+    }
+
+    const preview = await interviewService.generateCancelEmailPreview(id, employerId, reason);
+    return res.json(preview);
+  } catch (err) {
+    console.error("generateCancelEmailPreview error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};
+
+/**
+ * POST /api/employer/interviews/:id/cancel-and-send
+ * Cancel interview and send cancellation email to candidate.
+ * Changes status SCHEDULED → CANCELLED.
+ * Removes Google Calendar event.
+ * Returns updated InterviewDTO.
+ */
+export const cancelAndSendEmail = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const id = getParamAsString(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid interview id" });
+
+    const { reason, emailBody } = req.body;
+    if (typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ message: "reason is required" });
+    }
+    if (typeof emailBody !== "string") {
+      return res.status(400).json({ message: "emailBody must be a string" });
+    }
+
+    const interview = await interviewService.cancelAndSendEmail(id, employerId, reason, emailBody);
+    return res.json(interview);
+  } catch (err) {
+    console.error("cancelAndSendEmail error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};

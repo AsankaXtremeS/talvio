@@ -311,3 +311,38 @@ export async function cancelInterview(id: string): Promise<void> {
     await handleResponse(res);
   }
 }
+
+/**
+ * POST /api/employer/interviews/:id/generate-cancel-email
+ * Generate cancellation email preview.
+ * Returns EmailPreviewDTO { subject, body } with cancellation message.
+ */
+export async function generateCancelEmailPreview(
+  id: string,
+  reason: string
+): Promise<EmailPreviewDTO> {
+  const res = await fetchWithAuth(`${BASE}/${id}/generate-cancel-email`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+  return handleResponse<EmailPreviewDTO>(res);
+}
+
+/**
+ * POST /api/employer/interviews/:id/cancel-and-send
+ * Cancel interview and send cancellation email.
+ * Changes status SCHEDULED → CANCELLED.
+ * Removes Google Calendar event.
+ * Sends email to candidate.
+ * Returns updated InterviewDTO with status="CANCELLED".
+ */
+export async function cancelAndSendEmail(
+  id: string,
+  payload: { reason: string; emailBody: string }
+): Promise<InterviewDTO> {
+  const res = await fetchWithAuth(`${BASE}/${id}/cancel-and-send`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<InterviewDTO>(res);
+}
