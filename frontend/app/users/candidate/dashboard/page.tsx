@@ -16,10 +16,14 @@ import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGe
 import { candidateJobService } from "@/lib/candidate/job.service";
 import { apiClient } from "@/lib/apiClient";
 import Popup from "@/components/admin/layout/Popup";
+import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
 import { INTERVIEWS } from "@/components/candidate/interviews/types";
-import axios from "axios";
+import { Check } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:8000/api";
+
+
+
+
 
 const APPLY_MODAL_CONTENT = {
   about: "Help plan and execute campaign ideas that connect with community and growth goals.",
@@ -39,35 +43,35 @@ const APPLY_MODAL_CONTENT = {
 const STORAGE_KEY = "candidateAppliedJobIds";
 const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
-type RecommendationApiItem = {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  createdAt: string;
-  matchPercent: number;
-  tags?: string[];
-  companyLogoUrl?: string;
-};
 
-type RecommendationsResponse = {
-  recommendations?: RecommendationApiItem[];
-};
 
-function timeAgo(date: string | Date): string {
-  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " minutes ago";
-  return Math.floor(seconds) + " seconds ago";
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function useCandidateDashboard() {
   const router = useRouter();
@@ -137,7 +141,7 @@ function useCandidateDashboard() {
   // Map raw stats to UI format
   const stats = useMemo(() => {
     if (!rawStats) return undefined;
-    
+
     return [
       { 
         title: isProfessional ? "All Jobs" : "All Internships", 
@@ -167,33 +171,40 @@ function useCandidateDashboard() {
     mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
       const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
       const finalCvFileName = data.cvFileName || profileData?.cvFileName || "Profile_CV.pdf";
-      
-      try {
-        setIsLoading(true);
-        const response = await axios.get<RecommendationsResponse>(`${API_BASE_URL}/ai/recommendations`, {
-          withCredentials: true 
-        });
-        
-        if (response.data?.recommendations) {
-          const mappedJobs: DashboardJob[] = response.data.recommendations.map((job) => ({
-            id: job.id,
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            postedAgo: timeAgo(job.createdAt),
-            matchPercent: job.matchPercent,
-            tags: job.tags || [],
-            companyLogoUrl: job.companyLogoUrl,
-          }));
-          setJobs(mappedJobs);
-        }
-      } catch (error) {
-        console.error("Failed to fetch recommendations:", error);
-        setJobs([]); // Clear on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
+
+      return candidateJobService.applyToJob(data.jobId, finalCvUrl, finalCvFileName, data.coverLetter);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
+      setPopup({ open: true, message: "Application submitted successfully!", success: true });
+      setActiveModal("details");
+    },
+    onError: (error: any) => {
+      setPopup({ 
+        open: true, 
+        message: error.message || "Failed to submit application.", 
+        success: false 
+      });
+    }
+  });
+
+  // 5. Withdraw Mutation
+  const withdrawMutation = useMutation({
+    mutationFn: (jobId: string) => {
+      const app = myApplications.find(a => a.job.id === jobId);
+      if (!app) throw new Error("Application not found");
+      return candidateJobService.withdrawApplication(app.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
+      setPopup({ open: true, message: "Application withdrawn successfully!", success: true });
+    },
+    onError: (error: any) => {
+      setPopup({ open: true, message: error.message || "Withdrawal failed.", success: false });
+    }
+  });
+
+  const isLoading = isRecLoading || isAppLoading || applyMutation.isPending || withdrawMutation.isPending;
 
   // Derived state: List of IDs the user has applied for
   const appliedJobIds = useMemo(() => {
@@ -345,13 +356,13 @@ function useCandidateDashboard() {
         };
       })
       .sort((a, b) => b.scheduledAtMs - a.scheduledAtMs)
-      .map((notification) => ({
-        id: notification.id,
-        title: notification.title,
-        timeLabel: notification.timeLabel,
-        isNew: notification.isNew,
-        href: notification.href,
-      }));
+      .map(({ scheduledAtMs, ...notification }) => notification);
+
+
+
+
+
+
   }, [now, readNotificationIds]);
 
   const markNotificationAsRead = (notificationId: string) => {
@@ -377,22 +388,22 @@ function useCandidateDashboard() {
 
   const shownJobs = filteredJobs;
 
-      setAppliedJobIds((prev) => [...new Set([...prev, jobId])]);
-      setPopup({ open: true, message: "Application submitted successfully!", success: true });
-      setActiveModal("details");
-    } catch (error: unknown) {
-      const message = axios.isAxiosError<{ message?: string }>(error)
-        ? error.response?.data?.message
-        : undefined;
-      console.error("Failed to submit application:", error);
-      setPopup({ 
-        open: true, 
-        message: message || "Failed to submit application. Please try again.", 
-        success: false 
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string) => {
+    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   };
 
   const handleWithdrawApplication = (jobId: string) => {
@@ -428,6 +439,7 @@ function useCandidateDashboard() {
 
 export default function CandidateDashboardPage() {
   const { user } = useAuth();
+  const isProfessional = user?.role === "PROFESSIONAL";
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
   const resumeInputRef = useRef<HTMLInputElement>(null);
@@ -461,9 +473,14 @@ export default function CandidateDashboardPage() {
 
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
 
+  const handleGenerateCoverLetter = () => {
+    if (!selectedJob) return;
+    setCoverLetter(`Dear Hiring Team at ${selectedJob.company},\n\nI am excited to apply for the ${selectedJob.title} role. My skills in communication, collaboration, and campaign support align well with this opportunity, and I am confident I can contribute to your team from day one.\n\nThank you for your time and consideration. I would welcome the opportunity to discuss how I can support your goals.\n\nSincerely,\nCandidate`);
+  };
+
   const handleApplySubmission = () => {
     if (!selectedJob) return;
-    
+
     // For non-recommended jobs, we require a resume upload
     if (!selectedJob.isAiRecommended && !resumeFileName) {
       setPopup({ 
@@ -473,7 +490,7 @@ export default function CandidateDashboardPage() {
       });
       return;
     }
-    
+
     submitApplication(selectedJob.id, coverLetter, undefined, resumeFileName || undefined);
   };
 
@@ -534,7 +551,7 @@ export default function CandidateDashboardPage() {
                 onWithdraw={handleWithdrawApplication}
               />
             </div>
-            
+
             {isLoading && (
               <div className="flex justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-700"></div>

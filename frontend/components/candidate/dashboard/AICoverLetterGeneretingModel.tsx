@@ -25,7 +25,7 @@ export default function AICoverLetterModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCoverLetter = async () => {
+  const fetchCoverLetter = useCallback(async () => {
     try {
       setIsGenerating(true);
       setError(null);
