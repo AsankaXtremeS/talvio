@@ -179,6 +179,115 @@ async function main() {
     } as any
   });
   console.log('✅ Professional created/updated');
+
+  // 5. Create test candidate profiles with UUIDs matching frontend mock data
+  const testCandidates = [
+    {
+      id: "a1b2c3d4-e5f6-47a8-9b1c-2d3e4f5a6b7c",
+      name: "Sachini Perera",
+      email: "dehemimandalawattage@gmail.com",
+      headline: "Frontend Developer",
+      skills: ["React", "TypeScript", "Tailwind CSS", "Next.js"],
+    },
+    {
+      id: "b2c3d4e5-f6a7-48b9-0c2d-3e4f5a6b7c8d",
+      name: "Ravindu Jayasinghe",
+      email: "ravindu.jayasinghe@test.com",
+      headline: "Full Stack Engineer",
+      skills: ["Node.js", "React", "PostgreSQL", "Docker"],
+    },
+    {
+      id: "c3d4e5f6-a7b8-49ca-1d3e-4f5a6b7c8d9e",
+      name: "Nishani Fernando",
+      email: "nishani.fernando@test.com",
+      headline: "UI/UX Designer",
+      skills: ["Figma", "Adobe XD", "Prototyping", "User Research"],
+    },
+    {
+      id: "d4e5f6a7-b8c9-40db-2e4f-5a6b7c8d9e0f",
+      name: "Kasun Bandara",
+      email: "kasun.bandara@test.com",
+      headline: "DevOps Engineer",
+      skills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
+    },
+    {
+      id: "e5f6a7b8-c9d0-41ec-3f50-6b7c8d9e0f1a",
+      name: "Tharushi Amarasinghe",
+      email: "tharushi.amarasinghe@test.com",
+      headline: "Data Analyst",
+      skills: ["Python", "SQL", "Power BI", "Pandas"],
+    },
+  ];
+
+  for (const candidate of testCandidates) {
+    // Create a user for each candidate
+    const candidateUser = await prisma.user.upsert({
+      where: { email: candidate.email },
+      update: { role: 'STUDENT' },
+      create: {
+        email: candidate.email,
+        password: await bcrypt.hash('Test@1234', 10),
+        role: 'STUDENT',
+        firstName: candidate.name.split(' ')[0],
+        lastName: candidate.name.split(' ')[1] || '',
+        isVerified: true,
+      }
+    });
+
+    // Create the candidate profile with the specified UUID
+    await prisma.candidateProfile.upsert({
+      where: { id: candidate.id },
+      update: {
+        headline: candidate.headline,
+        skills: candidate.skills,
+        extractedSkills: candidate.skills,
+      },
+      create: {
+        id: candidate.id,
+        userId: candidateUser.id,
+        headline: candidate.headline,
+        skills: candidate.skills,
+        extractedSkills: candidate.skills,
+        cvUrl: null,
+        cvFileName: null,
+      } as any
+    });
+  }
+  console.log('✅ Test candidates seeded');
+
+  // 6. Create applications linking test candidates to job posts
+  const jobPostIds = [
+    'fb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1a', // Frontend Developer
+    'cb7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1b', // Backend Developer
+    'db7b1f1a-6d1a-4d7a-8d1a-6d1a4d7a8d1c', // UI/UX Designer
+  ];
+
+  // Link each candidate to each job post
+  for (const candidate of testCandidates) {
+    for (const jobPostId of jobPostIds) {
+      await prisma.application.upsert({
+        where: {
+          candidateProfileId_jobPostId: {
+            candidateProfileId: candidate.id,
+            jobPostId,
+          },
+        },
+        update: {
+          applicationStatus: 'PENDING',
+        },
+        create: {
+          candidateProfileId: candidate.id,
+          jobPostId,
+          cvUrl: 'https://example.com/cv.pdf',
+          cvFileName: `${candidate.name.replace(' ', '_')}_CV.pdf`,
+          coverLetter: `I am interested in applying for this position. I have experience with ${candidate.skills.join(', ')}.`,
+          applicationStatus: 'PENDING',
+          aiScore: Math.floor(Math.random() * 100),
+        },
+      });
+    }
+  }
+  console.log('✅ Test applications seeded');
 }
 
 main()

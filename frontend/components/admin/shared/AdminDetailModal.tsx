@@ -2,6 +2,8 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Calendar, User, Building2, Briefcase, Tag, FileText } from 'lucide-react';
+import type { Candidate } from '@/types/admin/candidate.types';
+import type { Company, JobPost } from '@/types/admin/company.types';
 
 interface DetailFieldProps {
   icon: React.ReactNode;
@@ -23,16 +25,33 @@ function DetailField({ icon, label, value }: DetailFieldProps) {
   );
 }
 
-interface AdminDetailModalProps {
+type BaseAdminDetailModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  type: 'candidate' | 'company' | 'jobPost';
-  data: any;
   isLoading?: boolean;
-}
+};
 
-export default function AdminDetailModal({ isOpen, onClose, title, type, data, isLoading }: AdminDetailModalProps) {
+type CandidateDetailModalProps = BaseAdminDetailModalProps & {
+  type: 'candidate';
+  data: Candidate | null;
+};
+
+type CompanyDetailModalProps = BaseAdminDetailModalProps & {
+  type: 'company';
+  data: Company | null;
+};
+
+type JobPostDetailModalProps = BaseAdminDetailModalProps & {
+  type: 'jobPost';
+  data: JobPost | null;
+};
+
+type AdminDetailModalProps = CandidateDetailModalProps | CompanyDetailModalProps | JobPostDetailModalProps;
+
+export default function AdminDetailModal(props: AdminDetailModalProps) {
+  const { isOpen, onClose, title, isLoading } = props;
+
   if (!isOpen) return null;
 
   const renderContent = () => {
@@ -45,7 +64,7 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
       );
     }
 
-    if (!data) {
+    if (!props.data) {
       return (
         <div className="text-center py-12">
           <p className="text-sm text-gray-500 font-medium">No details available.</p>
@@ -53,7 +72,9 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
       );
     }
 
-    if (type === 'candidate') {
+    if (props.type === 'candidate') {
+      const data = props.data;
+
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DetailField icon={<User size={18} />} label="Full Name" value={data.name} />
@@ -65,7 +86,9 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
       );
     }
 
-    if (type === 'company') {
+    if (props.type === 'company') {
+      const data = props.data;
+
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -106,7 +129,9 @@ export default function AdminDetailModal({ isOpen, onClose, title, type, data, i
       );
     }
 
-    if (type === 'jobPost') {
+    if (props.type === 'jobPost') {
+      const data = props.data;
+
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">

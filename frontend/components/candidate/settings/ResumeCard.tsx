@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { FileText, Trash2, RefreshCcw, FileUp, Loader2 } from "lucide-react";
 import { useUploadThing } from "@/lib/uploadthing";
+
+type ResumeUploadItem = {
+  url?: string;
+  ufsUrl?: string;
+  name?: string;
+};
+
+export type ResumeUploadResult = ResumeUploadItem[];
 
 interface ResumeCardProps {
   cvUrl?: string;
   cvFileName?: string;
   updatedAt?: string;
-  onUploadSuccess: (res: any) => void;
+  onUploadSuccess: (res: ResumeUploadResult) => void;
   onUploadError: (error: string) => void;
   onRemove: () => void;
 }

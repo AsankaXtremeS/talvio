@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 import { MOCK_CANDIDATES } from "@/lib/employer/candidates.service";
@@ -11,6 +11,8 @@ import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
 export default function CandidatesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const postId = searchParams.get("postId"); // Get postId from URL if available
 
   const [status, setStatus]   = useState<CandidateStatus>("Applied");
   const [query, setQuery]     = useState("");
@@ -31,14 +33,20 @@ export default function CandidatesPage() {
   /* ── Filtered list — derived from status + search query ── */
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return all.filter(
-      (c) =>
-        c.status === status &&
+    return all.filter((c) => {
+      const matchesStatus =
+        status === "AI Matches"
+          ? c.status === "Applied" && c.matchScore >= 85
+          : c.status === status;
+
+      return (
+        matchesStatus &&
         (!q ||
           c.name.toLowerCase().includes(q) ||
           c.role.toLowerCase().includes(q) ||
           c.skills.some((s) => s.toLowerCase().includes(q)))
-    );
+      );
+    });
   }, [all, status, query]);
 
   /* ── Handlers ── */
@@ -47,7 +55,8 @@ export default function CandidatesPage() {
   };
 
   const handleSchedule = (id: string) => {
-    router.push(`/users/employer/interviews/schedule?candidateId=${id}`);
+    const url = `/users/employer/candidates/${id}/schedule${postId ? `?postId=${postId}` : ""}`;
+    router.push(url);
   };
 
   return (
@@ -101,5 +110,6 @@ export default function CandidatesPage() {
           />
         )}
       </div>
+    
   );
 }

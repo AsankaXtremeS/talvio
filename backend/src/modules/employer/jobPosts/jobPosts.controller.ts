@@ -313,3 +313,34 @@ export const deleteJobPost = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * GET /api/employer/job-posts/:id/applications?status=PENDING
+ * Returns all candidates who applied for a specific job post.
+ * Optionally filters by application status (PENDING, SHORTLISTED, REJECTED).
+ */
+export const getJobPostApplications = async (req: Request, res: Response) => {
+  try {
+    // Verify user is authenticated
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    // Extract and validate job post ID
+    const jobPostIdParam = req.params.id;
+    const jobPostId = Array.isArray(jobPostIdParam) ? jobPostIdParam[0] : jobPostIdParam;
+    if (!jobPostId) return res.status(400).json({ message: "Job post ID is required" });
+    if (!isUuid(jobPostId)) return res.status(400).json({ message: "Invalid job post ID format" });
+
+    // Optional status filter
+    const status = req.query.status ? String(req.query.status) : undefined;
+
+    // Fetch applications from service
+    const applications = await jobsService.getApplicationsByJobPost(userId, jobPostId, status);
+    res.json(applications);
+  } catch (err: any) {
+    logControllerError("getJobPostApplications", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to fetch applications."),
+    });
+  }
+};

@@ -272,4 +272,29 @@ export const jobsService = {
     // Permanently delete the post from database
     await jobsRepository.deleteById(postId, employerId);
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GET APPLICATIONS FOR JOB POST — Returns all candidates who applied for this post.
+  // Used by the candidates page to display applicants for a specific job post.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async getApplicationsByJobPost(userId: string, jobPostId: string, status?: string): Promise<any[]> {
+    // Verify employer is approved
+    const employerId = await resolveApprovedEmployerId(userId);
+
+    // Fetch applications from repository
+    const applications = await jobsRepository.findApplicationsByJobPost(jobPostId, employerId, status);
+
+    // Format applications into candidate format for frontend
+    return applications.map((app) => ({
+      id: app.candidateProfile.id,
+      name: `${app.candidateProfile.user.firstName} ${app.candidateProfile.user.lastName}`,
+      email: app.candidateProfile.user.email,
+      headline: app.candidateProfile.headline || "",
+      skills: app.candidateProfile.skills || [],
+      status: app.applicationStatus, // PENDING, SHORTLISTED, REJECTED
+      appliedAt: app.appliedAt.toISOString(),
+      cvUrl: app.cvUrl,
+      aiScore: app.aiScore || 0,
+    }));
+  },
 };
