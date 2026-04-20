@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_DIRECT")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -92,7 +91,6 @@ model EmployerProfile {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interviews           Interview[]
   jobPosts             JobPost[]
 }
 
@@ -117,7 +115,6 @@ model JobPost {
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   applications          Application[]
-  interviews            Interview[]
   employer              EmployerProfile  @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
   @@index([employerId])
@@ -127,25 +124,25 @@ model JobPost {
 }
 
 model CandidateProfile {
-  id                  String        @id @default(uuid())
-  userId              String        @unique
-  headline            String?
-  location            String?
-  skills              String[]      @default([])
-  bio                 String?
-  linkedinUrl         String?
-  githubUrl           String?
-  portfolioUrl        String?
-  cvUrl               String?
-  cvFileName          String?
-  extractedSkills     String[]      @default([])
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  headline        String?
+  location        String?
+  skills          String[]      @default([])
+  bio             String?
+  linkedinUrl     String?
+  githubUrl       String?
+  portfolioUrl    String?
+  cvUrl           String?
+  cvFileName      String?
+  extractedSkills String[]      @default([])
   recommendationCache Json?
   lastRecommendedAt   DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  applications        Application[]
-  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interviews          Interview[]
+  jobAnalysisCache    Json?         @default("{}")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  applications    Application[]
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Application {
@@ -168,41 +165,6 @@ model Application {
   @@index([aiScore])
   @@index([candidateProfileId, appliedAt])
   @@index([applicationStatus])
-}
-
-model Interview {
-  id                    String               @id @default(uuid())
-  employerId            String
-  candidateProfileId    String
-  jobPostId             String
-  scheduledAt           DateTime
-  meetingType           InterviewMeetingType
-  status                InterviewStatus      @default(DRAFT)
-  location              String?
-  meetingLink           String?
-  additionalInfo        String?
-  emailBody             String?
-  googleCalendarEventId String?
-  googleCalendarLink    String?
-  candidateEmail        String
-  emailSentAt           DateTime?
-  rescheduledFromId     String?
-  rescheduledToId       String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  candidate             CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
-  employer              EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  jobPost               JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-  rescheduledFrom       Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
-  rescheduledTo         Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id], onDelete: SetNull)
-  rescheduledInterviews Interview[]          @relation("RescheduleFrom")
-  reschedulesToInterviews Interview[]        @relation("RescheduleTo")
-
-  @@index([employerId])
-  @@index([employerId, status])
-  @@index([employerId, scheduledAt])
-  @@index([candidateProfileId])
-  @@index([jobPostId])
 }
 
 enum Role {
@@ -265,17 +227,4 @@ enum PostStatus {
   DRAFT
   ACTIVE
   CLOSED
-}
-
-enum InterviewMeetingType {
-  ONLINE
-  ONSITE
-  PHONE
-}
-
-enum InterviewStatus {
-  DRAFT
-  SCHEDULED
-  CANCELLED
-  COMPLETED
 }

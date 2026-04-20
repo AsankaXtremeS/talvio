@@ -1,6 +1,5 @@
 export type CandidateStatus =
   | "Applied"
-  | "AI Matches"
   | "Shortlisted"
   | "Interview Scheduled"
   | "Hired";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { X, RefreshCw, Check, Sparkles, Loader2 } from "lucide-react";
 import { candidateJobService } from "@/lib/candidate/job.service";
 
@@ -33,16 +33,15 @@ export default function AICoverLetterModal({
       setCoverLetter(generatedLetter);
     } catch (err: any) {
       console.error("Failed to generate cover letter:", err);
-      const message = err instanceof Error ? err.message : "Failed to generate cover letter. Please try again.";
-      setError(message);
+      setError(err.message || "Failed to generate cover letter. Please try again.");
     } finally {
       setIsGenerating(false);
     }
-  }, [jobId]);
+  };
 
   useEffect(() => {
     fetchCoverLetter();
-  }, [fetchCoverLetter]);
+  }, [jobId]);
 
   const handleRegenerate = () => {
     fetchCoverLetter();
@@ -55,12 +54,12 @@ export default function AICoverLetterModal({
   };
 
   return (
-    <div className="fixed inset-0 z-95 overflow-hidden">
+    <div className="fixed inset-0 z-[95] overflow-hidden">
       {/* Blurred backdrop */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-305 items-center justify-center px-4">
-        <div className="relative w-full max-w-155 animate-in fade-in zoom-in duration-300">
+      <div className="relative z-10 mx-auto flex h-full max-w-[1220px] items-center justify-center px-4">
+        <div className="relative w-full max-w-[620px] animate-in fade-in zoom-in duration-300">
 
           {/* Close button */}
           <button
@@ -86,11 +85,10 @@ export default function AICoverLetterModal({
             <p className="text-[14px] text-slate-500 mb-6 font-medium">
               Writing for:{" "}
               <span className="font-bold text-indigo-700">{jobTitle}</span>
-              <span className="text-slate-400"> ({candidateName})</span>
             </p>
 
             {/* Text area area */}
-            <div className="relative bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5 min-h-75 flex flex-col">
+            <div className="relative bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5 min-h-[300px] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">
                   Generated Draft
@@ -119,7 +117,7 @@ export default function AICoverLetterModal({
                   onChange={(e) => setCoverLetter(e.target.value)}
                   disabled={isGenerating}
                   placeholder={isGenerating ? "" : "Your AI generated cover letter will appear here..."}
-                  className={`w-full flex-1 min-h-62.5 border border-slate-200 rounded-lg p-5 text-[14px] leading-relaxed resize-none bg-white font-serif outline-none transition shadow-inner ${
+                  className={`w-full flex-1 min-h-[250px] border border-slate-200 rounded-lg p-5 text-[14px] leading-relaxed resize-none bg-white font-serif outline-none transition shadow-inner ${
                     isGenerating
                       ? "text-slate-300 cursor-wait opacity-60"
                       : "text-slate-700 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
@@ -130,7 +128,7 @@ export default function AICoverLetterModal({
               {!isGenerating && !error && (
                 <p className="text-[11px] text-slate-400 mt-3 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block" />
-                  You can personalize the AI&apos;s draft above before using it.
+                  You can personalize the AI's draft above before using it.
                 </p>
               )}
             </div>

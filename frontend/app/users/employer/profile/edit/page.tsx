@@ -209,7 +209,7 @@ export default function EditEmployerProfilePage() {
       <div className="min-h-screen bg-[#eef5ff] px-4 pb-12 pt-4 sm:px-6">
         <div className="mx-auto max-w-305 space-y-4 animate-pulse">
           <div className="h-9 w-40 rounded-xl bg-gray-200" />
-          <div className="h-175 rounded-[28px] bg-gray-200" />
+          <div className="h-[700px] rounded-[28px] bg-gray-200" />
         </div>
       </div>
     );
