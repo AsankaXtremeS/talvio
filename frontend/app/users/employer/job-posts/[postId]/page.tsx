@@ -35,15 +35,6 @@ type LocalExtras = {
   skills?: string;
 };
 
-const parseSkillsCsv = (skills: string | undefined): string[] => {
-  if (!skills) return [];
-
-  return skills
-    .split(",")
-    .map((skill: string) => skill.trim())
-    .filter(Boolean);
-};
-
 export default function JobPostDetailPage({ params }: Props) {
   const router = useRouter();
   const { postId } = use(params);
@@ -76,7 +67,10 @@ export default function JobPostDetailPage({ params }: Props) {
               skills:
                 data.skills && data.skills.length > 0
                   ? data.skills
-                  : parseSkillsCsv(extras.skills),
+                  : (extras.skills || "")
+                      .split(",")
+                      .map((skill) => skill.trim())
+                      .filter(Boolean),
             };
           } catch {
             // Ignore invalid stored extras and use fetched payload.
@@ -134,9 +128,16 @@ export default function JobPostDetailPage({ params }: Props) {
       })
     : "Not specified";
 
-  const skillsList: string[] = Array.isArray(post.skills) ? post.skills : [];
-  const reqList: string[] = post.requirements ? post.requirements.split("\n").filter((r: string) => r.trim() !== "") : [];
-  const respList: string[] = post.responsibilities ? post.responsibilities.split("\n").filter((r: string) => r.trim() !== "") : [];
+  const skillsList = Array.isArray(post.skills)
+    ? post.skills
+    : typeof post.skills === "string"
+      ? post.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      : [];
+  const reqList = post.requirements ? post.requirements.split('\n').filter(r => r.trim() !== '') : [];
+  const respList = post.responsibilities ? post.responsibilities.split('\n').filter(r => r.trim() !== '') : [];
 
   return (
     <div className="flex-1 min-h-screen bg-[#F4F6FB] p-8 overflow-auto">
@@ -317,7 +318,7 @@ export default function JobPostDetailPage({ params }: Props) {
                   <h3 className="font-bold text-gray-900">Required Skills</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {skillsList.map((skill: string) => (
+                  {skillsList.map((skill) => (
                     <span
                       key={skill}
                       className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
@@ -332,7 +333,7 @@ export default function JobPostDetailPage({ params }: Props) {
 
           {/* Applicant Stats Card (Only show if not Draft) */}
           {post.status !== "Draft" && (
-            <div className="bg-linear-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
               <Users size={120} className="absolute -bottom-6 -right-6 text-white/10" />
               
               <h3 className="font-bold text-indigo-100 mb-6 relative z-10">Candidate Pipeline</h3>

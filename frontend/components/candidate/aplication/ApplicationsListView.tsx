@@ -30,21 +30,6 @@ const mapStatusToStage = (status: string): ApplicationMeta["stage"] => {
   }
 };
 
-const normalizeWorkLocation = (value: string): JobSummary["workLocation"] => {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "remote") return "Remote";
-  if (normalized === "hybrid") return "Hybrid";
-  return "Onsite";
-};
-
-const normalizeJobType = (value: string): JobSummary["jobType"] => {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "part-time" || normalized === "part time") return "Part time";
-  if (normalized === "intern" || normalized === "internship") return "Intern";
-  if (normalized === "contract") return "Contract";
-  return "Full time";
-};
-
 const mapBackendToFrontend = (app: CandidateApplication): ApplicationCardType => {
   return {
     id: app.jobPost.id, // Use Job ID for dashboard navigation
@@ -52,8 +37,8 @@ const mapBackendToFrontend = (app: CandidateApplication): ApplicationCardType =>
     title: app.jobPost.title,
     company: app.jobPost.employer.companyName,
     location: app.jobPost.location || "N/A",
-    workLocation: normalizeWorkLocation(app.jobPost.workMode || ""),
-    jobType: normalizeJobType(app.jobPost.employmentType || ""),
+    workLocation: (app.jobPost.workMode as any) || "Onsite",
+    jobType: (app.jobPost.employmentType as any) || "Full time",
     status: app.applicationStatus === "REJECTED" ? "archived" : "active",
     stage: mapStatusToStage(app.applicationStatus),
   };

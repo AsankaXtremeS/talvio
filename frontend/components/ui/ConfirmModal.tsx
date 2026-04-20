@@ -44,7 +44,7 @@ export default function ConfirmModal({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/25 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/25 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
         <button
           onClick={onCancel}

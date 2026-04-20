@@ -18,7 +18,7 @@ interface CandidateSettingsViewProps {
   profile: CandidateSettingsProfile;
   profileScore: number;
   resumeData?: ResumeData;
-  onResumeUpdate: (res: ResumeUploadResult) => void;
+  onResumeUpdate: (res: any) => void;
   onResumeError: (error: string) => void;
   onRemoveResume: () => void;
   onProfileSaved: (data: any) => void;

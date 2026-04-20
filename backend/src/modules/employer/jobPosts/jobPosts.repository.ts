@@ -216,10 +216,12 @@ export const jobsRepository = {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CREATE — Inserts a new job post into the database.
-  // Defaults to ACTIVE status if not specified.
+  // Defaults to DRAFT status if not specified.
   // ═══════════════════════════════════════════════════════════════════════════
   async create(employerId: string, data: CreateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
+
+    const requirementsText = toNullableString(data.requirements);
 
     // Map frontend fields to currently generated Prisma schema
     const createPayload = {
@@ -235,11 +237,13 @@ export const jobsRepository = {
       location: toNullableString(data.location),
       closingDate: data.closingDate ? new Date(data.closingDate) : null,
       status:
-        data.status === "Draft"
+        data.status === "Active"
+          ? PostStatus.ACTIVE
+          : data.status === "Draft"
           ? PostStatus.DRAFT
           : data.status === "Closed"
           ? PostStatus.CLOSED
-          : PostStatus.ACTIVE,
+          : PostStatus.DRAFT,
       employerId,
     };
 
@@ -339,52 +343,6 @@ export const jobsRepository = {
         id,
         employerId, // CRITICAL: Now securely checking ownership
       },
-    });
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET APPLICATIONS FOR JOB POST — Returns all candidates who applied for this post.
-  // Filters by status if provided.
-  // IMPORTANT: WHERE clause includes employerId to ensure the employer owns the job post.
-  // ═══════════════════════════════════════════════════════════════════════════
-  async findApplicationsByJobPost(jobPostId: string, employerId: string, status?: string) {
-    // First verify the job post belongs to this employer
-    const jobPost = await prisma.jobPost.findFirst({
-      where: { id: jobPostId, employerId },
-      select: { id: true },
-    });
-
-    if (!jobPost) {
-      return [];
-    }
-
-    // Build WHERE clause for applications
-    const where: any = { jobPostId };
-    if (status) {
-      where.applicationStatus = status;
-    }
-
-    // Fetch all applications for this job post with candidate details
-    return prisma.application.findMany({
-      where,
-      include: {
-        candidateProfile: {
-          select: {
-            id: true,
-            headline: true,
-            skills: true,
-            user: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { appliedAt: "desc" },
     });
   },
 };

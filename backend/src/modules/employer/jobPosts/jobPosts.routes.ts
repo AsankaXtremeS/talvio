@@ -18,7 +18,6 @@ import {
   createJobPost,
   updateJobPost,
   deleteJobPost,
-  getJobPostApplications,
 } from "./jobPosts.controller";
 
 const router = Router();
@@ -54,11 +53,6 @@ router.get("/stats", getJobPostStats);
 // Returns paginated list with filtering by status/type and text search.
 router.get("/", getJobPosts);
 router.post("/", createJobPost);
-
-// GET    /api/employer/job-posts/:id/applications — Get all candidates who applied to this post
-// IMPORTANT: Must be registered BEFORE /:id route to avoid matching "applications" as an :id
-// Optional query param: ?status=PENDING|SHORTLISTED|REJECTED
-router.get("/:id/applications", getJobPostApplications);
 
 // GET    /api/employer/job-posts/:id      — Get a single post by ID
 // PATCH  /api/employer/job-posts/:id      — Partially update a post (including status changes)
