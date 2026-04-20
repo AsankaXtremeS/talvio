@@ -237,7 +237,7 @@ export default function InterviewsDashboardPage() {
   return (
     <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans flex flex-col">
       {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="sticky top-0 z-40 bg-[#F7F9FC] backdrop-blur border-b ">
         <div className="max-w-7xl px-4 py-6 mx-auto">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -320,14 +320,38 @@ export default function InterviewsDashboardPage() {
                 onMenuClick={(id) => setOpenMenuId(id === openMenuId ? null : id)}
                 onCardClick={handleOpenDetails}
                 onReschedule={(interview) => {
+                  console.log("[onReschedule] Handler called with interview:", interview.id);
+                  
                   if (!interview.jobPost?.id || !interview.candidate?.id || !interview.id) {
+                    console.error("[onReschedule] Missing required data:", {
+                      interviewId: interview.id,
+                      jobPostId: interview.jobPost?.id,
+                      candidateId: interview.candidate?.id,
+                    });
                     alert("Interview data is incomplete. Please refresh and try again.");
                     return;
                   }
-                  setOpenMenuId(null);
-                  const rescheduleUrl = `/users/employer/job-posts/${interview.jobPost.id}/candidates/${interview.candidate.id}/schedule?interviewId=${interview.id}`;
-                  console.log("Navigating to reschedule:", rescheduleUrl);
-                  router.push(rescheduleUrl);
+                  
+                  try {
+                    setOpenMenuId(null);
+                    const rescheduleUrl = `/users/employer/job-posts/${interview.jobPost.id}/candidates/${interview.candidate.id}/schedule?interviewId=${interview.id}`;
+                    console.log("[onReschedule] Navigating to:", rescheduleUrl);
+                    console.log("[onReschedule] Full interview data:", {
+                      interviewId: interview.id,
+                      jobPostId: interview.jobPost.id,
+                      jobPostTitle: interview.jobPost.title,
+                      candidateId: interview.candidate.id,
+                      candidateName: interview.candidate.name,
+                    });
+                    
+                    // Use setTimeout to ensure menu closes before navigation
+                    setTimeout(() => {
+                      router.push(rescheduleUrl);
+                    }, 100);
+                  } catch (error) {
+                    console.error("[onReschedule] Error:", error);
+                    alert("Failed to navigate to reschedule page. Please try again.");
+                  }
                 }}
                 onCancel={handleCancel}
                 getTypeIcon={getTypeIcon}
