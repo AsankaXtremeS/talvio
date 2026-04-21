@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const prismaAny = prisma as any;
 
 export class ApplicationsService {
   async getCandidateApplications(userId: string, page: number, limit: number) {
@@ -137,10 +138,10 @@ export class ApplicationsService {
       prisma.application.count({
         where: { candidateProfileId: candidateProfile.id },
       }),
-      prisma.application.count({
+      prismaAny.interview.count({
         where: {
           candidateProfileId: candidateProfile.id,
-          applicationStatus: "SHORTLISTED",
+          status: "SCHEDULED",
         },
       }),
       prisma.jobPost.count({

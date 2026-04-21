@@ -10,6 +10,7 @@ import candidateJobsRoutes from "./modules/candidate/jobs/jobs.routes";
 import employerProfileRoutes from "./modules/employer/profile/profile.routes";
 import candidateApplicationsRoutes from "./modules/candidate/applications/applications.routes";
 import candidateProfileRoutes from "./modules/candidate/profile/profile.routes";
+import candidateInterviewsRoutes from "./modules/candidate/interviews/interviews.routes";
 import aiRoutes from "./modules/ai/ai.routes";
 
 
@@ -26,5 +27,6 @@ export const registerRoutes = (app: Express) => {
   app.use("/api/employer/profile", employerProfileRoutes);
   app.use("/api/candidate/applications", candidateApplicationsRoutes);
   app.use("/api/candidate/profile", candidateProfileRoutes);
+  app.use("/api/candidate/interviews", candidateInterviewsRoutes);
   app.use("/api/ai", aiRoutes);
 }

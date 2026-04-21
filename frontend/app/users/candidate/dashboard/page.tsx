@@ -14,10 +14,11 @@ import RecommendationList from "@/components/candidate/dashboard/RecommendationL
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 import { candidateJobService } from "@/lib/candidate/job.service";
+import { candidateInterviewsService } from "@/lib/candidate/interviews.service";
 import { apiClient } from "@/lib/apiClient";
 import Popup from "@/components/admin/layout/Popup";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
-import { INTERVIEWS } from "@/components/candidate/interviews/types";
+import { mapInterviewToItem } from "@/components/candidate/interviews/types";
 import { Check } from "lucide-react";
 
 
@@ -137,6 +138,19 @@ function useCandidateDashboard() {
     enabled: !!user?.id,
     staleTime: 30000,
   });
+
+  const { data: interviewsResponse } = useQuery({
+    queryKey: ["candidate-interviews", user?.id],
+    queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const interviews = useMemo(
+    () => (interviewsResponse?.data ?? []).map(mapInterviewToItem),
+    [interviewsResponse?.data]
+  );
 
   // Map raw stats to UI format
   const stats = useMemo(() => {
@@ -265,14 +279,10 @@ function useCandidateDashboard() {
     router.push("/users/candidate/dashboard");
   };
 
-  const [scheduledInterviews] = useState(() => {
-    const base = new Date();
-    return [
-      new Date(base.getTime() + 1000 * 60 * 60 * 2),
-      new Date(base.getTime() + 1000 * 60 * 60 * 27),
-      new Date(base.getTime() + 1000 * 60 * 60 * 72),
-    ];
-  });
+  const scheduledInterviews = useMemo(
+    () => interviews.map((interview) => new Date(interview.scheduledAt)),
+    [interviews]
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -339,7 +349,7 @@ function useCandidateDashboard() {
   }, [nearestInterview]);
 
   const interviewNotifications = useMemo(() => {
-    return INTERVIEWS
+    return interviews
       .map((interview) => {
         const scheduledDate = new Date(interview.scheduledAt);
         const isUpcoming = scheduledDate.getTime() >= now.getTime();
@@ -358,12 +368,7 @@ function useCandidateDashboard() {
       .sort((a, b) => b.scheduledAtMs - a.scheduledAtMs)
       .map(({ scheduledAtMs, ...notification }) => notification);
 
-
-
-
-
-
-  }, [now, readNotificationIds]);
+  }, [interviews, now, readNotificationIds]);
 
   const markNotificationAsRead = (notificationId: string) => {
     setReadNotificationIds((prev) => {

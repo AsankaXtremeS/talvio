@@ -1,17 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import InterviewCard from "@/components/candidate/interviews/InterviewCard";
-import { INTERVIEWS } from "@/components/candidate/interviews/types";
+import { mapInterviewToItem } from "@/components/candidate/interviews/types";
+import { candidateInterviewsService } from "@/lib/candidate/interviews.service";
 import { CalendarDays, Cog } from "lucide-react";
 
 export default function InterviewsListView() {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["candidate-interviews-list"],
+    queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
+    staleTime: 30000,
+  });
+
+  const interviews = useMemo(
+    () => (data?.data ?? []).map(mapInterviewToItem),
+    [data?.data]
+  );
+
   const now = new Date();
   const monthLabel = new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
   }).format(now);
-  const upcomingInterviews = INTERVIEWS
+
+  const upcomingInterviews = interviews
     .filter((interview) => new Date(interview.scheduledAt).getTime() >= now.getTime())
     .sort(
       (a, b) =>
@@ -20,7 +35,7 @@ export default function InterviewsListView() {
     .slice(0, 3);
 
   const interviewDaysInCurrentMonth = new Set(
-    INTERVIEWS.map((interview) => new Date(interview.scheduledAt))
+    interviews.map((interview) => new Date(interview.scheduledAt))
       .filter(
         (date) =>
           date.getMonth() === now.getMonth() &&
@@ -57,10 +72,27 @@ export default function InterviewsListView() {
             </p>
           </header>
 
+          {isLoading && (
+            <p className="mb-3 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+              Loading scheduled interviews...
+            </p>
+          )}
+
+          {isError && (
+            <p className="mb-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {(error as Error)?.message || "Failed to load interviews"}
+            </p>
+          )}
+
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {INTERVIEWS.map((interview) => (
+            {interviews.map((interview) => (
               <InterviewCard key={interview.id} interview={interview} />
             ))}
+            {!isLoading && interviews.length === 0 && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+                No scheduled interviews yet.
+              </div>
+            )}
           </div>
         </div>
 
