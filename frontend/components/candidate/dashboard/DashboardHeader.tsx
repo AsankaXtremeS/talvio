@@ -133,7 +133,6 @@ export default function DashboardHeader({
                                 onClick={() => {
                                   onNotificationClick?.(notification);
                                   setIsOpen(false);
-                                  router.push(notification.href);
                                 }}
                                 className="w-full rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-left transition-colors hover:bg-emerald-100"
                               >
@@ -160,7 +159,6 @@ export default function DashboardHeader({
                                 onClick={() => {
                                   onNotificationClick?.(notification);
                                   setIsOpen(false);
-                                  router.push(notification.href);
                                 }}
                                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition-colors hover:bg-slate-100"
                               >
