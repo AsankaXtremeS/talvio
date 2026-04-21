@@ -57,10 +57,10 @@ export const candidateJobService = {
     }));
   },
 
-  async applyToJob(jobId: string, cvUrl: string, cvFileName: string, coverLetter?: string): Promise<ApplicationResponse> {
+  async applyToJob(jobId: string, cvUrl?: string, cvFileName?: string, coverLetter?: string, useDefaultCv?: boolean): Promise<ApplicationResponse> {
     return apiClient<ApplicationResponse>(`/api/candidate/applications/apply/${jobId}`, {
       method: 'POST',
-      data: { cvUrl, cvFileName, coverLetter },
+      data: { cvUrl, cvFileName, coverLetter, useDefaultCv },
     });
   },
 

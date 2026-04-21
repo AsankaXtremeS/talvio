@@ -35,12 +35,13 @@ export const applyForJob = async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const { jobPostId } = req.params;
-    const { cvUrl, cvFileName, coverLetter } = req.body;
+    const { cvUrl, cvFileName, coverLetter, useDefaultCv } = req.body;
 
     const application = await applicationsService.applyToJob(userId, jobPostId, {
       cvUrl,
       cvFileName,
       coverLetter,
+      useDefaultCv,
     });
 
     res.status(201).json({

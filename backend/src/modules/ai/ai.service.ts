@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import crypto from "crypto";
 import fs from "fs";
 import { PDFParse } from "pdf-parse";
 import { env } from "../../config/env";
