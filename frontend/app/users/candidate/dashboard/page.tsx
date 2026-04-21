@@ -384,6 +384,11 @@ function useCandidateDashboard() {
     });
   };
 
+  const handleNotificationClick = (notification: { id: string; href: string }) => {
+    markNotificationAsRead(notification.id);
+    router.push(notification.href || "/users/candidate/interviews");
+  };
+
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     const sourceJobs = activeTab === "applications" ? myApplications.map(a => a.job) : recommendations;
@@ -425,7 +430,7 @@ function useCandidateDashboard() {
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
     interviewNotifications,
-    markNotificationAsRead,
+    handleNotificationClick,
     shownJobs,
     selectedJob,
     activeModal,
@@ -461,7 +466,7 @@ export default function CandidateDashboardPage() {
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
     interviewNotifications,
-    markNotificationAsRead,
+    handleNotificationClick,
     shownJobs,
     selectedJob,
     activeModal,
@@ -514,7 +519,7 @@ export default function CandidateDashboardPage() {
           nearestInterviewDateLabel={nearestInterviewDateLabel}
           nearestInterviewTimeLabel={nearestInterviewTimeLabel}
           notifications={interviewNotifications}
-          onNotificationClick={(notification) => markNotificationAsRead(notification.id)}
+          onNotificationClick={handleNotificationClick}
         />
 
         <div className="pt-0">
