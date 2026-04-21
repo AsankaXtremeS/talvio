@@ -446,7 +446,7 @@ export default function InterviewsDashboardPage() {
                 <div className="p-2 text-indigo-600 rounded-lg bg-indigo-50">
                   <Clock size={18} />
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Reschedule Notifications</h3>
+                <h3 className="text-sm font-bold text-gray-900">Interview Notifications</h3>
                 <span className="ml-auto px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
                   {interviews.filter(iv => iv.rescheduledFromId).length}
                 </span>

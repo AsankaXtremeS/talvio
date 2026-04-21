@@ -231,6 +231,8 @@ export const interviewRepository = {
       emailSentAt: Date | null;
       rescheduledFromId: string | null;
       rescheduledToId: string | null;
+      cancelledAt: Date | null;
+      cancellationReason: string | null;
     }>
   ) {
     return prisma.interview.update({
