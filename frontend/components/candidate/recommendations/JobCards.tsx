@@ -23,6 +23,7 @@ interface JobCardProps {
   matchPercent: number;
   tags: string[];
   companyLogoUrl?: string;
+  isApplied?: boolean;
   onView: (id: string) => void;
   onApply: (id: string) => void;
 }
@@ -36,6 +37,7 @@ export default function JobCard({
   matchPercent,
   tags,
   companyLogoUrl,
+  isApplied,
   onView,
   onApply,
 }: JobCardProps) {
@@ -92,12 +94,21 @@ export default function JobCard({
         >
           View
         </button>
-        <button
-          onClick={() => onApply(id)}
-          className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Apply now
-        </button>
+        {isApplied ? (
+          <button
+            onClick={() => onView(id)}
+            className="px-6 py-2 border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-xl"
+          >
+            Applied
+          </button>
+        ) : (
+          <button
+            onClick={() => onApply(id)}
+            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Apply now
+          </button>
+        )}
       </div>
     </div>
   );

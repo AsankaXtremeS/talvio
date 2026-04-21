@@ -7,12 +7,13 @@
 
 */
 -- AlterTable
-ALTER TABLE "Application" DROP COLUMN "cvText";
+ALTER TABLE "Application" DROP COLUMN IF EXISTS "cvText";
 
 -- AlterTable
-ALTER TABLE "CandidateProfile" DROP COLUMN "cvText",
-ADD COLUMN     "lastRecommendedAt" TIMESTAMP(3),
-ADD COLUMN     "recommendationCache" JSONB;
+ALTER TABLE "CandidateProfile"
+DROP COLUMN IF EXISTS "cvText",
+ADD COLUMN IF NOT EXISTS "lastRecommendedAt" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "recommendationCache" JSONB;
 
 -- AlterTable
-ALTER TABLE "JobPost" DROP COLUMN "skills";
+ALTER TABLE "JobPost" DROP COLUMN IF EXISTS "skills";
