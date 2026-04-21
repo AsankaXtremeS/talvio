@@ -182,11 +182,14 @@ function useCandidateDashboard() {
 
   // 5. Apply Mutation
   const applyMutation = useMutation({
-    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
-      const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
-      const finalCvFileName = data.cvFileName || profileData?.cvFileName || "Profile_CV.pdf";
-
-      return candidateJobService.applyToJob(data.jobId, finalCvUrl, finalCvFileName, data.coverLetter);
+    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string; useDefaultCv?: boolean }) => {
+      return candidateJobService.applyToJob(
+        data.jobId, 
+        data.useDefaultCv ? undefined : data.cvUrl, 
+        data.useDefaultCv ? undefined : data.cvFileName, 
+        data.coverLetter,
+        data.useDefaultCv
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
@@ -398,23 +401,22 @@ function useCandidateDashboard() {
 
   const shownJobs = filteredJobs;
 
-  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string) => {
-    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string, useDefaultCv?: boolean) => {
+    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName, useDefaultCv });
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleWithdrawApplication = (jobId: string) => {
     withdrawMutation.mutate(jobId);
@@ -451,8 +453,8 @@ export default function CandidateDashboardPage() {
   const { user } = useAuth();
   const isProfessional = user?.role === "PROFESSIONAL";
   const [resumeFileName, setResumeFileName] = useState("");
+  const [cvUrl, setCvUrl] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const resumeInputRef = useRef<HTMLInputElement>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   const {
@@ -488,20 +490,16 @@ export default function CandidateDashboardPage() {
     setCoverLetter(`Dear Hiring Team at ${selectedJob.company},\n\nI am excited to apply for the ${selectedJob.title} role. My skills in communication, collaboration, and campaign support align well with this opportunity, and I am confident I can contribute to your team from day one.\n\nThank you for your time and consideration. I would welcome the opportunity to discuss how I can support your goals.\n\nSincerely,\nCandidate`);
   };
 
-  const handleApplySubmission = () => {
+  const handleApplySubmission = (useDefaultCv: boolean) => {
     if (!selectedJob) return;
 
-    // For non-recommended jobs, we require a resume upload
-    if (!selectedJob.isAiRecommended && !resumeFileName) {
-      setPopup({ 
-        open: true, 
-        message: "Please upload your resume first.", 
-        success: false 
-      });
-      return;
-    }
-
-    submitApplication(selectedJob.id, coverLetter, undefined, resumeFileName || undefined);
+    submitApplication(
+      selectedJob.id, 
+      coverLetter, 
+      useDefaultCv ? undefined : cvUrl, 
+      useDefaultCv ? undefined : resumeFileName,
+      useDefaultCv
+    );
   };
 
   const handleAIDone = (generatedCoverLetter: string) => {
@@ -592,7 +590,8 @@ export default function CandidateDashboardPage() {
                 selectedJob={selectedJob}
                 resumeFileName={resumeFileName}
                 setResumeFileName={setResumeFileName}
-                resumeInputRef={resumeInputRef}
+                cvUrl={cvUrl}
+                setCvUrl={setCvUrl}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
                 showAIModal={showAIModal}
@@ -600,7 +599,6 @@ export default function CandidateDashboardPage() {
                 closeModals={closeModals}
                 openJobDetails={openJobDetails}
                 handleApplySubmission={handleApplySubmission}
-                isAiRecommended={selectedJob.isAiRecommended}
                 isLoading={isLoading}
               />
             )}
