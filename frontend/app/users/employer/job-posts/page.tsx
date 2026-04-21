@@ -3,11 +3,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Briefcase, CheckCircle2, AlertCircle } from "lucide-react";
-import { JobPost, JobPostStats } from "@/types/employer/jobPost.types";
+import { JobPost } from "@/types/employer/jobPost.types";
 import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
 import { deleteJobPost, getJobPosts, getJobPostStats, setJobPostStatus } from "@/lib/employer/jobPosts.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Popup from "@/components/admin/layout/Popup";
 
 type ToastState = {
@@ -28,11 +29,28 @@ type PendingDeleteState = {
 export default function JobPostsPage() {
   const router = useRouter();
 
-  // ── State ──
-  const [posts, setPosts] = useState<JobPost[]>([]);
-  const [stats, setStats] = useState<JobPostStats>({ total: 0, active: 0, closed: 0, draft: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  // ── Data Fetching (React Query) ──
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["employer-job-posts"],
+    queryFn: async () => {
+      console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
+      const [postsData, statsData] = await Promise.all([
+        getJobPosts(),
+        getJobPostStats(),
+      ]);
+      return { posts: postsData, stats: statsData };
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: true,
+  });
+
+  const posts = data?.posts || [];
+  const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0 };
+  const error = queryError ? "Failed to load job posts. Please try again." : "";
+
+  // ── UI State ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -55,29 +73,6 @@ export default function JobPostsPage() {
   const [sort, setSort] = useState("Newest");
   const [period, setPeriod] = useState("This Week");
 
-  // ── Fetch posts + stats from backend ──
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
-        const [postsData, statsData] = await Promise.all([
-          getJobPosts(),
-          getJobPostStats(),
-        ]);
-        setPosts(postsData);
-        setStats(statsData);
-      } catch (err: unknown) {
-        console.error("Failed to load job posts:", err);
-        setError("Failed to load job posts. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -141,9 +136,7 @@ export default function JobPostsPage() {
 
     try {
       await deleteJobPost(id);
-      setPosts((prev) => prev.filter((post) => post.id !== id));
-      const latestStats = await getJobPostStats();
-      setStats(latestStats);
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
       setToast({
         type: "success",
         message: "Job post deleted successfully.",
@@ -166,14 +159,8 @@ export default function JobPostsPage() {
     setClosingId(id);
 
     try {
-      const updatedPost = await setJobPostStatus(id, nextStatus);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === id ? updatedPost : post
-        )
-      );
-      const latestStats = await getJobPostStats();
-      setStats(latestStats);
+      await setJobPostStatus(id, nextStatus);
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
       setToast({
         type: "success",
         message: `Job post updated to ${nextStatus}.`,

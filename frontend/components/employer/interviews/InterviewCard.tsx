@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import { InterviewDTO } from "@/types/employer/interview.types";
 
@@ -30,6 +32,9 @@ export default function InterviewCard({
   formatDate,
   formatTime,
 }: InterviewCardProps) {
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState<string | null>(null);
+
   return (
     <div
       key={iv.id}
@@ -53,42 +58,42 @@ export default function InterviewCard({
         <div className="absolute right-4 top-12 z-30 w-44 rounded-xl border border-[#dbe7ff] bg-white py-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-100">
           <button
             type="button"
-            onClick={(e) => {
+            disabled={isNavigating !== null}
+            onPointerDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              console.log("[Reschedule Button] Clicked - Interview ID:", iv.id);
-              console.log("[Reschedule Button] Data:", {
-                interviewId: iv.id,
-                jobPostId: iv.jobPost?.id,
-                candidateId: iv.candidate?.id,
-              });
-
-              // Verify data exists before navigating
               if (!iv.jobPost?.id || !iv.candidate?.id || !iv.id) {
-                console.error("[Reschedule Button] Missing data:", {
-                  jobPostId: iv.jobPost?.id,
-                  candidateId: iv.candidate?.id,
-                  interviewId: iv.id,
-                });
                 alert("Interview data is incomplete. Please refresh and try again.");
                 return;
               }
-
-              // Call the reschedule handler
-              onReschedule(iv);
+              setIsNavigating("reschedule");
+              router.push(`/users/employer/job-posts/${iv.jobPost?.id}/candidates/${iv.candidate?.id}/schedule?interviewId=${iv.id}`);
             }}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Reschedule
+            {isNavigating === "reschedule" ? (
+              <><span className="animate-pulse">Loading...</span></>
+            ) : (
+              "Reschedule"
+            )}
           </button>
           <div className="my-1 border-t border-gray-100" />
           <button
-            onClick={(e) => {
+            type="button"
+            disabled={isNavigating !== null}
+            onPointerDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              onCancel(iv.id);
+              setIsNavigating("cancel");
+              router.push(`/users/employer/interviews/${iv.id}/cancel`);
             }}
-            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Cancel Interview
+            {isNavigating === "cancel" ? (
+              <><span className="animate-pulse">Loading...</span></>
+            ) : (
+              "Cancel Interview"
+            )}
           </button>
         </div>
       )}
