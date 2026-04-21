@@ -24,6 +24,7 @@ interface JobDetail {
 
 interface JobViewModalProps {
   job: JobDetail;
+  isApplied?: boolean;
   onClose: () => void;
   onApply: (id: string) => void;
 }
@@ -40,7 +41,7 @@ function GoogleLogo() {
   );
 }
 
-export default function JobViewModal({ job, onClose, onApply }: JobViewModalProps) {
+export default function JobViewModal({ job, isApplied, onClose, onApply }: JobViewModalProps) {
   // Close on Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -98,9 +99,14 @@ export default function JobViewModal({ job, onClose, onApply }: JobViewModalProp
               </div>
               <button
                 onClick={() => onApply(job.id)}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                disabled={isApplied}
+                className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
+                  isApplied
+                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                }`}
               >
-                Apply now
+                {isApplied ? "Applied" : "Apply now"}
               </button>
             </div>
             {/* Tags */}

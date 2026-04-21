@@ -57,11 +57,12 @@ export class ApplicationsService {
   }
 
   async applyToJob(userId: string, jobPostId: string, data: { cvUrl: string; cvFileName: string; coverLetter?: string }) {
-    const candidateProfile = await prisma.candidateProfile.findUnique({
+    // Ensure candidate profile always exists (supports older accounts without profile rows).
+    const candidateProfile = await prisma.candidateProfile.upsert({
       where: { userId },
+      update: {},
+      create: { userId },
     });
-
-    if (!candidateProfile) throw new Error("Candidate profile not found");
 
     // Check if already applied
     const existing = await prisma.application.findUnique({
