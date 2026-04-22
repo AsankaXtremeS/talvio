@@ -38,6 +38,18 @@ export const applicationsRepository = {
         jobPost: {
           include: {
             employer: true,
+            interviews: {
+              where: {
+                candidateProfileId: candidateProfileId,
+                status: {
+                  in: ["SCHEDULED", "COMPLETED"]
+                }
+              },
+              orderBy: {
+                scheduledAt: "desc"
+              },
+              take: 1
+            }
           },
         },
       },
