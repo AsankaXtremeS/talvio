@@ -1,4 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../config/db";
+import { candidateRepository } from "../candidate.repository";
+import { applicationsRepository } from "./applications.repository";
 import { aiService } from "../../ai/ai.service";
 
 const prismaAny = prisma as any;
