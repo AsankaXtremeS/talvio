@@ -115,7 +115,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
   // ── Build ISO scheduledAt from separate date + time fields ──
   function buildScheduledAt(d: string, t: string): string {
-    return `${d}T${t}:00.000Z`;
+    const localDateTime = new Date(`${d}T${t}:00`);
+    return localDateTime.toISOString();
   }
 
   // ── Generate email preview ──────────────────────────────────────────────────

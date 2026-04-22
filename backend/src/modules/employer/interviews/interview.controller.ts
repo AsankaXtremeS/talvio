@@ -28,6 +28,10 @@ const getParamAsString = (value: unknown): string | null => {
   return null;
 };
 
+const isUuid = (value: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+};
+
 /**
  * Format Zod validation errors into a clean error response
  */
@@ -327,6 +331,9 @@ export const getCandidateProfile = async (req: Request, res: Response) => {
     const candidateProfileId = getParamAsString(req.params.candidateProfileId);
     if (!candidateProfileId) {
       return res.status(400).json({ message: "Invalid candidate profile id" });
+    }
+    if (!isUuid(candidateProfileId)) {
+      return res.status(400).json({ message: "Candidate profile id must be a valid UUID" });
     }
 
     const candidate = await interviewService.getCandidateProfile(employerId, candidateProfileId);
