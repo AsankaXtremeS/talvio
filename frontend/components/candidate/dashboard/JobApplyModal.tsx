@@ -1,20 +1,21 @@
-import { Upload, Pencil, X, Sparkles, Check, Loader2 } from "lucide-react";
-import React, { RefObject } from "react";
+import { Upload, Pencil, X, Sparkles, Check, Loader2, FileText } from "lucide-react";
+import React, { useState } from "react";
 import { DashboardJob } from "./RecommendationRow";
+import { UploadButton } from "@/lib/uploadthing";
 
 interface JobApplyModalProps {
   selectedJob: DashboardJob;
   resumeFileName: string;
   setResumeFileName: (name: string) => void;
-  resumeInputRef: RefObject<HTMLInputElement | null>;
+  cvUrl?: string;
+  setCvUrl: (url: string) => void;
   coverLetter: string;
   setCoverLetter: (text: string) => void;
   showAIModal: boolean;
   setShowAIModal: (show: boolean) => void;
   closeModals: () => void;
   openJobDetails: (jobId: string) => void;
-  handleApplySubmission: () => void;
-  isAiRecommended?: boolean;
+  handleApplySubmission: (useDefaultCv: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -22,7 +23,8 @@ export default function JobApplyModal({
   selectedJob,
   resumeFileName,
   setResumeFileName,
-  resumeInputRef,
+  cvUrl,
+  setCvUrl,
   coverLetter,
   setCoverLetter,
   showAIModal,
@@ -30,9 +32,10 @@ export default function JobApplyModal({
   closeModals,
   openJobDetails,
   handleApplySubmission,
-  isAiRecommended,
   isLoading,
 }: JobApplyModalProps) {
+  const [cvOption, setCvOption] = useState<"default" | "custom">("default");
+
   return (
     <div className="space-y-5 p-6">
       <button onClick={closeModals} className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 hover:text-gray-600 transition-colors"><X size={14} strokeWidth={2.5} /></button>
@@ -53,67 +56,124 @@ export default function JobApplyModal({
         </div>
       </div>
 
-      {!isAiRecommended ? (
-        <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">Resume</p>
-          <input ref={resumeInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResumeFileName(e.target.files?.[0]?.name ?? "")} />
-          <button onClick={() => resumeInputRef.current?.click()} className="w-full rounded-2xl border-2 border-dashed border-indigo-300 bg-violet-50/50 px-4 py-5 text-center transition-colors hover:bg-violet-50">
-            <Upload size={22} className="mx-auto mb-1.5 text-indigo-300" />
-            <p className="text-sm font-medium text-slate-500">{resumeFileName ? resumeFileName : "Drag and drop resume"}</p>
-            <p className="mt-1 text-sm font-semibold text-indigo-600">Browse CV</p>
+      <div>
+        <p className="mb-3 text-sm font-semibold text-slate-700 font-urbanist">Select Resume</p>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <button
+            onClick={() => setCvOption("default")}
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+              cvOption === "default"
+                ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
+                : "border-gray-100 bg-slate-50/50 hover:border-indigo-200"
+            }`}
+          >
+            <div className={`p-2 rounded-xl ${cvOption === "default" ? "bg-indigo-600 text-white" : "bg-white text-slate-400"}`}>
+              <Check size={16} strokeWidth={3} />
+            </div>
+            <span className={`text-xs font-bold ${cvOption === "default" ? "text-indigo-700" : "text-slate-500"}`}>Use Default CV</span>
+          </button>
+          <button
+            onClick={() => setCvOption("custom")}
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+              cvOption === "custom"
+                ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
+                : "border-gray-100 bg-slate-50/50 hover:border-indigo-200"
+            }`}
+          >
+            <div className={`p-2 rounded-xl ${cvOption === "custom" ? "bg-indigo-600 text-white" : "bg-white text-slate-400"}`}>
+              <Upload size={16} strokeWidth={3} />
+            </div>
+            <span className={`text-xs font-bold ${cvOption === "custom" ? "text-indigo-700" : "text-slate-500"}`}>Upload Custom CV</span>
           </button>
         </div>
-      ) : (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-              <Check size={18} strokeWidth={3} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Resume already on file</p>
-              <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
-                Since this is a recommended job, we will automatically use the <span className="font-semibold text-indigo-600">Default Resume</span> from your profile.
-              </p>
+
+        {cvOption === "default" ? (
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4 border-dashed animate-in fade-in duration-300">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                <FileText size={20} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 truncate">Default Profile CV</p>
+                <p className="text-xs text-slate-500">We'll use your current profile resume</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-slate-50/50 p-6 text-center animate-in zoom-in-95 duration-300">
+            {cvUrl ? (
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="bg-green-100 p-1.5 rounded-lg text-green-600">
+                    <Check size={14} strokeWidth={3} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 truncate">{resumeFileName}</p>
+                </div>
+                <button onClick={() => { setCvUrl(""); setResumeFileName(""); }} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <UploadButton
+                  endpoint="pdfUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setCvUrl(res[0].url);
+                      setResumeFileName(res[0].name);
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    alert(`ERROR! ${error.message}`);
+                  }}
+                  appearance={{
+                    button: "bg-indigo-600 rounded-xl px-4 py-2 text-sm font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 h-10 w-full",
+                    allowedContent: "text-[10px] text-slate-400 mt-2"
+                  }}
+                />
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-slate-700">Cover letter</p>
+          <p className="text-sm font-semibold text-slate-700 font-urbanist">Cover Letter</p>
           <button 
             onClick={() => setShowAIModal(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors bg-indigo-50 px-3 py-1 rounded-full"
           >
-            <Sparkles size={14} />
-            Generate with AI
+            <Sparkles size={12} />
+            AI Generate
           </button>
         </div>
         <textarea
           value={coverLetter}
           onChange={(e) => setCoverLetter(e.target.value)}
-          placeholder="Paste or type your cover letter here..."
-          className="w-full min-h-[160px] rounded-2xl border border-gray-200 bg-slate-50/30 p-4 text-sm text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 transition-all resize-none"
+          placeholder="Why are you a good fit for this role?"
+          className="w-full min-h-[140px] rounded-2xl border border-gray-200 bg-slate-50/30 p-4 text-sm text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 transition-all resize-none shadow-inner"
         />
       </div>
 
-
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <button onClick={() => openJobDetails(selectedJob.id)} className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-5 py-2 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"><Pencil size={13} strokeWidth={2.2} />Edit</button>
+      <div className="flex items-center justify-end gap-3 pt-2">
         <button 
-          onClick={handleApplySubmission} 
-          disabled={isLoading || (!isAiRecommended && !resumeFileName)} 
-          className="relative flex items-center justify-center min-w-[120px] rounded-xl px-6 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70" 
-          style={{ background: "linear-gradient(90deg, #5F33E2 0%, #7C3AED 100%)", boxShadow: "0 4px 14px rgba(95,51,226,0.3)" }}
+          onClick={() => handleApplySubmission(cvOption === "default")} 
+          disabled={isLoading || (cvOption === "custom" && !cvUrl)} 
+          className="relative flex items-center justify-center min-w-[140px] rounded-xl px-6 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 group overflow-hidden" 
+          style={{ background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)", boxShadow: "0 10px 25px -5px rgba(79, 70, 229, 0.4)" }}
         >
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           {isLoading ? (
             <span className="flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
-              Applying...
+              Processing AI...
             </span>
           ) : (
-            "Apply now"
+            <span className="flex items-center gap-2">
+              Apply Now
+              <X size={14} className="rotate-45" />
+            </span>
           )}
         </button>
       </div>

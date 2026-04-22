@@ -14,10 +14,11 @@ import RecommendationList from "@/components/candidate/dashboard/RecommendationL
 import { DashboardJob } from "@/components/candidate/dashboard/RecommendationRow";
 import AICoverLetterModal from "@/components/candidate/dashboard/AICoverLetterGeneretingModel";
 import { candidateJobService } from "@/lib/candidate/job.service";
+import { candidateInterviewsService } from "@/lib/candidate/interviews.service";
 import { apiClient } from "@/lib/apiClient";
 import Popup from "@/components/admin/layout/Popup";
 import { JOBS as APPLICATION_JOBS } from "@/components/candidate/aplication/types";
-import { INTERVIEWS } from "@/components/candidate/interviews/types";
+import { mapInterviewToItem } from "@/components/candidate/interviews/types";
 import { Check } from "lucide-react";
 
 
@@ -138,6 +139,19 @@ function useCandidateDashboard() {
     staleTime: 30000,
   });
 
+  const { data: interviewsResponse } = useQuery({
+    queryKey: ["candidate-interviews", user?.id],
+    queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const interviews = useMemo(
+    () => (interviewsResponse?.data ?? []).map(mapInterviewToItem),
+    [interviewsResponse?.data]
+  );
+
   // Map raw stats to UI format
   const stats = useMemo(() => {
     if (!rawStats) return undefined;
@@ -168,11 +182,14 @@ function useCandidateDashboard() {
 
   // 5. Apply Mutation
   const applyMutation = useMutation({
-    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string }) => {
-      const finalCvUrl = data.cvUrl || profileData?.cvUrl || "Profile_CV_URL";
-      const finalCvFileName = data.cvFileName || profileData?.cvFileName || "Profile_CV.pdf";
-
-      return candidateJobService.applyToJob(data.jobId, finalCvUrl, finalCvFileName, data.coverLetter);
+    mutationFn: (data: { jobId: string; coverLetter?: string; cvUrl?: string; cvFileName?: string; useDefaultCv?: boolean }) => {
+      return candidateJobService.applyToJob(
+        data.jobId, 
+        data.useDefaultCv ? undefined : data.cvUrl, 
+        data.useDefaultCv ? undefined : data.cvFileName, 
+        data.coverLetter,
+        data.useDefaultCv
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
@@ -265,14 +282,10 @@ function useCandidateDashboard() {
     router.push("/users/candidate/dashboard");
   };
 
-  const [scheduledInterviews] = useState(() => {
-    const base = new Date();
-    return [
-      new Date(base.getTime() + 1000 * 60 * 60 * 2),
-      new Date(base.getTime() + 1000 * 60 * 60 * 27),
-      new Date(base.getTime() + 1000 * 60 * 60 * 72),
-    ];
-  });
+  const scheduledInterviews = useMemo(
+    () => interviews.map((interview) => new Date(interview.scheduledAt)),
+    [interviews]
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -339,7 +352,7 @@ function useCandidateDashboard() {
   }, [nearestInterview]);
 
   const interviewNotifications = useMemo(() => {
-    return INTERVIEWS
+    return interviews
       .map((interview) => {
         const scheduledDate = new Date(interview.scheduledAt);
         const isUpcoming = scheduledDate.getTime() >= now.getTime();
@@ -358,12 +371,7 @@ function useCandidateDashboard() {
       .sort((a, b) => b.scheduledAtMs - a.scheduledAtMs)
       .map(({ scheduledAtMs, ...notification }) => notification);
 
-
-
-
-
-
-  }, [now, readNotificationIds]);
+  }, [interviews, now, readNotificationIds]);
 
   const markNotificationAsRead = (notificationId: string) => {
     setReadNotificationIds((prev) => {
@@ -379,6 +387,11 @@ function useCandidateDashboard() {
     });
   };
 
+  const handleNotificationClick = (notification: { id: string; href: string }) => {
+    markNotificationAsRead(notification.id);
+    router.push(notification.href || "/users/candidate/interviews");
+  };
+
   const filteredJobs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     const sourceJobs = activeTab === "applications" ? myApplications.map(a => a.job) : recommendations;
@@ -388,23 +401,22 @@ function useCandidateDashboard() {
 
   const shownJobs = filteredJobs;
 
-  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string) => {
-    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string, useDefaultCv?: boolean) => {
+    applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName, useDefaultCv });
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleWithdrawApplication = (jobId: string) => {
     withdrawMutation.mutate(jobId);
@@ -420,7 +432,7 @@ function useCandidateDashboard() {
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
     interviewNotifications,
-    markNotificationAsRead,
+    handleNotificationClick,
     shownJobs,
     selectedJob,
     activeModal,
@@ -441,8 +453,8 @@ export default function CandidateDashboardPage() {
   const { user } = useAuth();
   const isProfessional = user?.role === "PROFESSIONAL";
   const [resumeFileName, setResumeFileName] = useState("");
+  const [cvUrl, setCvUrl] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const resumeInputRef = useRef<HTMLInputElement>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   const {
@@ -456,7 +468,7 @@ export default function CandidateDashboardPage() {
     nearestInterviewDateLabel,
     nearestInterviewTimeLabel,
     interviewNotifications,
-    markNotificationAsRead,
+    handleNotificationClick,
     shownJobs,
     selectedJob,
     activeModal,
@@ -478,20 +490,16 @@ export default function CandidateDashboardPage() {
     setCoverLetter(`Dear Hiring Team at ${selectedJob.company},\n\nI am excited to apply for the ${selectedJob.title} role. My skills in communication, collaboration, and campaign support align well with this opportunity, and I am confident I can contribute to your team from day one.\n\nThank you for your time and consideration. I would welcome the opportunity to discuss how I can support your goals.\n\nSincerely,\nCandidate`);
   };
 
-  const handleApplySubmission = () => {
+  const handleApplySubmission = (useDefaultCv: boolean) => {
     if (!selectedJob) return;
 
-    // For non-recommended jobs, we require a resume upload
-    if (!selectedJob.isAiRecommended && !resumeFileName) {
-      setPopup({ 
-        open: true, 
-        message: "Please upload your resume first.", 
-        success: false 
-      });
-      return;
-    }
-
-    submitApplication(selectedJob.id, coverLetter, undefined, resumeFileName || undefined);
+    submitApplication(
+      selectedJob.id, 
+      coverLetter, 
+      useDefaultCv ? undefined : cvUrl, 
+      useDefaultCv ? undefined : resumeFileName,
+      useDefaultCv
+    );
   };
 
   const handleAIDone = (generatedCoverLetter: string) => {
@@ -509,7 +517,7 @@ export default function CandidateDashboardPage() {
           nearestInterviewDateLabel={nearestInterviewDateLabel}
           nearestInterviewTimeLabel={nearestInterviewTimeLabel}
           notifications={interviewNotifications}
-          onNotificationClick={(notification) => markNotificationAsRead(notification.id)}
+          onNotificationClick={handleNotificationClick}
         />
 
         <div className="pt-0">
@@ -582,7 +590,8 @@ export default function CandidateDashboardPage() {
                 selectedJob={selectedJob}
                 resumeFileName={resumeFileName}
                 setResumeFileName={setResumeFileName}
-                resumeInputRef={resumeInputRef}
+                cvUrl={cvUrl}
+                setCvUrl={setCvUrl}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
                 showAIModal={showAIModal}
@@ -590,7 +599,6 @@ export default function CandidateDashboardPage() {
                 closeModals={closeModals}
                 openJobDetails={openJobDetails}
                 handleApplySubmission={handleApplySubmission}
-                isAiRecommended={selectedJob.isAiRecommended}
                 isLoading={isLoading}
               />
             )}

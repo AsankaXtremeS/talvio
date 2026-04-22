@@ -145,11 +145,6 @@ export default function CancelInterviewPage({ params }: Props) {
 
       setCancelledInterview(result);
       setIsModalOpen(true);
-
-      // Auto-navigate after modal closes
-      setTimeout(() => {
-        router.push("/users/employer/interviews");
-      }, 3000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to cancel interview";
       setCancelError(errorMsg);
@@ -250,9 +245,9 @@ export default function CancelInterviewPage({ params }: Props) {
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
                 placeholder="Please explain why this interview is being cancelled. This will be included in the email sent to the candidate."
-                className="w-full h-32 p-3 border border-gray-200 rounded-lg text-sm font-sans focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                className="w-full h-32 p-3 border border-gray-200 rounded-lg text-sm font-sans text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
               />
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-700 mt-2">
                 {cancellationReason.length} characters
               </p>
 

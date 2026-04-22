@@ -1,4 +1,34 @@
-export type InterviewStatus = "Scheduled";
+export type InterviewStatus = "Scheduled" | "Draft" | "Cancelled" | "Completed";
+
+export type CandidateInterviewDTO = {
+  id: string;
+  status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "COMPLETED";
+  scheduledAt: string;
+  meetingType: "ONLINE" | "ONSITE" | "PHONE";
+  location: string | null;
+  meetingLink: string | null;
+  googleCalendarLink: string | null;
+  additionalInfo: string | null;
+  company: {
+    name: string;
+    location: string | null;
+    description: string | null;
+    website: string | null;
+    logoUrl: string | null;
+  };
+  jobPost: {
+    id: string;
+    title: string;
+    type: "JOB" | "INTERNSHIP" | null;
+    workMode: "ON_SITE" | "REMOTE" | "HYBRID" | null;
+    employmentType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | null;
+    stipendType: "PAID" | "UNPAID" | "NEGOTIABLE" | null;
+    duration: string | null;
+    location: string | null;
+    description: string | null;
+    responsibilities: string[];
+  };
+};
 
 export type InterviewItem = {
   id: string;
@@ -21,91 +51,73 @@ export type InterviewItem = {
   responsibilities: string[];
 };
 
-export const INTERVIEWS: InterviewItem[] = [
-  {
-    id: "google-frontend-intern",
-    title: "Frontend Developer Intern",
-    company: "Google",
-    location: "Mountain View, CA",
-    workMode: "Remote",
-    jobType: "Intern",
-    stipend: "Paid",
-    duration: "3 months",
-    scheduledLabel: "Tomorrow 10:00 AM",
-    scheduledAt: "2026-04-11T10:00:00-07:00",
-    timezone: "PDT",
-    meetingLabel: "Google Meet",
-    meetingUrl: "https://meet.google.com/xyz-abcd-efg",
-    companyProfileUrl: "https://about.google/",
-    status: "Scheduled",
-    roleOverview:
-      "Help build and ship product-facing frontend experiences with modern React patterns.",
-    companyDescription:
-      "Google builds products that organize information and make it universally accessible and useful.",
-    responsibilities: [
-      "Support feature development with senior frontend engineers",
-      "Build reusable UI components and improve accessibility",
-      "Partner with product and design teams during sprint execution",
-    ],
-  },
-  {
-    id: "stripe-product-analyst-intern",
-    title: "Product Analyst Intern",
-    company: "Stripe",
-    location: "New York, NY",
-    workMode: "Remote",
-    jobType: "Part time",
-    stipend: "Paid",
-    duration: "4 months",
-    scheduledLabel: "Monday 11:30 AM",
-    scheduledAt: "2026-04-13T11:30:00-04:00",
-    timezone: "EDT",
-    meetingLabel: "Zoom",
-    meetingUrl: "https://zoom.us/j/88991234123",
-    companyProfileUrl: "https://stripe.com/",
-    status: "Scheduled",
-    roleOverview:
-      "Work with product and data teams to translate insights into roadmap decisions.",
-    companyDescription:
-      "Stripe builds programmable financial infrastructure for internet businesses of all sizes.",
-    responsibilities: [
-      "Analyze product usage trends and conversion funnels",
-      "Create dashboards for weekly business review",
-      "Present actionable insights to cross-functional teams",
-    ],
-  },
-  {
-    id: "figma-uiux-intern",
-    title: "UI/UX Design Intern",
-    company: "Figma",
-    location: "San Francisco, CA",
-    workMode: "Hybrid",
-    jobType: "Intern",
-    stipend: "Paid",
-    duration: "3 months",
-    scheduledLabel: "Wednesday 03:00 PM",
-    scheduledAt: "2026-04-15T15:00:00-07:00",
-    timezone: "PDT",
-    meetingLabel: "Figma Interview Room",
-    meetingUrl: "https://figma.com/interview-room/ux-2026-15",
-    companyProfileUrl: "https://www.figma.com/company/",
-    status: "Scheduled",
-    roleOverview:
-      "Collaborate on product interaction and visual systems for design tooling experiences.",
-    companyDescription:
-      "Figma helps teams design, prototype, and build products together in real time.",
-    responsibilities: [
-      "Translate product requirements into wireframes and prototypes",
-      "Run quick usability checks with design peers",
-      "Document interaction decisions with clear rationale",
-    ],
-  },
-];
+const toDisplayStatus = (status: CandidateInterviewDTO["status"]): InterviewStatus => {
+  if (status === "SCHEDULED") return "Scheduled";
+  if (status === "DRAFT") return "Draft";
+  if (status === "CANCELLED") return "Cancelled";
+  return "Completed";
+};
 
-export const INTERVIEWS_BY_ID: Record<string, InterviewItem> = INTERVIEWS.reduce(
-  (acc, interview) => {
-    acc[interview.id] = interview;
-    return acc;
-  },
-  {} as Record<string, InterviewItem>,
-);
+const toWorkMode = (mode: CandidateInterviewDTO["jobPost"]["workMode"]): InterviewItem["workMode"] => {
+  if (mode === "REMOTE") return "Remote";
+  if (mode === "HYBRID") return "Hybrid";
+  return "Onsite";
+};
+
+const toJobType = (dto: CandidateInterviewDTO): InterviewItem["jobType"] => {
+  if (dto.jobPost.type === "INTERNSHIP") return "Intern";
+  if (dto.jobPost.employmentType === "PART_TIME") return "Part time";
+  if (dto.jobPost.employmentType === "CONTRACT") return "Contract";
+  return "Full time";
+};
+
+const toStipend = (stipend: CandidateInterviewDTO["jobPost"]["stipendType"]): InterviewItem["stipend"] => {
+  if (stipend === "UNPAID") return "Unpaid";
+  return "Paid";
+};
+
+const toMeetingLabel = (meetingType: CandidateInterviewDTO["meetingType"]): string => {
+  if (meetingType === "ONLINE") return "Online meeting";
+  if (meetingType === "PHONE") return "Phone call";
+  return "Onsite interview";
+};
+
+export const mapInterviewToItem = (dto: CandidateInterviewDTO): InterviewItem => {
+  const scheduledDate = new Date(dto.scheduledAt);
+  const scheduledLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(scheduledDate);
+
+  const timezone = new Intl.DateTimeFormat("en-US", {
+    timeZoneName: "short",
+  })
+    .formatToParts(scheduledDate)
+    .find((part) => part.type === "timeZoneName")
+    ?.value ?? "Local";
+
+  return {
+    id: dto.id,
+    title: dto.jobPost.title || "Interview",
+    company: dto.company.name || "Company",
+    location: dto.jobPost.location || dto.company.location || dto.location || "Location TBD",
+    workMode: toWorkMode(dto.jobPost.workMode),
+    jobType: toJobType(dto),
+    stipend: toStipend(dto.jobPost.stipendType),
+    duration: dto.jobPost.duration || "Not specified",
+    scheduledLabel,
+    scheduledAt: dto.scheduledAt,
+    timezone,
+    meetingLabel: toMeetingLabel(dto.meetingType),
+    meetingUrl: dto.meetingLink || dto.googleCalendarLink || "",
+    companyProfileUrl: dto.company.website || "",
+    status: toDisplayStatus(dto.status),
+    roleOverview: dto.jobPost.description || "Role details will be shared by the company.",
+    companyDescription: dto.company.description || "Company description is not available yet.",
+    responsibilities: dto.jobPost.responsibilities?.length
+      ? dto.jobPost.responsibilities
+      : ["Prepare and attend the interview as scheduled."],
+  };
+};

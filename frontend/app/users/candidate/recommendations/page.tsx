@@ -4,10 +4,12 @@ import { useAuth } from "@/context/AuthContext";
 import { Cog } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import RecommendationsFilterBar from "@/components/candidate/recommendations/RecommendationsFilterBar";
 import JobCard from "@/components/candidate/recommendations/JobCards";
 import JobViewModal from "@/components/candidate/recommendations/JobViewModel";
 import { apiClient } from "@/lib/apiClient";
+import { candidateJobService } from "@/lib/candidate/job.service";
 import NotificationBell from "@/components/candidate/recommendations/NotificationBell";
 import { useRef } from "react";
 import JobApplyModal from "@/components/candidate/dashboard/JobApplyModal";
@@ -60,10 +62,27 @@ export default function CandidateRecommendationsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [cvUrl, setCvUrl] = useState("");
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<{ cvUrl?: string; cvFileName?: string } | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
+
+  const { data: myApplications = [], refetch: refetchApplications } = useQuery({
+    queryKey: ["candidate-applications", user?.id],
+    queryFn: () => candidateJobService.getMyApplications(),
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const appliedJobIds = useMemo(
+    () => myApplications.map((app) => app.job.id),
+    [myApplications]
+  );
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -130,6 +149,21 @@ export default function CandidateRecommendationsPage() {
     window.addEventListener("open-recommendation-job-modal", handler);
     return () => window.removeEventListener("open-recommendation-job-modal", handler);
   }, [jobs]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await apiClient<{ profile: { cvUrl?: string; cvFileName?: string } }>(
+          "/api/candidate/profile"
+        );
+        setProfileData(response.profile || null);
+      } catch {
+        setProfileData(null);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
@@ -206,9 +240,15 @@ export default function CandidateRecommendationsPage() {
               <JobCard
                 key={job.id}
                 {...job}
+                isApplied={appliedJobIds.includes(job.id)}
                 onView={(id) => setSelectedJob(jobs.find((j) => j.id === id) ?? null)}
                 onApply={(id) => {
-                  setSelectedJob(jobs.find((j) => j.id === id) ?? null);
+                  const selected = jobs.find((j) => j.id === id) ?? null;
+                  setSelectedJob(selected);
+                  if (appliedJobIds.includes(id)) {
+                    setShowApplyModal(false);
+                    return;
+                  }
                   setShowApplyModal(true);
                 }}
               />
@@ -280,8 +320,12 @@ export default function CandidateRecommendationsPage() {
       {selectedJob && !showApplyModal && (
         <JobViewModal
           job={selectedJob}
+          isApplied={appliedJobIds.includes(selectedJob.id)}
           onClose={() => setSelectedJob(null)}
-          onApply={() => setShowApplyModal(true)}
+          onApply={(id) => {
+            if (appliedJobIds.includes(id)) return;
+            setShowApplyModal(true);
+          }}
         />
       )}
 
@@ -293,7 +337,8 @@ export default function CandidateRecommendationsPage() {
                 selectedJob={selectedJob}
                 resumeFileName={resumeFileName}
                 setResumeFileName={setResumeFileName}
-                resumeInputRef={resumeInputRef}
+                cvUrl={cvUrl}
+                setCvUrl={setCvUrl}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
                 showAIModal={showAIModal}
@@ -301,15 +346,41 @@ export default function CandidateRecommendationsPage() {
                 closeModals={() => {
                   setShowApplyModal(false);
                   setSelectedJob(null);
+                  setCvUrl("");
+                  setResumeFileName("");
                 }}
                 openJobDetails={() => {
                   setShowApplyModal(false);
                 }}
-                handleApplySubmission={() => {
-                  setShowApplyModal(false);
-                  setSelectedJob(null);
+                handleApplySubmission={async (useDefaultCv: boolean) => {
+                  if (!selectedJob) return;
+
+                  try {
+                    setSubmitError(null);
+                    setIsApplying(true);
+                    await candidateJobService.applyToJob(
+                      selectedJob.id,
+                      useDefaultCv ? undefined : cvUrl,
+                      useDefaultCv ? undefined : resumeFileName,
+                      coverLetter,
+                      useDefaultCv
+                    );
+                    await refetchApplications();
+                    setShowApplyModal(false);
+                    setSelectedJob(null);
+                  } catch (error: any) {
+                    setSubmitError(error?.message || "Failed to submit application.");
+                  } finally {
+                    setIsApplying(false);
+                  }
                 }}
+                isLoading={isApplying}
               />
+              {submitError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {submitError}
+                </div>
+              )}
             </div>
           </div>
           {showAIModal && selectedJob && (

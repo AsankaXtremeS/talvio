@@ -55,12 +55,14 @@ export const applyForJob = async (req: Request, res: Response) => {
     if (!jobPostId) return res.status(400).json({ message: "Missing jobPostId" });
     if (Array.isArray(jobPostId)) jobPostId = jobPostId[0];
 
-    const { cvUrl, cvFileName, coverLetter } = req.body;
+  
+    const { cvUrl, cvFileName, coverLetter, useDefaultCv } = req.body;
 
     const application = await applicationsService.applyToJob(userId, jobPostId, {
       cvUrl,
       cvFileName,
       coverLetter,
+      useDefaultCv,
     });
 
     res.status(201).json({
