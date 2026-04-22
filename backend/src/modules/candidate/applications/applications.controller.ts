@@ -29,12 +29,32 @@ export const getApplications = async (req: Request, res: Response) => {
   }
 };
 
+export const getApplicationWithHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    let { applicationId } = req.params;
+    if (!applicationId) return res.status(400).json({ message: "Missing applicationId" });
+    if (Array.isArray(applicationId)) applicationId = applicationId[0];
+
+    const application = await applicationsService.getCandidateApplicationWithHistory(userId, applicationId);
+    res.status(200).json({ application });
+  } catch (error: any) {
+    console.error("Error fetching application with history:", error);
+    res.status(500).json({ message: error.message || "Failed to fetch application" });
+  }
+};
+
 export const applyForJob = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { jobPostId } = req.params;
+    let { jobPostId } = req.params;
+    if (!jobPostId) return res.status(400).json({ message: "Missing jobPostId" });
+    if (Array.isArray(jobPostId)) jobPostId = jobPostId[0];
+
     const { cvUrl, cvFileName, coverLetter } = req.body;
 
     const application = await applicationsService.applyToJob(userId, jobPostId, {
@@ -60,7 +80,9 @@ export const withdrawApplication = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { applicationId } = req.params;
+    let { applicationId } = req.params;
+    if (!applicationId) return res.status(400).json({ message: "Missing applicationId" });
+    if (Array.isArray(applicationId)) applicationId = applicationId[0];
 
     await applicationsService.withdrawApplication(userId, applicationId);
 
