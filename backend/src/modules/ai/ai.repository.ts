@@ -6,46 +6,11 @@ import { ApplicationStatus } from "@prisma/client";
 
 export const aiRepository = {
 
-  // ── Candidate Profile ──────────────────────────────────────────────────────
+  // ── AI Specific Cache Operations ───────────────────────────────────────────
 
   async findCandidateProfileByUserId(userId: string) {
     return prisma.candidateProfile.findUnique({
       where: { userId },
-    });
-  },
-
-  /**
-   * Create or update candidate profile (CV data + extracted skills)
-   */
-  async upsertCandidateProfile(
-    userId: string,
-    data: {
-      cvUrl: string;
-      cvFileName: string;
-      extractedSkills?: string[];
-    }
-  ) {
-    return prisma.candidateProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        ...data,
-      },
-      update: data,
-    });
-  },
-
-  async clearCandidateProfileResume(userId: string) {
-    return prisma.candidateProfile.update({
-      where: { userId },
-      data: {
-        cvUrl: null,
-        cvFileName: null,
-        extractedSkills: [],
-        recommendationCache: null,
-        lastRecommendedAt: null,
-        jobAnalysisCache: {},
-      },
     });
   },
 
@@ -83,121 +48,8 @@ export const aiRepository = {
     return cache[jobId] || null;
   },
 
-  // ── Job Post ───────────────────────────────────────────────────────────────
+  // ── AI Result Persistence ──────────────────────────────────────────────────
 
-  async findJobPostById(id: string) {
-    return prisma.jobPost.findUnique({
-      where: { id },
-      include: {
-        employer: {
-          select: {
-            companyName: true,
-            companyLogoUrl: true,
-            companyDescription: true,
-            companyWebsite: true,
-            companyLocation: true,
-          },
-        },
-      },
-    });
-  },
-
-  /**
-   * Find active jobs matching the user's career path
-   */
-  async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
-    return prisma.jobPost.findMany({
-      where: {
-        status: "ACTIVE",
-        type: type,
-      },
-      include: {
-        employer: {
-          select: {
-            companyName: true,
-            companyLogoUrl: true,
-          },
-        },
-      },
-    });
-  },
-
-  // ── Application ────────────────────────────────────────────────────────────
-
-  async findApplicationById(id: string) {
-    return prisma.application.findUnique({
-      where: { id },
-      include: {
-        jobPost: true,
-      },
-    });
-  },
-
-  async findApplicationByCandidateAndJob(
-    candidateProfileId: string,
-    jobPostId: string
-  ) {
-    return prisma.application.findUnique({
-      where: {
-        candidateProfileId_jobPostId: {
-          candidateProfileId,
-          jobPostId,
-        },
-      },
-    });
-  },
-
-  async findApplicationsByUserId(userId: string) {
-    return prisma.application.findMany({
-      where: {
-        candidateProfile: { userId }
-      },
-      include: {
-        jobPost: {
-          include: {
-            employer: {
-              select: {
-                companyName: true,
-                companyLogoUrl: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { appliedAt: "desc" }
-    });
-  },
-
-  async withdrawApplication(id: string, userId: string) {
-    // Ensure the application belongs to the candidate
-    const application = await prisma.application.findFirst({
-      where: {
-        id,
-        candidateProfile: { userId }
-      }
-    });
-
-    if (!application) throw new Error("Application not found or unauthorized");
-
-    return prisma.application.delete({
-      where: { id }
-    });
-  },
-
-  async createApplication(data: {
-    candidateProfileId: string;
-    jobPostId: string;
-    cvUrl: string;
-    cvFileName: string;
-  }) {
-    return prisma.application.create({
-      data,
-    });
-  },
-
-  /**
-   * Save consolidated AI analysis result
-   */
   async saveAnalysisResult(
     applicationId: string,
     result: {
@@ -211,8 +63,6 @@ export const aiRepository = {
       data: result,
     });
   },
-
-  // ── Company Actions ────────────────────────────────────────────────────────
 
   /**
    * Get applicants sorted by AI score (descending)
@@ -239,16 +89,36 @@ export const aiRepository = {
     });
   },
 
-  /**
-   * Update application status (HR actions)
-   */
-  async updateApplicationStatus(
-    id: string,
-    applicationStatus: ApplicationStatus
-  ) {
-    return prisma.application.update({
+  // ── Helper lookups for AI Context ──────────────────────────────────────────
+
+  async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
+    return prisma.jobPost.findMany({
+      where: {
+        status: "ACTIVE",
+        type: type,
+      },
+      include: {
+        employer: {
+          select: {
+            companyName: true,
+            companyLogoUrl: true,
+          },
+        },
+      },
+    });
+  },
+
+  async findJobPostById(id: string) {
+    return prisma.jobPost.findUnique({
       where: { id },
-      data: { applicationStatus },
+      include: {
+        employer: {
+          select: {
+            companyName: true,
+            companyLogoUrl: true,
+          },
+        },
+      },
     });
   },
 };

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { aiRepository } from "../../ai/ai.repository";
 import { aiService } from "../../ai/ai.service";
 import { prisma } from "../../../config/db";
+import { candidateRepository } from "../candidate.repository";
 
 /**
  * Get the current candidate's profile
@@ -11,7 +11,7 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const profile = await aiRepository.findCandidateProfileByUserId(userId);
+    const profile = await candidateRepository.findProfileByUserId(userId);
     if (!profile) {
       return res.status(200).json({ profile: null });
     }
@@ -51,28 +51,15 @@ export const updateProfile = async (req: Request, res: Response) => {
       },
     });
 
-    // Upsert CandidateProfile
-    const updatedProfile = await prisma.candidateProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        headline,
-        location,
-        bio,
-        skills: skills ?? [],
-        linkedinUrl,
-        githubUrl,
-        portfolioUrl,
-      },
-      update: {
-        ...(headline !== undefined && { headline }),
-        ...(location !== undefined && { location }),
-        ...(bio !== undefined && { bio }),
-        ...(skills !== undefined && { skills }),
-        ...(linkedinUrl !== undefined && { linkedinUrl }),
-        ...(githubUrl !== undefined && { githubUrl }),
-        ...(portfolioUrl !== undefined && { portfolioUrl }),
-      },
+    // Use candidateRepository for upserting profile
+    const updatedProfile = await candidateRepository.upsertProfile(userId, {
+      headline,
+      location,
+      bio,
+      skills: skills ?? [],
+      linkedinUrl,
+      githubUrl,
+      portfolioUrl,
     });
 
     return res.status(200).json({
@@ -102,8 +89,8 @@ export const updateResume = async (req: Request, res: Response) => {
     // 2. Extract Skills using AI
     const extractedSkills = await aiService.extractSkills(cvText);
 
-    // 3. Update Profile
-    const updatedProfile = await aiRepository.upsertCandidateProfile(userId, {
+    // 3. Update Profile using candidateRepository
+    const updatedProfile = await candidateRepository.upsertProfile(userId, {
       cvUrl,
       cvFileName: cvFileName || "Resume.pdf",
       extractedSkills
@@ -127,7 +114,7 @@ export const removeResume = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const updatedProfile = await aiRepository.clearCandidateProfileResume(userId);
+    const updatedProfile = await candidateRepository.clearResume(userId);
 
     return res.status(200).json({
       message: "Resume removed successfully",

@@ -89,3 +89,16 @@ export const getStats = async (req: Request, res: Response) => {
     });
   }
 };
+export const getApplicationDetail = async (req: Request, res: Response) => {
+  try {
+    const { applicationId } = req.params;
+    const application = await applicationsService.getApplicationById(applicationId);
+    
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    res.status(200).json(application);
+  } catch (error: any) {
+    console.error("Error fetching application detail:", error);
+    res.status(500).json({ message: error.message || "Failed to fetch application detail" });
+  }
+};
