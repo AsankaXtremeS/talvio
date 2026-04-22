@@ -314,3 +314,25 @@ export const cancelAndSendEmail = async (req: Request, res: Response) => {
     return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
   }
 };
+
+/**
+ * GET /api/employer/interviews/candidates/:candidateProfileId
+ * Fetch candidate profile details for schedule UI.
+ */
+export const getCandidateProfile = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const candidateProfileId = getParamAsString(req.params.candidateProfileId);
+    if (!candidateProfileId) {
+      return res.status(400).json({ message: "Invalid candidate profile id" });
+    }
+
+    const candidate = await interviewService.getCandidateProfile(employerId, candidateProfileId);
+    return res.json(candidate);
+  } catch (err) {
+    console.error("getCandidateProfile error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};

@@ -24,6 +24,7 @@ interface JobPostDTO {
   title: string;
   type: "Job" | "Internship";
   status: "Draft" | "Active" | "Closed";
+  applicantsCount: number;
   description: string;
   responsibilities: string;
   requirements: string;
@@ -60,6 +61,12 @@ const mapToDTO = (post: any): JobPostDTO => ({
       : post.status === "CLOSED"
       ? "Closed"
       : "Draft",
+  applicantsCount:
+    typeof post?._count?.applications === "number"
+      ? post._count.applications
+      : Array.isArray(post?.applications)
+      ? post.applications.length
+      : 0,
   description: post.description ?? "",
   responsibilities:
     typeof post.responsibilities === "string"
@@ -149,6 +156,7 @@ export const jobsService = {
       active: stats.ACTIVE,
       draft: stats.DRAFT,
       closed: stats.CLOSED,
+      applications: stats.APPLICATIONS,
     };
   },
 

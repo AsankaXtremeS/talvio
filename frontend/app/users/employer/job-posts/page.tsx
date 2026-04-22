@@ -48,6 +48,10 @@ export default function JobPostsPage() {
 
   const posts = data?.posts || [];
   const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0 };
+  const totalApplications =
+    typeof (stats as { applications?: number }).applications === "number"
+      ? (stats as { applications: number }).applications
+      : posts.reduce((sum, post) => sum + (post.applicantsCount ?? 0), 0);
   const error = queryError ? "Failed to load job posts. Please try again." : "";
 
   // ── UI State ──
@@ -307,7 +311,7 @@ export default function JobPostsPage() {
         <StatsRow
           totalPosts={stats.total}
           active={stats.active}
-          applications={0}      // Applications module add later
+          applications={totalApplications}
           closed={stats.closed}
         />
       </div>
