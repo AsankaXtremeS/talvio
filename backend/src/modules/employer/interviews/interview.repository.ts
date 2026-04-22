@@ -132,6 +132,7 @@ export const interviewRepository = {
     employerId: string,
     options: {
       status?: string;
+      date?: string;
       page?: number;
       limit?: number;
     } = {}
@@ -142,6 +143,18 @@ export const interviewRepository = {
     const where: any = { employerId };
     if (status) {
       where.status = status;
+    }
+    if (options.date) {
+      const dateObj = new Date(options.date);
+      const startOfDay = new Date(dateObj);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateObj);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+
+      where.scheduledAt = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
     }
 
     const [total, interviews] = await Promise.all([

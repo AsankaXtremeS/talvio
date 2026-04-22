@@ -143,10 +143,10 @@ export default function JobPostDetailPage({ params }: Props) {
       
       {/* ── Top Navigation ── */}
       <button 
-        onClick={() => router.push('/users/employer/job-posts')}
+        onClick={() => router.back()}
         className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors mb-6"
       >
-        <ArrowLeft size={16} /> Back to Job Posts
+        <ArrowLeft size={16} /> Go Back
       </button>
 
       {/* ── Page Header ── */}

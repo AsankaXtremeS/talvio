@@ -140,30 +140,30 @@ model CandidateProfile {
   cvFileName          String?
   extractedSkills     String[]      @default([])
   recommendationCache Json?
-  jobAnalysisCache    Json?         @default("{}")
   lastRecommendedAt   DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+  jobAnalysisCache    Json?         @default("{}")
   applications        Application[]
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   interviews          Interview[]
 }
 
 model Application {
-    statusHistory      ApplicationStatusHistory[]
-  id                 String            @id @default(uuid())
+  id                 String                     @id @default(uuid())
   candidateProfileId String
   jobPostId          String
   cvUrl              String
   cvFileName         String?
   coverLetter        String?
   aiScore            Int?
-  aiSuggestions      String[]          @default([])
-  applicationStatus  ApplicationStatus @default(PENDING)
-  appliedAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  candidateProfile   CandidateProfile  @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
-  jobPost            JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  aiSuggestions      String[]                   @default([])
+  applicationStatus  ApplicationStatus          @default(PENDING)
+  appliedAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  candidateProfile   CandidateProfile           @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  jobPost            JobPost                    @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  statusHistory      ApplicationStatusHistory[]
 
   @@unique([candidateProfileId, jobPostId])
   @@index([jobPostId, aiScore])
@@ -176,42 +176,42 @@ model ApplicationStatusHistory {
   id            String            @id @default(uuid())
   applicationId String
   status        ApplicationStatus
-  changedAt     DateTime         @default(now())
+  changedAt     DateTime          @default(now())
   note          String?
-  application   Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
 }
 
 model Interview {
-  id                    String               @id @default(uuid())
-  employerId            String
-  candidateProfileId    String
-  jobPostId             String
-  scheduledAt           DateTime
-  meetingType           InterviewMeetingType
-  status                InterviewStatus      @default(DRAFT)
-  location              String?
-  meetingLink           String?
-  additionalInfo        String?
-  emailBody             String?
-  googleCalendarEventId String?
-  googleCalendarLink    String?
-  candidateEmail        String
-  emailSentAt           DateTime?
-  cancelledAt           DateTime?
-  cancellationReason    String?
-  rescheduledFromId     String?
-  rescheduledToId       String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  candidate             CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
-  employer              EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  jobPost               JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-  rescheduledFrom       Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
-  rescheduledTo         Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id], onDelete: SetNull)
-  rescheduledInterviews Interview[]          @relation("RescheduleFrom")
-  reschedulesToInterviews Interview[]        @relation("RescheduleTo")
+  id                      String               @id @default(uuid())
+  employerId              String
+  candidateProfileId      String
+  jobPostId               String
+  scheduledAt             DateTime
+  meetingType             InterviewMeetingType
+  status                  InterviewStatus      @default(DRAFT)
+  location                String?
+  meetingLink             String?
+  additionalInfo          String?
+  emailBody               String?
+  googleCalendarEventId   String?
+  googleCalendarLink      String?
+  candidateEmail          String
+  emailSentAt             DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  cancelledAt             DateTime?
+  cancellationReason      String?
+  rescheduledFromId       String?
+  rescheduledToId         String?
+  candidate               CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  employer                EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  jobPost                 JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  rescheduledFrom         Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id])
+  rescheduledInterviews   Interview[]          @relation("RescheduleFrom")
+  rescheduledTo           Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id])
+  reschedulesToInterviews Interview[]          @relation("RescheduleTo")
 
   @@index([employerId])
   @@index([employerId, status])

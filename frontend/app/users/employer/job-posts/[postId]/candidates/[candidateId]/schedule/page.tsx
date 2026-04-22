@@ -319,11 +319,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
             </p>
           </div>
           <button
-            onClick={() => router.push(`/users/employer/job-posts/${postId}/candidates`)}
+            onClick={() => router.back()}
             className="flex items-center self-end gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto transition-colors"
           >
             <ChevronLeft size={16} />
-            Back to Candidates
+            Go Back
           </button>
         </div>
 

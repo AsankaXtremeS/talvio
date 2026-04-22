@@ -219,7 +219,7 @@ export default function CancelInterviewPage({ params }: Props) {
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
           >
             <ChevronLeft size={18} />
-            Back To Interviews
+            Go Back
           </button>
         </div>
 
