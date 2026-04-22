@@ -42,7 +42,7 @@ export const applicationsRepository = {
               where: {
                 candidateProfileId: candidateProfileId,
                 status: {
-                  in: ["SCHEDULED", "COMPLETED"]
+                  in: ["DRAFT", "SCHEDULED", "COMPLETED"]
                 }
               },
               orderBy: {
