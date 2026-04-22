@@ -17,6 +17,7 @@ import {
   listInterviews,
   getScheduledDates,
   getInterview,
+  getCandidateProfile,
   createInterview,
   updateInterview,
   generateEmailPreview,
@@ -42,6 +43,10 @@ router.get("/scheduled-dates", getScheduledDates);
 // POST /api/employer/interviews/generate-email
 // Generate an email preview based on form data (no DB write).
 router.post("/generate-email", generateEmailPreview);
+
+// GET /api/employer/interviews/candidates/:candidateProfileId
+// Returns minimal candidate profile details for schedule UI.
+router.get("/candidates/:candidateProfileId", getCandidateProfile);
 
 // ─── Collection routes ────────────────────────────────────────────────────────
 

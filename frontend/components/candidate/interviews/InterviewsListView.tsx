@@ -12,7 +12,10 @@ export default function InterviewsListView() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["candidate-interviews-list"],
     queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const interviews = useMemo(

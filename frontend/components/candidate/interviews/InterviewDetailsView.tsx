@@ -16,7 +16,10 @@ export default function InterviewDetailsView({ interviewId }: InterviewDetailsVi
     queryKey: ["candidate-interview", interviewId],
     queryFn: () => candidateInterviewsService.getInterviewById(interviewId),
     enabled: Boolean(interviewId),
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const interview = data ? mapInterviewToItem(data) : null;

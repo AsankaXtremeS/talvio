@@ -164,6 +164,11 @@ export const jobsRepository = {
               companyName: true,
             },
           },
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
         },
       }),
     ]);
@@ -178,15 +183,24 @@ export const jobsRepository = {
   async getStats(employerId: string) {
     await ensureClosingDateColumnCompatibility();
 
-    // Use GROUP BY to count posts per status
-    const stats = await prisma.jobPost.groupBy({
-      by: ["status"],
-      where: { employerId },
-      _count: { id: true },
-    });
+    // Count posts per status and count related applications for this employer's posts.
+    const [stats, applications] = await Promise.all([
+      prisma.jobPost.groupBy({
+        by: ["status"],
+        where: { employerId },
+        _count: { id: true },
+      }),
+      prisma.application.count({
+        where: {
+          jobPost: {
+            employerId,
+          },
+        },
+      }),
+    ]);
 
     // Initialize result object with all statuses
-    const result = { DRAFT: 0, ACTIVE: 0, CLOSED: 0, TOTAL: 0 };
+    const result = { DRAFT: 0, ACTIVE: 0, CLOSED: 0, TOTAL: 0, APPLICATIONS: applications };
 
     // Populate with counts from query results
     for (const row of stats) {
@@ -210,6 +224,34 @@ export const jobsRepository = {
       where: {
         id,
         employerId,  // CRITICAL: Ownership check
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        description: true,
+        responsibilities: true,
+        requirements: true,
+        additionalInformation: true,
+        skillsRequired: true,
+        workMode: true,
+        employmentType: true,
+        location: true,
+        closingDate: true,
+        createdAt: true,
+        updatedAt: true,
+        employer: {
+          select: {
+            id: true,
+            companyName: true,
+          },
+        },
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
       },
     });
   },
@@ -244,7 +286,37 @@ export const jobsRepository = {
     };
 
     try {
-      return await prisma.jobPost.create({ data: createPayload });
+      return await prisma.jobPost.create({
+        data: createPayload,
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          description: true,
+          responsibilities: true,
+          requirements: true,
+          additionalInformation: true,
+          skillsRequired: true,
+          workMode: true,
+          employmentType: true,
+          location: true,
+          closingDate: true,
+          createdAt: true,
+          updatedAt: true,
+          employer: {
+            select: {
+              id: true,
+              companyName: true,
+            },
+          },
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+      });
     } catch (err: unknown) {
       // Backward-compatibility: handle old schema with NOT NULL department column
       const message = err instanceof Error ? err.message : String(err);
@@ -252,7 +324,37 @@ export const jobsRepository = {
         await prisma.$executeRawUnsafe(
           "ALTER TABLE \"JobPost\" ALTER COLUMN \"department\" SET DEFAULT 'General';"
         );
-        return prisma.jobPost.create({ data: createPayload });
+        return prisma.jobPost.create({
+          data: createPayload,
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+            description: true,
+            responsibilities: true,
+            requirements: true,
+            additionalInformation: true,
+            skillsRequired: true,
+            workMode: true,
+            employmentType: true,
+            location: true,
+            closingDate: true,
+            createdAt: true,
+            updatedAt: true,
+            employer: {
+              select: {
+                id: true,
+                companyName: true,
+              },
+            },
+            _count: {
+              select: {
+                applications: true,
+              },
+            },
+          },
+        });
       }
       throw err;
     }
@@ -316,6 +418,34 @@ export const jobsRepository = {
 
     const updated = await prisma.jobPost.findUnique({
       where: { id },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        description: true,
+        responsibilities: true,
+        requirements: true,
+        additionalInformation: true,
+        skillsRequired: true,
+        workMode: true,
+        employmentType: true,
+        location: true,
+        closingDate: true,
+        createdAt: true,
+        updatedAt: true,
+        employer: {
+          select: {
+            id: true,
+            companyName: true,
+          },
+        },
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
     });
 
     if (!updated) {

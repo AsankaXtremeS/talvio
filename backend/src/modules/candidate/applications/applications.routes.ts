@@ -3,6 +3,7 @@ import { authenticate } from "../../../middlewares/auth.middleware";
 import { 
   getApplications, 
   getStats,
+  getApplicationDetail,
   applyForJob, 
   withdrawApplication,
   getApplicationWithHistory

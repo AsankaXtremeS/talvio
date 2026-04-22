@@ -54,4 +54,5 @@ export interface JobPostStats {
   active: number;
   closed: number;
   draft: number;
+  applications?: number;
 }

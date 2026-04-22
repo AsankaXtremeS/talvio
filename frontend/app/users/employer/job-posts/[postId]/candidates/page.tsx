@@ -23,7 +23,7 @@ export default function PostCandidatesPage({ params }: Props) {
   useEffect(() => {
     let mounted = true;
 
-    getCandidates(status)
+    getCandidates(status, postId)
       .then((data) => {
         if (mounted) {
           setCandidates(data);
@@ -38,7 +38,7 @@ export default function PostCandidatesPage({ params }: Props) {
     return () => {
       mounted = false;
     };
-  }, [status]);
+  }, [status, postId]);
 
   const filteredCandidates = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -87,8 +87,8 @@ export default function PostCandidatesPage({ params }: Props) {
           router.push(`/users/employer/candidates/${id}`);
         }}
         onSchedule={(id) => {
-          // Use the candidate schedule route and preserve postId context in query params.
-          router.push(`/users/employer/candidates/${id}/schedule?postId=${encodeURIComponent(postId)}`);
+          // Route includes both postId and candidateProfileId.
+          router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
       />
     </div>

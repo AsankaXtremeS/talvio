@@ -312,7 +312,7 @@ export default function JobPostsPage() {
         <StatsRow
           totalPosts={stats.total}
           active={stats.active}
-          applications={0}      // Applications module add later
+          applications={totalApplications}
           closed={stats.closed}
         />
       </div>

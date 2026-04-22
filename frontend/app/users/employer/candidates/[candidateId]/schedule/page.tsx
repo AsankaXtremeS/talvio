@@ -172,10 +172,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
       }
 
       // Step 1: Create a draft interview with real UUIDs
+      const localDateTime = new Date(`${date}T${time}:00`);
       const payload = {
         candidateProfileId: realCandidateId,
         jobPostId: realJobPostId,
-        scheduledAt: `${date}T${time}:00Z`,
+        scheduledAt: localDateTime.toISOString(),
         meetingType,
         location: meetingType === "ONSITE" ? location : undefined,
         additionalInfo: additionalInfo.trim() || undefined,
