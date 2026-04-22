@@ -23,7 +23,7 @@ export default function PostCandidatesPage({ params }: Props) {
   useEffect(() => {
     let mounted = true;
 
-    getCandidates(status)
+    getCandidates(status, postId)
       .then((data) => {
         if (mounted) {
           setCandidates(data);
@@ -38,7 +38,7 @@ export default function PostCandidatesPage({ params }: Props) {
     return () => {
       mounted = false;
     };
-  }, [status]);
+  }, [status, postId]);
 
   const filteredCandidates = useMemo(() => {
     const term = query.trim().toLowerCase();
