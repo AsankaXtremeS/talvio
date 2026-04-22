@@ -203,10 +203,43 @@ export async function getCandidates(
  * Used in the schedule interview page to display applicant info.
  */
 export async function getCandidateById(candidateProfileId: string): Promise<CandidateInfo | null> {
-  // When the endpoint is available:
-  // const res = await fetch(`/api/employer/candidates/${candidateProfileId}`, { credentials: "include" });
-  // if (res.ok) return res.json();
+  try {
+    const res = await fetch(`/api/employer/interviews/candidates/${candidateProfileId}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
 
-  // For now: look up from mock data
-  return Promise.resolve(MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null);
+    if (!res.ok) {
+      if (res.status !== 404) {
+        console.error(`[getCandidateById] Failed to fetch candidate: ${res.status}`);
+      }
+      return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null;
+    }
+
+    const data = (await res.json()) as {
+      id: string;
+      name: string;
+      email: string;
+      headline: string;
+      skills: string[];
+    };
+
+    const safeName = data.name?.trim() || "Candidate";
+
+    return {
+      id: data.id,
+      name: safeName,
+      role: data.headline?.trim() || "Applicant",
+      initial: safeName.charAt(0).toUpperCase() || "C",
+      experience: "Not specified",
+      appliedDaysAgo: 0,
+      matchScore: 0,
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      email: data.email,
+      status: "Applied",
+    };
+  } catch (err) {
+    console.error("[getCandidateById] Error fetching candidate:", err);
+    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null;
+  }
 }
