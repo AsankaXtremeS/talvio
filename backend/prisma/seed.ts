@@ -287,7 +287,121 @@ async function main() {
       });
     }
   }
+
+  const studentProfile = await prisma.candidateProfile.findUnique({ where: { userId: student.id } });
+  const professionalProfile = await prisma.candidateProfile.findUnique({ where: { userId: professional.id } });
+
+  if (studentProfile) {
+    await prisma.application.upsert({
+      where: {
+        candidateProfileId_jobPostId: {
+          candidateProfileId: studentProfile.id,
+          jobPostId: jobPostIds[0],
+        },
+      },
+      update: {
+        applicationStatus: 'PENDING',
+      },
+      create: {
+        candidateProfileId: studentProfile.id,
+        jobPostId: jobPostIds[0],
+        cvUrl: 'https://example.com/cv.pdf',
+        cvFileName: 'Student_CV.pdf',
+        coverLetter: 'I am very interested in this role and would love to discuss my qualifications.',
+        applicationStatus: 'PENDING',
+        aiScore: Math.floor(Math.random() * 100),
+      },
+    });
+  }
+
+  if (professionalProfile) {
+    await prisma.application.upsert({
+      where: {
+        candidateProfileId_jobPostId: {
+          candidateProfileId: professionalProfile.id,
+          jobPostId: jobPostIds[1],
+        },
+      },
+      update: {
+        applicationStatus: 'PENDING',
+      },
+      create: {
+        candidateProfileId: professionalProfile.id,
+        jobPostId: jobPostIds[1],
+        cvUrl: 'https://example.com/cv.pdf',
+        cvFileName: 'Professional_CV.pdf',
+        coverLetter: 'I am excited to bring my experience to this position.',
+        applicationStatus: 'PENDING',
+        aiScore: Math.floor(Math.random() * 100),
+      },
+    });
+  }
+
   console.log('✅ Test applications seeded');
+
+  // 7. Seed application status history for the applications
+  const seededApplications = await prisma.application.findMany({
+    where: {
+      candidateProfileId: {
+        in: [
+          ...testCandidates.map((candidate) => candidate.id),
+          studentProfile?.id,
+          professionalProfile?.id,
+        ].filter(Boolean) as string[],
+      },
+      jobPostId: { in: jobPostIds },
+    },
+    select: {
+      id: true,
+      jobPostId: true,
+    },
+  });
+
+  for (const application of seededApplications) {
+    const createdAt = new Date();
+    const firstDate = new Date(createdAt.getTime() - 1000 * 60 * 60 * 24 * 2);
+    const secondDate = new Date(createdAt.getTime() - 1000 * 60 * 60 * 24);
+
+    await prisma.applicationStatusHistory.upsert({
+      where: { id: `${application.id}-history-1` },
+      update: {},
+      create: {
+        id: `${application.id}-history-1`,
+        applicationId: application.id,
+        status: 'PENDING',
+        changedAt: firstDate,
+        note: 'Application submitted',
+      },
+    });
+
+    await prisma.applicationStatusHistory.upsert({
+      where: { id: `${application.id}-history-2` },
+      update: {},
+      create: {
+        id: `${application.id}-history-2`,
+        applicationId: application.id,
+        status: 'REVIEWED',
+        changedAt: secondDate,
+        note: 'Application reviewed by recruiter',
+      },
+    });
+
+    // Add a shortlisting update for the first job post only
+    if (application.jobPostId === jobPostIds[0]) {
+      await prisma.applicationStatusHistory.upsert({
+        where: { id: `${application.id}-history-3` },
+        update: {},
+        create: {
+          id: `${application.id}-history-3`,
+          applicationId: application.id,
+          status: 'SHORTLISTED',
+          changedAt: createdAt,
+          note: 'Shortlisted for interview',
+        },
+      });
+    }
+  }
+  console.log('✅ Application status history seeded');
 }
 
 main()

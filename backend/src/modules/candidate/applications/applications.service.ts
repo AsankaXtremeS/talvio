@@ -151,6 +151,35 @@ export class ApplicationsService {
     });
   }
 
+  async getCandidateApplicationWithHistory(userId: string, applicationId: string) {
+    const candidateProfile = await prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!candidateProfile) throw new Error("Candidate profile not found");
+
+    const application = await prisma.application.findFirst({
+      where: {
+        id: applicationId,
+        candidateProfileId: candidateProfile.id,
+      },
+      include: {
+        jobPost: {
+          include: {
+            employer: true,
+          },
+        },
+        statusHistory: {
+          orderBy: { changedAt: "asc" },
+        },
+      },
+    });
+
+    if (!application) throw new Error("Application not found or unauthorized");
+
+    return application;
+  }
+
   async getCandidateStats(userId: string) {
     const candidateProfile = await prisma.candidateProfile.findUnique({
       where: { userId },

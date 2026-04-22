@@ -150,6 +150,7 @@ model CandidateProfile {
 }
 
 model Application {
+    statusHistory      ApplicationStatusHistory[]
   id                 String            @id @default(uuid())
   candidateProfileId String
   jobPostId          String
@@ -169,6 +170,17 @@ model Application {
   @@index([aiScore])
   @@index([candidateProfileId, appliedAt])
   @@index([applicationStatus])
+}
+
+model ApplicationStatusHistory {
+  id            String            @id @default(uuid())
+  applicationId String
+  status        ApplicationStatus
+  changedAt     DateTime         @default(now())
+  note          String?
+  application   Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
 }
 
 model Interview {

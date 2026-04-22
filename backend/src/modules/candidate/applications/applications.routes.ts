@@ -4,7 +4,8 @@ import {
   getApplications, 
   getStats,
   applyForJob, 
-  withdrawApplication 
+  withdrawApplication,
+  getApplicationWithHistory
 } from "./applications.controller";
 
 const router = Router();
@@ -14,6 +15,9 @@ router.get("/", authenticate, getApplications);
 
 // GET /api/candidate/applications/stats
 router.get("/stats", authenticate, getStats);
+
+// GET /api/candidate/applications/:applicationId (with status history)
+router.get("/:applicationId", authenticate, getApplicationWithHistory);
 
 // POST /api/candidate/applications/apply/:jobPostId
 router.post("/apply/:jobPostId", authenticate, applyForJob);
