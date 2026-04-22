@@ -109,6 +109,23 @@ export class ApplicationsService {
   }
 
   async getCandidateStats(userId: string) {
+    // 1. Get User Role (needed for totalAvailable count)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    const jobType = user?.role === "PROFESSIONAL" ? "JOB" : "INTERNSHIP";
+
+    // 2. Fetch total available jobs/internships first (always available)
+    const totalAvailable = await prisma.jobPost.count({
+      where: {
+        type: jobType as any,
+        status: "ACTIVE",
+      },
+    });
+
+    // 3. Find candidate profile for personal stats
     const candidateProfile = await prisma.candidateProfile.findUnique({
       where: { userId },
       include: {
@@ -123,19 +140,13 @@ export class ApplicationsService {
         applicationsSent: 0,
         interviewsScheduled: 0,
         pendingMatches: 0,
-        totalAvailable: 0,
-        profileViews: 12, // Mocked for now
+        totalAvailable,
+        profileViews: 0,
       };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    });
-
-    const jobType = user?.role === "PROFESSIONAL" ? "JOB" : "INTERNSHIP";
-
-    const [applicationsSent, interviewsScheduled, totalAvailable] = await Promise.all([
+    // 4. Fetch personal stats in parallel
+    const [applicationsSent, interviewsScheduled] = await Promise.all([
       prisma.application.count({
         where: { candidateProfileId: candidateProfile.id },
       }),
@@ -143,12 +154,6 @@ export class ApplicationsService {
         where: {
           candidateProfileId: candidateProfile.id,
           status: "SCHEDULED",
-        },
-      }),
-      prisma.jobPost.count({
-        where: {
-          type: jobType,
-          status: "ACTIVE",
         },
       }),
     ]);
@@ -166,7 +171,7 @@ export class ApplicationsService {
       interviewsScheduled,
       pendingMatches,
       totalAvailable,
-      profileViews: 12, // Realistic mock for "workable" UI
+      profileViews: 0,
     };
   }
 }

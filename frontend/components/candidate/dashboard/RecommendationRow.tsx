@@ -27,16 +27,24 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            {job.companyLogoUrl ? (
-              <img src={job.companyLogoUrl} alt={job.company} className="h-full w-full object-cover" />
+            {job.companyLogoUrl && job.companyLogoUrl !== "null" && job.companyLogoUrl !== "undefined" ? (
+              <img 
+                src={job.companyLogoUrl} 
+                alt={job.company || "Company"} 
+                className="h-full w-full object-cover" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-sm font-bold text-indigo-700">${job.company?.charAt(0) || "?"}</span>`;
+                }}
+              />
             ) : (
-              <span className="text-sm font-bold text-indigo-700">{job.company.charAt(0)}</span>
+              <span className="text-sm font-bold text-indigo-700">{job.company?.charAt(0) || "?"}</span>
             )}
           </div>
           <div>
             <p className="text-md font-semibold leading-5 text-gray-900">{job.title}</p>
             <p className="text-xs font-medium text-blue-500">
-              {job.company} - {job.location}
+              {job.company || "Unknown Company"} - {job.location}
             </p>
             <p className="mt-1 text-[11px] text-gray-400">{job.postedAgo}</p>
           </div>

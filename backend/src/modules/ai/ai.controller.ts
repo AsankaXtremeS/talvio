@@ -46,17 +46,19 @@ export const getRecommendations = async (req: Request, res: Response) => {
       });
     }
 
-    // If candidate has no skills extracted yet, just return jobs with 0 match
-    if (!candidate.extractedSkills?.length) {
+    // Combine manual and extracted skills
+    const allCandidateSkills = [...new Set([...(candidate.skills || []), ...(candidate.extractedSkills || [])])];
+
+    if (allCandidateSkills.length === 0) {
       return res.status(200).json({
-        jobs: jobs.map(j => ({ ...j, matchScore: 0 }))
+        recommendations: []
       });
     }
 
     // 1. Initial filter by Keyword Similarity (Fast)
     let filteredJobs = await Promise.all(jobs.map(async (job) => {
       const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
-      const score = aiService.calculateSimilarity(candidate.extractedSkills, jdKeywords);
+      const score = aiService.calculateSimilarity(allCandidateSkills, jdKeywords);
       return { ...job, initialScore: score };
     }));
 
@@ -68,7 +70,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
     // 2. High-Accuracy AI Ranking
     const candidateSummary = {
       headline: candidate.headline,
-      skills: [...new Set([...candidate.skills, ...candidate.extractedSkills])],
+      skills: allCandidateSkills,
       bio: candidate.bio?.slice(0, 500)
     };
 
