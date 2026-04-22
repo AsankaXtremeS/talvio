@@ -164,25 +164,3 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 // EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getRankedApplicants = async (req: Request, res: Response) => {
-  try {
-    const jobPostId = getParam(req.params.jobPostId, "jobPostId");
-    const applicants = await aiRepository.findRankedApplicants(jobPostId);
-
-    return res.status(200).json({
-      total: applicants.length,
-      applicants: applicants.map(a => ({
-        id: a.id,
-        aiScore: a.aiScore,
-        status: a.applicationStatus,
-        candidateName: `${a.candidateProfile.user.firstName} ${a.candidateProfile.user.lastName}`,
-        email: a.candidateProfile.user.email,
-        headline: a.candidateProfile.headline,
-        cvUrl: a.cvUrl
-      }))
-    });
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
-  }
-};
-

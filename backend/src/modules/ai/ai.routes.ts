@@ -8,7 +8,6 @@ import { requireRole } from "../../middlewares/role.middleware";
 import {
   generateCoverLetter,
   getRecommendations,
-  getRankedApplicants,
 } from "./ai.controller";
 
 const router = Router();
@@ -33,17 +32,6 @@ router.post(
   authenticate,
   requireRole(["STUDENT", "PROFESSIONAL"]),
   generateCoverLetter
-);
-
-// ── Employer routes ───────────────────────────────────────────────────────────
-
-// Get all applicants for a job post, ranked by AI score
-// GET /api/ai/jobs/:jobPostId/applicants
-router.get(
-  "/jobs/:jobPostId/applicants",
-  authenticate,
-  requireRole("EMPLOYER"),
-  getRankedApplicants
 );
 
 export default router;

@@ -64,31 +64,6 @@ export const aiRepository = {
     });
   },
 
-  /**
-   * Get applicants sorted by AI score (descending)
-   */
-  async findRankedApplicants(jobPostId: string) {
-    return prisma.application.findMany({
-      where: { jobPostId },
-      orderBy: { aiScore: "desc" },
-      include: {
-        candidateProfile: {
-          select: {
-            headline: true,
-            skills: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  },
-
   // ── Helper lookups for AI Context ──────────────────────────────────────────
 
   async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
