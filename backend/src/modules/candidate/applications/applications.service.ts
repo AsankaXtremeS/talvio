@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { aiService } from "../../ai/ai.service";
 
 const prisma = new PrismaClient();
 const prismaAny = prisma as any;
