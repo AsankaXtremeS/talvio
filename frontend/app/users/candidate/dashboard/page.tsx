@@ -141,14 +141,16 @@ function useCandidateDashboard() {
 
   const { data: interviewsResponse } = useQuery({
     queryKey: ["candidate-interviews", user?.id],
-    queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
+    queryFn: () => candidateInterviewsService.getInterviews({ status: "ALL", limit: 100 }),
     enabled: !!user?.id,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 
   const interviews = useMemo(
-    () => (interviewsResponse?.data ?? []).map(mapInterviewToItem),
+    () => (interviewsResponse?.data ?? [])
+      .filter((i) => i.status !== "CANCELLED" && i.status !== "COMPLETED")
+      .map(mapInterviewToItem),
     [interviewsResponse?.data]
   );
 
