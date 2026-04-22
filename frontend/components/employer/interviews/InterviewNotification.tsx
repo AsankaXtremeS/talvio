@@ -83,9 +83,6 @@ export default function RescheduleInterviewNotification({
         )}
 
         <h3 className="text-sm font-bold text-gray-900 -ml-1.5">Interview Notifications</h3>
-        <span className="ml-auto px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
-          {totalCount}
-        </span>
       </div>
 
       {totalCount > 0 ? (

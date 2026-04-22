@@ -297,7 +297,7 @@ export const interviewService = {
    */
   async list(
     employerId: string,
-    options: { status?: string; page?: number; limit?: number }
+    options: { status?: string; date?: string; page?: number; limit?: number }
   ) {
     const employerProfileId = await getEmployerProfileId(employerId);
     const { total, interviews } = await interviewRepository.findAll(employerProfileId, options);

@@ -48,11 +48,13 @@ export default function JobPostsPage() {
 
   const posts = data?.posts || [];
   const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0 };
-  const totalApplications =
-    typeof (stats as { applications?: number }).applications === "number"
-      ? (stats as { applications: number }).applications
-      : posts.reduce((sum, post) => sum + (post.applicantsCount ?? 0), 0);
-  const error = queryError ? "Failed to load job posts. Please try again." : "";
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (queryError) {
+      setError("Failed to load job posts. Please try again.");
+    }
+  }, [queryError]);
 
   // ── UI State ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -210,11 +212,10 @@ export default function JobPostsPage() {
       {toast && (
         <div className="fixed right-6 top-6 z-50">
           <div
-            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${
-              toast.type === "success"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${toast.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-red-200 bg-red-50 text-red-700"
-            }`}
+              }`}
           >
             {toast.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
             <span>{toast.message}</span>
@@ -285,11 +286,11 @@ export default function JobPostsPage() {
       {/* ── Fixed header section ── */}
       <div className="shrink-0">
         <FilterBar
-          search={search}   onSearchChange={setSearch}
-          status={status}   onStatusChange={setStatus}
+          search={search} onSearchChange={setSearch}
+          status={status} onStatusChange={setStatus}
           jobRole={jobRole} onJobRoleChange={setJobRole}
-          sort={sort}       onSortChange={setSort}
-          period={period}   onPeriodChange={setPeriod}
+          sort={sort} onSortChange={setSort}
+          period={period} onPeriodChange={setPeriod}
         />
 
         <div className="flex items-center justify-between mt-6 mb-5">

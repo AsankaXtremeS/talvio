@@ -219,7 +219,7 @@ export default function CancelInterviewPage({ params }: Props) {
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
           >
             <ChevronLeft size={18} />
-            Back To Interviews
+            Go Back
           </button>
         </div>
 
@@ -346,10 +346,23 @@ function CancelEmailPreviewSection({
   initialEmailBody: string | null;
 }) {
   const [isConfirmed, setIsConfirmed] = useState(false);
-  const [editedEmail, setEditedEmail] = useState(() => {
-    if (initialEmailBody) return initialEmailBody;
+  const [editedEmail, setEditedEmail] = useState("");
 
-    // Build email content
+  // Process the body for the textarea (converting HTML <br> to \n)
+  const processBodyForEditing = (body: string) => {
+    return body.replace(/<br\s*\/?>/gi, '\n')
+               .replace(/&nbsp;/g, ' ')
+               .replace(/<[^>]*>?/gm, ''); // Strip any other tags
+  };
+
+  // Build/Rebuild email content when props change
+  useEffect(() => {
+    if (initialEmailBody) {
+      setEditedEmail(processBodyForEditing(initialEmailBody));
+      setIsConfirmed(false);
+      return;
+    }
+
     const scheduledDate = new Date(interview.scheduledAt);
     const formattedDate = scheduledDate.toLocaleDateString("en-US", {
       weekday: "long",
@@ -377,8 +390,9 @@ If you have any questions or concerns, please don't hesitate to contact us.
 Best regards,
 ${interview.jobPost?.companyName || "Hiring Team"}`;
 
-    return emailContent;
-  });
+    setEditedEmail(emailContent);
+    setIsConfirmed(false);
+  }, [interview, cancellationReason, initialEmailBody]);
 
   const handleConfirm = () => {
     setIsConfirmed(true);
