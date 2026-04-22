@@ -62,6 +62,7 @@ export default function CandidateRecommendationsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [cvUrl, setCvUrl] = useState("");
   const [resumeFileName, setResumeFileName] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -336,7 +337,8 @@ export default function CandidateRecommendationsPage() {
                 selectedJob={selectedJob}
                 resumeFileName={resumeFileName}
                 setResumeFileName={setResumeFileName}
-                resumeInputRef={resumeInputRef}
+                cvUrl={cvUrl}
+                setCvUrl={setCvUrl}
                 coverLetter={coverLetter}
                 setCoverLetter={setCoverLetter}
                 showAIModal={showAIModal}
@@ -344,24 +346,24 @@ export default function CandidateRecommendationsPage() {
                 closeModals={() => {
                   setShowApplyModal(false);
                   setSelectedJob(null);
+                  setCvUrl("");
+                  setResumeFileName("");
                 }}
                 openJobDetails={() => {
                   setShowApplyModal(false);
                 }}
-                handleApplySubmission={async () => {
+                handleApplySubmission={async (useDefaultCv: boolean) => {
                   if (!selectedJob) return;
-
-                  const finalCvUrl = profileData?.cvUrl || "Profile_CV_URL";
-                  const finalCvFileName = resumeFileName || profileData?.cvFileName || "Profile_CV.pdf";
 
                   try {
                     setSubmitError(null);
                     setIsApplying(true);
                     await candidateJobService.applyToJob(
                       selectedJob.id,
-                      finalCvUrl,
-                      finalCvFileName,
-                      coverLetter
+                      useDefaultCv ? undefined : cvUrl,
+                      useDefaultCv ? undefined : resumeFileName,
+                      coverLetter,
+                      useDefaultCv
                     );
                     await refetchApplications();
                     setShowApplyModal(false);

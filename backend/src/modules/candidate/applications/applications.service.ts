@@ -1,6 +1,5 @@
-import { prisma } from "../../../config/db";
-import { candidateRepository } from "../candidate.repository";
-import { applicationsRepository } from "./applications.repository";
+import { PrismaClient } from "@prisma/client";
+import { aiService } from "../../ai/ai.service";
 
 const prismaAny = prisma as any;
 
@@ -35,21 +34,77 @@ export class ApplicationsService {
     };
   }
 
-  async applyToJob(userId: string, jobPostId: string, data: { cvUrl: string; cvFileName: string; coverLetter?: string }) {
-    // Ensure candidate profile always exists (supports older accounts without profile rows).
-    const candidateProfile = await candidateRepository.upsertProfile(userId, {});
+  async applyToJob(userId: string, jobPostId: string, data: { cvUrl?: string; cvFileName?: string; coverLetter?: string; useDefaultCv?: boolean }) {
+    // 1. Ensure candidate profile exists
+    const candidateProfile = await prisma.candidateProfile.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
+    });
 
-    // Check if already applied
-    const existing = await applicationsRepository.findByCandidateAndJob(candidateProfile.id, jobPostId);
+    // 2. Fetch Job Details for AI analysis
+    const jobPost = await prisma.jobPost.findUnique({
+      where: { id: jobPostId },
+    });
+    if (!jobPost) throw new Error("Job post not found");
+
+    // 3. Handle CV Selection (Uploaded vs Default)
+    let finalCvUrl = data.cvUrl;
+    let finalCvFileName = data.cvFileName;
+
+    if (data.useDefaultCv) {
+      if (!candidateProfile.cvUrl) throw new Error("No default CV found in your profile. Please upload one first.");
+      finalCvUrl = candidateProfile.cvUrl;
+      finalCvFileName = candidateProfile.cvFileName || "Resume.pdf";
+    }
+
+    if (!finalCvUrl) throw new Error("Resume is required is apply for a job.");
+
+    // 4. Check if already applied
+    const existing = await prisma.application.findUnique({
+      where: {
+        candidateProfileId_jobPostId: {
+          candidateProfileId: candidateProfile.id,
+          jobPostId,
+        },
+      },
+    });
 
     if (existing) throw new Error("Already applied to this job");
 
-    return applicationsRepository.create({
-      candidateProfileId: candidateProfile.id,
-      jobPostId,
-      cvUrl: data.cvUrl,
-      cvFileName: data.cvFileName,
-      coverLetter: data.coverLetter,
+    // 5. Trigger AI Analysis (Score + Suggestions + Cover Letter if not provided)
+    let aiScore = undefined;
+    let aiSuggestions: string[] = [];
+    let finalCoverLetter = data.coverLetter;
+
+    try {
+      const cvText = await aiService.extractCvText(finalCvUrl);
+      const fullJd = `${jobPost.title}\n${jobPost.description}\n${jobPost.requirements.join("\n")}`;
+      
+      const analysis = await aiService.analyzeCv(cvText, fullJd);
+      aiScore = analysis.overallScore;
+      aiSuggestions = analysis.suggestions;
+      
+      // If user didn't provide a cover letter, we can use the AI generated one
+      if (!finalCoverLetter) {
+        finalCoverLetter = analysis.coverLetter;
+      }
+    } catch (error) {
+      console.error("AI Analysis failed during application:", error);
+      // We still allow application to proceed even if AI fails (robustness)
+    }
+
+    // 6. Create Application Record
+    return prisma.application.create({
+      data: {
+        candidateProfileId: candidateProfile.id,
+        jobPostId,
+        cvUrl: finalCvUrl,
+        cvFileName: finalCvFileName,
+        coverLetter: finalCoverLetter,
+        aiScore,
+        aiSuggestions,
+      },
     });
   }
 
@@ -66,6 +121,35 @@ export class ApplicationsService {
     if (!app || app.candidateProfileId !== candidateProfile.id) throw new Error("Application not found or unauthorized");
 
     return applicationsRepository.delete(applicationId);
+  }
+
+  async getCandidateApplicationWithHistory(userId: string, applicationId: string) {
+    const candidateProfile = await prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!candidateProfile) throw new Error("Candidate profile not found");
+
+    const application = await prisma.application.findFirst({
+      where: {
+        id: applicationId,
+        candidateProfileId: candidateProfile.id,
+      },
+      include: {
+        jobPost: {
+          include: {
+            employer: true,
+          },
+        },
+        statusHistory: {
+          orderBy: { changedAt: "asc" },
+        },
+      },
+    });
+
+    if (!application) throw new Error("Application not found or unauthorized");
+
+    return application;
   }
 
   async getCandidateStats(userId: string) {

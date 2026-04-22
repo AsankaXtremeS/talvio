@@ -9,10 +9,12 @@ import {
   STEP_HINTS,
   STEP_LABELS,
 } from "@/components/candidate/aplication/types";
+import { Clock3 } from "lucide-react";
 
 interface ApplicationCardProps {
   job: ApplicationCardType;
   onApply?: (jobId: string) => void;
+  onTimeline?: (applicationId: string) => void;
   getStepState?: (
     currentStage: ApplicationMeta["stage"],
     step: ApplicationMeta["stage"]
@@ -23,6 +25,7 @@ interface ApplicationCardProps {
 export default function ApplicationCard({
   job,
   onApply,
+  onTimeline,
   getStepState,
   getStageProgress,
 }: ApplicationCardProps) {
@@ -97,13 +100,25 @@ export default function ApplicationCard({
           </div>
         </div>
 
-        {/* Apply Button */}
-        <button
-          onClick={handleApply}
-          className="cursor-pointer rounded-xl bg-[#4F46E5] px-6 py-2 text-sm font-bold text-white hover:bg-[#4338CA] transition-colors"
-        >
-          View details
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleApply}
+            className="cursor-pointer rounded-xl bg-[#4F46E5] px-6 py-2 text-sm font-bold text-white hover:bg-[#4338CA] transition-colors"
+          >
+            View details
+          </button>
+
+          {onTimeline && job.applicationId ? (
+            <button
+              type="button"
+              onClick={() => onTimeline(job.applicationId!)}
+              className="flex items-center gap-2 rounded-xl border border-[#D9EFFF] bg-white px-4 py-2 text-sm font-semibold text-[#334155] transition-colors hover:border-[#8EA2FF] hover:text-[#1E2A47]"
+            >
+              <Clock3 size={16} />
+              Track
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Interview Message or Progress Tracker */}

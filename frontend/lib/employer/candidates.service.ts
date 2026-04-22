@@ -95,6 +95,68 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
   },
 ];
 
+type BackendApplicationStatus = "PENDING" | "REVIEWED" | "SHORTLISTED" | "REJECTED" | "HIRED";
+
+interface BackendApplicant {
+  id: string;
+  name: string;
+  email: string;
+  headline: string;
+  skills: string[];
+  status: BackendApplicationStatus;
+  appliedAt: string;
+  cvUrl: string;
+  aiScore: number;
+}
+
+const mapBackendStatusToFrontend = (status: BackendApplicationStatus): CandidateStatus | null => {
+  if (status === "SHORTLISTED") return "Shortlisted";
+  if (status === "HIRED") return "Hired";
+  if (status === "REVIEWED") return "Interview Scheduled";
+  if (status === "PENDING") return "Applied";
+  return null;
+};
+
+const toAppliedDaysAgo = (appliedAt: string): number => {
+  const appliedDate = new Date(appliedAt);
+  if (Number.isNaN(appliedDate.getTime())) return 0;
+  const now = Date.now();
+  const diffMs = Math.max(0, now - appliedDate.getTime());
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+};
+
+const toCandidateInfo = (applicant: BackendApplicant): CandidateInfo | null => {
+  const status = mapBackendStatusToFrontend(applicant.status);
+  if (!status) return null;
+
+  const safeName = applicant.name?.trim() || "Unknown Applicant";
+  const role = applicant.headline?.trim() || "Applicant";
+
+  return {
+    id: applicant.id,
+    name: safeName,
+    role,
+    initial: safeName.charAt(0).toUpperCase() || "A",
+    experience: "Not specified",
+    appliedDaysAgo: toAppliedDaysAgo(applicant.appliedAt),
+    matchScore: Number.isFinite(applicant.aiScore) ? applicant.aiScore : 0,
+    skills: Array.isArray(applicant.skills) ? applicant.skills : [],
+    email: applicant.email,
+    status,
+  };
+};
+
+const filterCandidatesByStatus = (
+  candidates: CandidateInfo[],
+  status: CandidateStatus
+): CandidateInfo[] => {
+  if (status === "AI Matches") {
+    return candidates.filter((candidate) => candidate.matchScore >= 85);
+  }
+
+  return candidates.filter((candidate) => candidate.status === status);
+};
+
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 /**
@@ -108,17 +170,26 @@ export async function getCandidates(
   // If jobPostId provided, fetch from API
   if (jobPostId) {
     try {
-      const url = `/api/employer/job-posts/${jobPostId}/applications?status=${status}`;
+      const url = `/api/employer/job-posts/${jobPostId}/applications`;
       const res = await fetch(url, { credentials: "include" });
       if (res.ok) {
-        const data = await res.json();
-        console.log(`[getCandidates] Fetched ${data.length} candidates for job post ${jobPostId} with status ${status}`);
-        return data;
+        const data = (await res.json()) as BackendApplicant[];
+        const mapped = data
+          .map(toCandidateInfo)
+          .filter((candidate): candidate is CandidateInfo => candidate !== null);
+        const filtered = filterCandidatesByStatus(mapped, status);
+
+        console.log(
+          `[getCandidates] Fetched ${filtered.length} candidates for job post ${jobPostId} with status ${status}`
+        );
+        return filtered;
       } else {
         console.error(`[getCandidates] Failed to fetch candidates: ${res.status}`);
+        return [];
       }
     } catch (err) {
       console.error("[getCandidates] Error fetching from API:", err);
+      return [];
     }
   }
 
