@@ -74,6 +74,25 @@ function getMeetingTypeLabel(type: string): string {
   return type;
 }
 
+/**
+ * Convert plain text line breaks (\n) into HTML line breaks (<br />).
+ * This ensures paragraphs and point-wise formatting are preserved in HTML emails.
+ */
+function formatLineBreaks(text: string | null | undefined): string {
+  if (!text) return "";
+  // First, escape any existing HTML to prevent XSS if the input is untrusted
+  // (though in this app, only employers can reach this point)
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  
+  // Then convert newlines to <br />
+  return escaped.replace(/\n/g, "<br />");
+}
+
 // ─── Email Template Builder ───────────────────────────────────────────────────
 
 /**
@@ -82,8 +101,10 @@ function getMeetingTypeLabel(type: string): string {
  */
 export function buildInterviewEmailHtml(data: InterviewEmailData): string {
   // If employer provided a custom body, wrap it in the branded template
+  // Note: if the custom body already contains HTML from the frontend, formatLineBreaks might escape it.
+  // However, it's safer to treat it as plain text if it comes from a textarea.
   const bodyContent = data.customBody
-    ? `<div style="font-size:14px;color:#374151;line-height:1.7;">${data.customBody}</div>`
+    ? `<div style="font-size:14px;color:#374151;line-height:1.7;">${formatLineBreaks(data.customBody)}</div>`
     : buildDefaultBody(data);
 
   const bannerContent = data.isCancellation
@@ -241,7 +262,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                 <tr>
                   <td style="padding:16px 24px;">
                     <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.4px;">📝 Additional Information</p>
-                    <p style="margin:0;font-size:14px;color:#78350F;line-height:1.6;">${data.additionalInfo}</p>
+                    <p style="margin:0;font-size:14px;color:#78350F;line-height:1.6;">${formatLineBreaks(data.additionalInfo)}</p>
                   </td>
                 </tr>
               </table>`
@@ -308,7 +329,7 @@ function buildDefaultBody(data: InterviewEmailData): string {
       </p>
       ${data.cancellationReason ? `
       <p style="margin:8px 0 0;font-size:13px;color:#991B1B;line-height:1.6;">
-        <strong>Reason:</strong> ${data.cancellationReason}
+        <strong>Reason:</strong> ${formatLineBreaks(data.cancellationReason)}
       </p>
       ` : ""}
     </div>

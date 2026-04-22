@@ -295,7 +295,6 @@ export default function ScheduleInterviewPage({ params }: Props) {
           time={time}
           meetingType={meetingType}
           location={location}
-          onSaveDraft={() => {}}
           onRemove={() => router.back()}
           onSchedule={handleScheduleInterview}
           hasEmailPreview={isEmailConfirmed}

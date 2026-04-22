@@ -32,6 +32,7 @@ import {
   scheduleAndSend,
   cancelInterview,
   updateInterview,
+  generateEmailPreview,
 } from "@/lib/employer/interviews.service";
 import { getCandidateById } from "@/lib/employer/candidates.service";
 
@@ -68,13 +69,13 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
   // ── Email preview state ──
   const [showEmailPreview, setShowEmailPreview] = useState(false);  // controls panel visibility
+  const [backendEmailBody, setBackendEmailBody] = useState<string | null>(null);
 
   // ── Candidate info for modals ──
   const [candidate, setCandidate] = useState<CandidateInfo | null>(null);
 
   // ── UI loading flags ──
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
-  const [isSavingDraft, setIsSavingDraft]         = useState(false);
   const [showConfirm, setShowConfirm]             = useState(false);
   const [isScheduling, setIsScheduling]           = useState(false);
   const [showSuccess, setShowSuccess]             = useState(false);
@@ -172,7 +173,19 @@ export default function ScheduleInterviewPage({ params }: Props) {
         setDraft(currentDraft);
       }
 
-      // Show email preview — GeneratedEmailPreview builds the email from form fields
+      // ── Fetch "Official" backend email preview ───────────────────────────────
+      const preview = await generateEmailPreview({
+        jobPostId:          postId,
+        candidateProfileId: candidateId,
+        scheduledAt,
+        meetingType,
+        location:       meetingType === "ONSITE" ? location : undefined,
+        meetingLink:    currentDraft.meetingLink || undefined,
+        additionalInfo: additionalInfo || undefined,
+        isReschedule,
+      });
+
+      setBackendEmailBody(preview.body);
       setShowEmailPreview(true);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to generate email preview.";
@@ -196,47 +209,6 @@ export default function ScheduleInterviewPage({ params }: Props) {
     }
   }, []);
 
-  // ── Save as Draft ───────────────────────────────────────────────────────────
-  const handleSaveDraft = useCallback(async () => {
-    if (!date || !time) { setError("Please select a date and time."); return; }
-
-    setError(null);
-    setIsSavingDraft(true);
-    try {
-      const scheduledAt = buildScheduledAt(date, time);
-      const currentDraft = draftRef.current;
-
-      if (!currentDraft) {
-        const created = await createInterview({
-          jobPostId:          postId,
-          candidateProfileId: candidateId,
-          scheduledAt,
-          meetingType,
-          location:       meetingType === "ONSITE" ? location : undefined,
-          additionalInfo: additionalInfo || undefined,
-          isReschedule:   isReschedule || false,
-          rescheduledFromId: isReschedule ? interviewId : undefined,
-        });
-        setDraft(created);
-      } else {
-        const updated = await updateInterview(currentDraft.id, {
-          scheduledAt,
-          meetingType,
-          location:       meetingType === "ONSITE" ? location : undefined,
-          additionalInfo: additionalInfo || undefined,
-          isReschedule:   isReschedule || false,
-          rescheduledFromId: isReschedule ? interviewId : undefined,
-        });
-        setDraft(updated);
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to save draft.";
-      console.error("Save draft error:", err);
-      setError(errorMsg);
-    } finally {
-      setIsSavingDraft(false);
-    }
-  }, [date, time, meetingType, location, additionalInfo, postId, candidateId, isReschedule, interviewId]);
 
   // ── Remove / Cancel ─────────────────────────────────────────────────────────
   const handleRemove = useCallback(async () => {
@@ -390,6 +362,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                 meetingLink={draft?.meetingLink}
                 additionalInfo={additionalInfo}
                 isReschedule={isReschedule}
+                initialBody={backendEmailBody || undefined}
                 onConfirm={handleEmailConfirm}
               />
             )}
@@ -404,10 +377,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
           location={location}
           meetingLink={draft?.meetingLink}
           candidateEmail={candidate?.email ?? draft?.candidateEmail}
-          onSaveDraft={handleSaveDraft}
           onRemove={handleRemove}
           onSchedule={handleScheduleClick}
-          isSavingDraft={isSavingDraft}
           isScheduling={isScheduling}
           hasEmailPreview={showEmailPreview}
         />
