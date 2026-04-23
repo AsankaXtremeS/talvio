@@ -167,6 +167,7 @@ interface BackendJobPost {
   closingDate?: string | null;
   company?: {
     name?: string;
+    logoUrl?: string | null;
   };
   [key: string]: unknown;
 }
@@ -403,8 +404,9 @@ function normalizePost(post: BackendJobPost): JobPost {
     type: post.type === "JOB" ? "Job" : "Internship",
     // Keep as yyyy-mm-dd for date input and format in UI where needed.
     closingDate: post.closingDate ? post.closingDate.slice(0, 10) : "",
-    // Map company name from backend response
+    // Map company data from backend response
     companyName: post.company?.name ?? "",
+    companyLogoUrl: post.company?.logoUrl ?? undefined,
   });
 }
 
