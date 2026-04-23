@@ -17,6 +17,8 @@ import { getCandidateById } from "@/lib/employer/candidates.service";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { profileService, EmployerProfileDTO } from "@/lib/employer/profile.service";
+
 interface Props {
   params: Promise<{ candidateId: string }>;
 }
@@ -28,6 +30,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId");
 
+  const [profile, setProfile] = useState<EmployerProfileDTO | null>(null);
   // Initialize with today's local date
   const [date, setDate] = useState(() => {
     const today = new Date();
@@ -136,6 +139,19 @@ export default function ScheduleInterviewPage({ params }: Props) {
     fetchIds();
   }, [candidateId, postId]);
 
+  // Fetch employer profile to check calendar connection
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await profileService.getProfile();
+        setProfile(data);
+      } catch (err) {
+        console.error("[ScheduleInterview] Failed to fetch profile:", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   // Handle date change: fetch existing interviews immediately to show loading view
   const handleDateChange = useCallback(async (newDate: string) => {
     setDate(newDate);
@@ -198,6 +214,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
     setIsGeneratingEmail(true);
 
     try {
+      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !profile?.googleCalendarConnected) {
+        setScheduleError("Google Calendar is not connected. Please connect your calendar in Profile Settings to generate Google Meet links.");
+        return;
+      }
+
       const scheduledAt = buildScheduledAt(date, time);
 
       // Create or update draft to get meetingLink (for ONLINE Meet link)
@@ -242,6 +263,12 @@ export default function ScheduleInterviewPage({ params }: Props) {
     setIsScheduling(true);
     setScheduleError(null);
     try {
+      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !profile?.googleCalendarConnected) {
+        setScheduleError("Google Calendar is not connected. Please connect your calendar in Profile Settings to generate Google Meet links.");
+        setIsScheduling(false);
+        return;
+      }
+      
       let currentDraft = draftRef.current;
       
       if (!currentDraft) {
@@ -331,6 +358,25 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Meeting Details</h2>
+
+            {meetingType === "ONLINE" && onlineOption === "GENERATE" && profile && !profile.googleCalendarConnected && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 animate-in slide-in-from-top-2 duration-300">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+                <div className="flex-1">
+                  <p className="font-bold">Google Calendar Not Connected</p>
+                  <p className="mt-1 leading-relaxed text-yellow-700">
+                    You haven't connected your Google Calendar yet. To automatically generate real Google Meet links, please connect your account in your profile settings.
+                  </p>
+                  <button 
+                    onClick={() => router.push("/users/employer/profile")}
+                    className="mt-2 text-indigo-600 font-semibold hover:underline"
+                  >
+                    Go to Profile Settings →
+                  </button>
+                </div>
+              </div>
+            )}
+
             <ScheduleForm
               date={date}
               setDate={setDate}

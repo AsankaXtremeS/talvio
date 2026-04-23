@@ -1,15 +1,16 @@
 // Google Calendar API utility.
 // Creates calendar events with optional Google Meet link generation.
-// Uses a Service Account for server-side auth — no user OAuth redirect needed.
+// Uses OAuth2 for server-side auth — acts on behalf of the employer.
 //
 // SETUP REQUIRED (in .env):
-//   GOOGLE_SERVICE_ACCOUNT_EMAIL=your-sa@project.iam.gserviceaccount.com
-//   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
-//   GOOGLE_CALENDAR_ID=your_calendar@gmail.com  (the employer's calendar)
+//   GOOGLE_CLIENT_ID=...
+//   GOOGLE_CLIENT_SECRET=...
+//   GOOGLE_REDIRECT_URI=...
+//   GOOGLE_REFRESH_TOKEN=...
+//   GOOGLE_CALENDAR_ID=primary  (or the specific calendar ID)
 //
-// NOTE: The Service Account must be granted access to the calendar.
-// In Google Calendar → Settings → Share → add service account email with
-// "Make changes to events" permission.
+// NOTE: Using OAuth2 with a Refresh Token allows generating real Google Meet links
+// without the Domain-Wide Delegation required by Service Accounts.
 
 import { google } from "googleapis";
 
@@ -31,36 +32,42 @@ export interface CalendarEventResult {
   meetLink?: string;          // Only present when generateMeetLink=true
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Auth & Client Helpers ───────────────────────────────────────────────────
 
 /**
- * Build a Google Auth client using Service Account credentials from env.
- * Scopes are limited to calendar — never request broader permissions.
+ * Creates an OAuth2 client for a specific employer using their stored tokens.
+ * This client can be used to make authorized calls to Google APIs.
  */
-function buildGoogleAuth() {
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+export function getEmployerGoogleClient(tokens: {
+  accessToken: string;
+  refreshToken: string;
+  expiryDate?: number;
+}) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-  if (!privateKey || !clientEmail) {
-    throw new Error(
-      "Google Calendar service account credentials missing. " +
-      "Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in .env"
-    );
+  if (!clientId || !clientSecret) {
+    throw new Error("Google OAuth2 Client ID or Secret missing in .env");
   }
 
-  // Replace escaped newlines in the private key (common issue with .env files)
-  const normalizedKey = privateKey.replace(/\\n/g, "\n");
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: normalizedKey,
-    scopes: [
-      "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/calendar.events",
-    ],
+  oauth2Client.setCredentials({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+    expiry_date: tokens.expiryDate,
   });
 
-  return auth;
+  return oauth2Client;
+}
+
+/**
+ * Internal helper to build the auth client for the service's methods.
+ * Note: Now expects the auth object to be passed in.
+ */
+function getCalendarClient(auth: any) {
+  return google.calendar({ version: "v3", auth });
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
@@ -73,14 +80,10 @@ export const googleCalendarService = {
    *
    * @throws Error if Google credentials are missing or API call fails.
    */
-  async createEvent(input: CalendarEventInput): Promise<CalendarEventResult> {
-    const auth = buildGoogleAuth();
-    const calendar = google.calendar({ version: "v3", auth });
+  async createEvent(auth: any, input: CalendarEventInput): Promise<CalendarEventResult> {
+    const calendar = getCalendarClient(auth);
 
-    const calendarId = process.env.GOOGLE_CALENDAR_ID;
-    if (!calendarId) {
-      throw new Error("GOOGLE_CALENDAR_ID is not set in environment variables");
-    }
+    const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
 
     // Calculate end time from duration (default 60 minutes)
     const durationMs = (input.durationMinutes ?? 60) * 60 * 1000;
@@ -98,8 +101,7 @@ export const googleCalendarService = {
         dateTime: endTime.toISOString(),
         timeZone: "UTC",
       },
-      // Removed attendees to avoid Domain-Wide Delegation requirement.
-      // We send our own invitation emails via the app's email service.
+      attendees: input.attendeeEmails.map((email) => ({ email })),
       guestsCanModifyEvent: false,
       guestsCanInviteOthers: false,
       guestsCanSeeOtherGuests: false,
@@ -124,7 +126,7 @@ export const googleCalendarService = {
       calendarId,
       // conferenceDataVersion=1 is required to trigger Meet link creation
       conferenceDataVersion: input.generateMeetLink ? 1 : 0,
-      sendUpdates: "none",
+      sendUpdates: "all",
       requestBody: eventBody,
     });
 
@@ -166,13 +168,10 @@ export const googleCalendarService = {
    * Delete a calendar event (used when interview is cancelled).
    * Silently succeeds if the event no longer exists.
    */
-  async deleteEvent(eventId: string): Promise<void> {
+  async deleteEvent(auth: any, eventId: string): Promise<void> {
     try {
-      const auth = buildGoogleAuth();
-      const calendar = google.calendar({ version: "v3", auth });
-
-      const calendarId = process.env.GOOGLE_CALENDAR_ID;
-      if (!calendarId) return;
+      const calendar = getCalendarClient(auth);
+      const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
 
       await calendar.events.delete({
         calendarId,
@@ -190,14 +189,9 @@ export const googleCalendarService = {
   /**
    * Update an existing calendar event (used when interview is rescheduled).
    */
-  async updateEventTime(eventId: string, newStartTime: Date, durationMinutes = 60): Promise<void> {
-    const auth = buildGoogleAuth();
-    const calendar = google.calendar({ version: "v3", auth });
-
-    const calendarId = process.env.GOOGLE_CALENDAR_ID;
-    if (!calendarId) {
-      throw new Error("GOOGLE_CALENDAR_ID is not set in environment variables");
-    }
+  async updateEventTime(auth: any, eventId: string, newStartTime: Date, durationMinutes = 60): Promise<void> {
+    const calendar = getCalendarClient(auth);
+    const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
 
     const endTime = new Date(newStartTime.getTime() + durationMinutes * 60 * 1000);
 
@@ -218,9 +212,8 @@ export const googleCalendarService = {
    */
   isConfigured(): boolean {
     return !!(
-      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY &&
-      process.env.GOOGLE_CALENDAR_ID
+      process.env.GOOGLE_CLIENT_ID &&
+      process.env.GOOGLE_CLIENT_SECRET
     );
   },
 };

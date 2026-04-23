@@ -8,7 +8,7 @@
 import { prisma } from "../../../config/db";
 import { interviewRepository } from "./interview.repository";
 import { CreateInterviewInput, UpdateInterviewInput, GenerateEmailInput } from "./interview.validation";
-import { googleCalendarService } from "../../../utils/googleCalendar";
+import { googleCalendarService, getEmployerGoogleClient } from "../../../utils/googleCalendar";
 import {
   buildInterviewEmailHtml,
   buildInterviewEmailSubject,
@@ -137,6 +137,56 @@ async function getEmployerProfileId(userId: string): Promise<string> {
   return employerProfile.id;
 }
 
+/**
+ * Helper to get a Google Auth client for a specific employer.
+ * Returns null if the employer hasn't connected their calendar.
+ */
+async function getEmployerGoogleAuth(employerProfileId: string) {
+  const employer = await prisma.employerProfile.findUnique({
+    where: { id: employerProfileId },
+    select: { 
+      googleAccessToken: true, 
+      googleRefreshToken: true, 
+      googleTokenExpiry: true,
+      googleCalendarConnected: true
+    }
+  });
+
+  if (!employer || !employer.googleCalendarConnected || !employer.googleAccessToken || !employer.googleRefreshToken) {
+    return null;
+  }
+
+  const tokens = {
+    accessToken: employer.googleAccessToken,
+    refreshToken: employer.googleRefreshToken,
+    expiryDate: employer.googleTokenExpiry ? Number(employer.googleTokenExpiry) : undefined,
+  };
+
+  const auth = getEmployerGoogleClient(tokens);
+
+  // Auto-update tokens in DB if they are refreshed by the library
+  auth.on("tokens", async (newTokens) => {
+    try {
+      const updateData: any = {};
+      if (newTokens.access_token) updateData.googleAccessToken = newTokens.access_token;
+      if (newTokens.refresh_token) updateData.googleRefreshToken = newTokens.refresh_token;
+      if (newTokens.expiry_date) updateData.googleTokenExpiry = BigInt(newTokens.expiry_date);
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.employerProfile.update({
+          where: { id: employerProfileId },
+          data: updateData
+        });
+        console.log(`[Google Tokens Refreshed] Employer: ${employerProfileId}`);
+      }
+    } catch (err) {
+      console.error("Failed to update refreshed Google tokens in DB:", err);
+    }
+  });
+
+  return auth;
+}
+
 export const interviewService = {
   /**
    * Fetch candidate profile details for schedule UI.
@@ -218,10 +268,12 @@ export const interviewService = {
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
 
+    const auth = await getEmployerGoogleAuth(employerProfileId);
+
     if (input.meetingType === "ONLINE" && !meetingLink) {
-      if (googleCalendarService.isConfigured()) {
+      if (auth) {
         try {
-          const calEvent = await googleCalendarService.createEvent({
+          const calEvent = await googleCalendarService.createEvent(auth, {
             title: `Interview – ${candidateName} | ${jobPost.title}`,
             description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
             startTime: scheduledAt,
@@ -235,7 +287,7 @@ export const interviewService = {
           googleCalendarLink = calEvent.calendarLink;
 
           if (!meetingLink) {
-            throw new Error("Google Calendar API succeeded but did not return a Google Meet link. Please ensure your Google account has Meet enabled and the Service Account has permission to create conferences.");
+            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
           }
           
           console.log(`[Google Meet Generated] Link: ${meetingLink}, EventID: ${googleCalendarEventId}`);
@@ -244,11 +296,11 @@ export const interviewService = {
           throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
         }
       } else {
-        throw buildHttpError("Google Calendar is not configured. Please set GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, and GOOGLE_CALENDAR_ID in .env to generate Google Meet links.", 400);
+        throw buildHttpError("Google Calendar is not connected. Please connect your calendar in settings to generate Google Meet links.", 400);
       }
-    } else if (input.meetingType === "ONSITE" && googleCalendarService.isConfigured()) {
+    } else if (input.meetingType === "ONSITE" && auth) {
       try {
-        const calEvent = await googleCalendarService.createEvent({
+        const calEvent = await googleCalendarService.createEvent(auth, {
           title: `Interview – ${jobPost.title} (On-Site)`,
           description: `On-site interview at ${input.location}`,
           startTime: scheduledAt,
@@ -369,20 +421,22 @@ export const interviewService = {
     if (input.emailBody !== undefined) updateData.emailBody = input.emailBody;
     if (input.status !== undefined) updateData.status = input.status;
 
+    const auth = await getEmployerGoogleAuth(employerProfileId);
+
     // Handle Google Meet generation if switched to ONLINE or no link exists
     if (
       (input.meetingType === "ONLINE" || (existing.meetingType === "ONLINE" && !input.meetingType)) &&
       !input.meetingLink &&
       !existing.meetingLink
     ) {
-      if (googleCalendarService.isConfigured()) {
+      if (auth) {
         try {
           const candidateName = [
             existing.candidate?.user?.firstName,
             existing.candidate?.user?.lastName,
           ].filter(Boolean).join(" ") || "Candidate";
 
-          const calEvent = await googleCalendarService.createEvent({
+          const calEvent = await googleCalendarService.createEvent(auth, {
             title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
             description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
             startTime: updateData.scheduledAt || existing.scheduledAt,
@@ -408,14 +462,15 @@ export const interviewService = {
           throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
         }
       } else {
-        throw buildHttpError("Google Calendar is not configured. Please set GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, and GOOGLE_CALENDAR_ID in .env to generate Google Meet links.", 400);
+        throw buildHttpError("Google Calendar is not connected. Cannot generate Google Meet link.", 400);
       }
     }
 
     // Sync existing calendar event if time/type changed but we didn't re-create it above
-    if (shouldSyncCalendar && existing.googleCalendarEventId && googleCalendarService.isConfigured()) {
+    if (shouldSyncCalendar && existing.googleCalendarEventId && auth) {
       try {
         await googleCalendarService.updateEventTime(
+          auth,
           existing.googleCalendarEventId,
           updateData.scheduledAt || existing.scheduledAt
         );
@@ -524,7 +579,10 @@ export const interviewService = {
     const googleEventId = (existing as any).googleCalendarEventId;
     if (googleEventId && googleCalendarService.isConfigured()) {
       try {
-        await googleCalendarService.deleteEvent(googleEventId);
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          await googleCalendarService.deleteEvent(auth, googleEventId);
+        }
       } catch (err) {
         console.error("Failed to delete Google Calendar event:", err);
       }
@@ -685,16 +743,19 @@ ${companyName}`;
 
     // Remove Google Calendar event
     const googleEventId = (existing as any).googleCalendarEventId;
-    if (googleEventId && googleCalendarService.isConfigured()) {
-      try {
-        await googleCalendarService.deleteEvent(googleEventId);
-        console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
-      } catch (err) {
-        console.error(
-          "Failed to delete Google Calendar event:",
-          err
-        );
-        // Don't fail the operation if calendar delete fails
+    if (googleEventId) {
+      const auth = await getEmployerGoogleAuth(employerProfileId);
+      if (auth) {
+        try {
+          await googleCalendarService.deleteEvent(auth, googleEventId);
+          console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
+        } catch (err) {
+          console.error(
+            "Failed to delete Google Calendar event:",
+            err
+          );
+          // Don't fail the operation if calendar delete fails
+        }
       }
     }
 
