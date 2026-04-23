@@ -114,13 +114,20 @@ export class ApplicationsService {
     const candidateProfile = await candidateRepository.findProfileByUserId(userId);
     if (!candidateProfile) throw new Error("Candidate profile not found");
 
-    const application = await applicationsRepository.findByCandidateAndJob(candidateProfile.id, applicationId);
-    // Wait, withdrawApplication usually takes applicationId. Let's fix applicationsRepository.delete later or use findById.
-    // Actually, applicationsRepository.findByCandidateAndJob was used for checking if already applied.
-    
-    // Better: use findById and check ownership
     const app = await applicationsRepository.findById(applicationId);
     if (!app || app.candidateProfileId !== candidateProfile.id) throw new Error("Application not found or unauthorized");
+
+    const interview = await prismaAny.interview.findFirst({
+      where: {
+        candidateProfileId: candidateProfile.id,
+        jobPostId: app.jobPostId,
+        status: { in: ["SCHEDULED", "COMPLETED", "DRAFT"] }
+      }
+    });
+
+    if (interview) {
+      throw new Error("Cannot withdraw application after an interview has been scheduled.");
+    }
 
     return applicationsRepository.delete(applicationId);
   }

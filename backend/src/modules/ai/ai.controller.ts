@@ -30,11 +30,11 @@ export const getRecommendations = async (req: Request, res: Response) => {
     const type = userRole === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
 
     const jobs = await aiRepository.findActiveJobsByRole(type);
-    
+
     // 0. Caching Logic (12 Hours)
     const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in ms
     const now = new Date();
-    
+
     if (
       candidate.recommendationCache &&
       candidate.lastRecommendedAt &&
@@ -144,7 +144,7 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     // 4. Extract Text & Generate CL
     const cvText = await aiService.extractCvText(candidate.cvUrl);
     const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
-    
+
     // We can use the same analyzeCv service but just take the cover letter
     const analysis = await aiService.analyzeCv(cvText, jobDescription);
 
@@ -163,4 +163,5 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
+
 

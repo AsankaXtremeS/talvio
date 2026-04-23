@@ -75,7 +75,7 @@ export const candidateJobService = {
     const response = await apiClient<MyApplicationsResponse>('/api/candidate/applications', {
       method: 'GET',
     });
-    
+
     // Map backend jobPost to frontend job property
     return response.applications.map((app: any) => ({
       id: app.id,

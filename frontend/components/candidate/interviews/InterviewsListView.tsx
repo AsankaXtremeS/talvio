@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import InterviewCard from "@/components/candidate/interviews/InterviewCard";
 import { mapInterviewToItem } from "@/components/candidate/interviews/types";
@@ -9,6 +9,8 @@ import { candidateInterviewsService } from "@/lib/candidate/interviews.service";
 import { CalendarDays, Cog } from "lucide-react";
 
 export default function InterviewsListView() {
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["candidate-interviews-list"],
     queryFn: () => candidateInterviewsService.getInterviews({ status: "ALL", limit: 100 }),
@@ -26,6 +28,21 @@ export default function InterviewsListView() {
   );
 
   const now = new Date();
+
+  // Filter interviews by selected date if one is selected
+  const displayedInterviews = useMemo(() => {
+    if (selectedDate === null) return interviews;
+    
+    return interviews.filter((interview) => {
+      const interviewDate = new Date(interview.scheduledAt);
+      return (
+        interviewDate.getDate() === selectedDate &&
+        interviewDate.getMonth() === now.getMonth() &&
+        interviewDate.getFullYear() === now.getFullYear()
+      );
+    });
+  }, [interviews, selectedDate, now]);
+
   const monthLabel = new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
@@ -74,6 +91,17 @@ export default function InterviewsListView() {
             </h1>
             <p className="mt-1 text-sm text-gray-500">
               Track your upcoming interview timings and open each detail page to join the company meeting room.
+              {selectedDate && (
+                <span className="ml-2 font-medium text-indigo-600">
+                  Filtering by: {monthLabel.split(" ")[0]} {selectedDate}
+                  <button 
+                    onClick={() => setSelectedDate(null)}
+                    className="ml-2 text-xs underline text-slate-500 hover:text-slate-700"
+                  >
+                    Clear
+                  </button>
+                </span>
+              )}
             </p>
           </header>
 
@@ -90,12 +118,14 @@ export default function InterviewsListView() {
           )}
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {interviews.map((interview) => (
+            {displayedInterviews.map((interview) => (
               <InterviewCard key={interview.id} interview={interview} />
             ))}
-            {!isLoading && interviews.length === 0 && (
+            {!isLoading && displayedInterviews.length === 0 && (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
-                No scheduled interviews yet.
+                {selectedDate 
+                  ? `No interviews scheduled for ${monthLabel.split(" ")[0]} ${selectedDate}.` 
+                  : "No scheduled interviews yet."}
               </div>
             )}
           </div>
@@ -122,20 +152,31 @@ export default function InterviewsListView() {
             <div className="mt-2 grid grid-cols-7 gap-1">
               {calendarCells.map((cell, index) => {
                 const isToday = cell === now.getDate();
+                const isPast = cell !== null && cell < now.getDate();
+                const isSelected = cell === selectedDate;
                 const hasInterview = cell !== null && interviewDaysInCurrentMonth.has(cell);
 
-                let cellClassName = "text-slate-700";
+                let cellClassName = "text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors";
                 if (cell === null) {
                   cellClassName = "text-transparent";
+                } else if (isPast) {
+                  cellClassName = "text-slate-300 cursor-not-allowed";
+                } else if (isSelected) {
+                  cellClassName = "bg-indigo-600 font-semibold text-white shadow-sm cursor-pointer";
                 } else if (isToday) {
-                  cellClassName = "bg-indigo-600 font-semibold text-white";
+                  cellClassName = "bg-indigo-100 font-semibold text-indigo-700 hover:bg-indigo-200 cursor-pointer transition-colors";
                 } else if (hasInterview) {
-                  cellClassName = "border border-indigo-200 bg-indigo-50 font-semibold text-indigo-700";
+                  cellClassName = "border border-indigo-200 bg-indigo-50 font-semibold text-indigo-700 hover:bg-indigo-100 cursor-pointer transition-colors";
                 }
 
                 return (
                   <div
                     key={`${cell ?? "empty"}-${index}`}
+                    onClick={() => {
+                      if (cell !== null && !isPast) {
+                        setSelectedDate(cell === selectedDate ? null : cell);
+                      }
+                    }}
                     className={`flex h-8 items-center justify-center rounded-md text-sm ${cellClassName}`}
                   >
                     {cell ?? "-"}
