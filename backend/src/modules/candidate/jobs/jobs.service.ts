@@ -23,8 +23,8 @@ export const jobsService = {
       })),
     };
   },
-  
-  
+
+
   // Get jobs based on candidate role
   // STUDENT → gets INTERNSHIP posts
   // PROFESSIONAL → gets JOB posts
