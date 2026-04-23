@@ -98,8 +98,8 @@ export const googleCalendarService = {
         dateTime: endTime.toISOString(),
         timeZone: "UTC",
       },
-      attendees: input.attendeeEmails.map((email) => ({ email })),
-      // Notify attendees by email
+      // Removed attendees to avoid Domain-Wide Delegation requirement.
+      // We send our own invitation emails via the app's email service.
       guestsCanModifyEvent: false,
       guestsCanInviteOthers: false,
       guestsCanSeeOtherGuests: false,
@@ -114,7 +114,7 @@ export const googleCalendarService = {
     if (input.generateMeetLink) {
       eventBody.conferenceData = {
         createRequest: {
-          requestId: `talvio-interview-${Date.now()}`,
+          requestId: Math.random().toString(36).substring(2) + Date.now().toString(36),
           conferenceSolutionKey: { type: "hangoutsMeet" },
         },
       };
@@ -124,14 +124,25 @@ export const googleCalendarService = {
       calendarId,
       // conferenceDataVersion=1 is required to trigger Meet link creation
       conferenceDataVersion: input.generateMeetLink ? 1 : 0,
-      sendUpdates: "all",  // Send email notifications to all attendees
+      sendUpdates: "none",
       requestBody: eventBody,
     });
 
-    const event = response.data;
+    let event = response.data;
 
     if (!event.id) {
       throw new Error("Google Calendar did not return an event ID");
+    }
+
+    // RETRY LOGIC: Sometimes Meet links take a moment to generate
+    if (input.generateMeetLink && !event.conferenceData?.entryPoints) {
+      console.log("[Google Calendar] Meet link not ready, retrying in 1.5s...");
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const refetched = await calendar.events.get({
+        calendarId,
+        eventId: event.id as string,
+      });
+      event = refetched.data;
     }
 
     // Extract Meet link from conference data
@@ -142,10 +153,10 @@ export const googleCalendarService = {
     // Build the direct link to view the event in Google Calendar
     const calendarLink =
       event.htmlLink ??
-      `https://calendar.google.com/calendar/event?eid=${Buffer.from(event.id).toString("base64")}`;
+      `https://calendar.google.com/calendar/event?eid=${Buffer.from(event.id as string).toString("base64")}`;
 
     return {
-      eventId: event.id,
+      eventId: event.id as string,
       calendarLink,
       meetLink,
     };

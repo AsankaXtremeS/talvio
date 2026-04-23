@@ -18,6 +18,7 @@ interface Props {
   employerEmail?: string;
   isReschedule?: boolean;
   initialBody?: string;
+  refreshKey?: number;
   onConfirm?: (emailContent: string) => void;
 }
 
@@ -35,6 +36,7 @@ export default function GeneratedEmailPreview({
   employerEmail = "recruitment@talvio.com",
   isReschedule = false,
   initialBody,
+  refreshKey,
   onConfirm,
 }: Props) {
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -96,7 +98,7 @@ export default function GeneratedEmailPreview({
     const baseBody = getLocalTemplate();
     setEditedEmail(baseBody);
     setIsConfirmed(false);
-  }, [additionalInfo, date, time, meetingType, meetingLink, location, isReschedule]);
+  }, [additionalInfo, date, time, meetingType, meetingLink, location, isReschedule, refreshKey]);
 
   const handleConfirm = () => {
     setIsConfirmed(true);

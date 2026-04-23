@@ -63,6 +63,7 @@ export interface CreateInterviewPayload {
   candidateProfileId: string;
   scheduledAt: string;        // ISO 8601
   meetingType: MeetingType;
+  meetingLink?: string;
   location?: string;
   additionalInfo?: string;
   emailBody?: string;
@@ -74,6 +75,7 @@ export interface CreateInterviewPayload {
 export interface UpdateInterviewPayload {
   scheduledAt?: string;
   meetingType?: MeetingType;
+  meetingLink?: string | null;
   location?: string;
   additionalInfo?: string;
   emailBody?: string;

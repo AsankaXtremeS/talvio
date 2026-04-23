@@ -25,6 +25,7 @@ import GeneratedEmailPreview from "@/components/employer/interviews/GeneratedEma
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
 import ConfirmationModal from "@/components/employer/interviews/ConfirmationModel";
 import SuccessModal from "@/components/employer/interviews/SuccessModal";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   createInterview,
@@ -51,6 +52,7 @@ interface Props {
 export default function ScheduleInterviewPage({ params }: Props) {
   const { postId, candidateId } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const interviewId = searchParams?.get("interviewId");
   const isReschedule = !!interviewId;
@@ -59,6 +61,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [meetingType, setMeetingType] = useState<MeetingType>("ONLINE");
+  const [onlineOption, setOnlineOption] = useState<"GENERATE" | "CUSTOM">("GENERATE");
+  const [customLink, setCustomLink] = useState("");
   const [location, setLocation] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
@@ -77,9 +81,15 @@ export default function ScheduleInterviewPage({ params }: Props) {
   // ── UI loading flags ──
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isScheduling, setIsScheduling]           = useState(false);
+  const [showSuccess, setShowSuccess]             = useState(false);
+  const [error, setError]                         = useState<string | null>(null);
+  const [emailRefreshKey, setEmailRefreshKey]     = useState(0);
+
+  // Reset email confirmation if form fields change
+  useEffect(() => {
+    setShowEmailPreview(false);
+  }, [date, time, meetingType, onlineOption, customLink, location, additionalInfo]);
 
   // ── Load candidate info on mount ──
   useEffect(() => {
@@ -104,6 +114,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
         setDate(dateStr);
         setTime(timeStr);
         setMeetingType(interview.meetingType);
+        if (interview.meetingType === "ONLINE" && interview.meetingLink) {
+          setOnlineOption("CUSTOM");
+          setCustomLink(interview.meetingLink);
+        }
         setLocation(interview.location || "");
         setAdditionalInfo(interview.additionalInfo || "");
       } catch (err) {
@@ -145,6 +159,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
           candidateProfileId: candidateId,
           scheduledAt,
           meetingType,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
           location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
           isReschedule: true,
@@ -159,6 +174,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
           candidateProfileId: candidateId,
           scheduledAt,
           meetingType,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
           location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
         });
@@ -168,6 +184,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         currentDraft = await updateInterview(currentDraft.id, {
           scheduledAt,
           meetingType,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
           location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
         });
@@ -180,14 +197,15 @@ export default function ScheduleInterviewPage({ params }: Props) {
         candidateProfileId: candidateId,
         scheduledAt,
         meetingType,
-        location: meetingType === "ONSITE" ? location : undefined,
         meetingLink: currentDraft.meetingLink || undefined,
+        location: meetingType === "ONSITE" ? location : undefined,
         additionalInfo: additionalInfo || undefined,
         isReschedule,
       });
 
       setBackendEmailBody(preview.body);
       setShowEmailPreview(true);
+      setEmailRefreshKey(prev => prev + 1);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to generate email preview.";
       console.error("Generate email error:", err);
@@ -195,7 +213,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
     } finally {
       setIsGeneratingEmail(false);
     }
-  }, [date, time, meetingType, location, additionalInfo, postId, candidateId, isReschedule, interviewId]);
+  }, [date, time, meetingType, onlineOption, customLink, location, additionalInfo, postId, candidateId, isReschedule, interviewId]);
 
   // ── Handle email confirmation ───────────────────────────────────────────────
   const handleEmailConfirm = useCallback(async (emailContent: string) => {
@@ -243,6 +261,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
       const scheduled = await scheduleAndSend(currentDraft.id);
       console.log("Interview scheduled successfully:", { id: scheduled.id, rescheduledFromId: scheduled.rescheduledFromId });
       setDraft(scheduled);
+      
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-interviews"] });
+
       setShowConfirm(false);
       setShowSuccess(true);
 
@@ -342,6 +364,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
               setTime={setTime}
               meetingType={meetingType}
               setMeetingType={setMeetingType}
+              onlineOption={onlineOption}
+              setOnlineOption={setOnlineOption}
+              customLink={customLink}
+              setCustomLink={setCustomLink}
               location={location}
               setLocation={setLocation}
               additionalInfo={additionalInfo}
@@ -364,6 +390,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                 additionalInfo={additionalInfo}
                 isReschedule={isReschedule}
                 initialBody={backendEmailBody || undefined}
+                refreshKey={emailRefreshKey}
                 onConfirm={handleEmailConfirm}
               />
             )}

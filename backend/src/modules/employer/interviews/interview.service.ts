@@ -213,41 +213,40 @@ export const interviewService = {
     // 3. Parse scheduledAt
     const scheduledAt = new Date(input.scheduledAt);
 
-    // 4. For ONLINE: create Google Calendar event with Meet link (or use fallback)
-    let meetingLink: string | undefined;
+    // 4. Handle Google Meet and Calendar Integration
+    let meetingLink: string | undefined = input.meetingLink;
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
 
-    if (input.meetingType === "ONLINE") {
+    if (input.meetingType === "ONLINE" && !meetingLink) {
       if (googleCalendarService.isConfigured()) {
-        // Try to create Google Calendar event with Meet link
         try {
           const calEvent = await googleCalendarService.createEvent({
             title: `Interview – ${candidateName} | ${jobPost.title}`,
             description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
             startTime: scheduledAt,
             durationMinutes: 60,
-            attendeeEmails: [candidateEmail],
+            attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
             generateMeetLink: true,
           });
 
           meetingLink = calEvent.meetLink;
           googleCalendarEventId = calEvent.eventId;
           googleCalendarLink = calEvent.calendarLink;
+
+          if (!meetingLink) {
+            throw new Error("Google Calendar API succeeded but did not return a Google Meet link. Please ensure your Google account has Meet enabled and the Service Account has permission to create conferences.");
+          }
+          
+          console.log(`[Google Meet Generated] Link: ${meetingLink}, EventID: ${googleCalendarEventId}`);
         } catch (calErr) {
-          // Log but don't fail — calendar is optional enhancement
           console.error("Google Calendar event creation failed:", calErr);
-          // Fallback: generate a simple meeting link using interview ID
-          meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
+          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
         }
       } else {
-        // No Google Calendar configured — generate fallback meeting link
-        // Use Jitsi Meet (free, no setup required)
-        meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
-        console.log(`Generated fallback Jitsi Meet link: ${meetingLink}`);
+        throw buildHttpError("Google Calendar is not configured. Please set GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, and GOOGLE_CALENDAR_ID in .env to generate Google Meet links.", 400);
       }
     } else if (input.meetingType === "ONSITE" && googleCalendarService.isConfigured()) {
-      // Create calendar event without Meet link for ONSITE
       try {
         const calEvent = await googleCalendarService.createEvent({
           title: `Interview – ${jobPost.title} (On-Site)`,
@@ -255,7 +254,7 @@ export const interviewService = {
           startTime: scheduledAt,
           durationMinutes: 60,
           location: input.location,
-          attendeeEmails: [candidateEmail],
+          attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
           generateMeetLink: false,
         });
 
@@ -350,15 +349,80 @@ export const interviewService = {
     }
 
     const updateData: any = {};
+    let shouldSyncCalendar = false;
 
     if (input.scheduledAt) {
       updateData.scheduledAt = new Date(input.scheduledAt);
+      if (updateData.scheduledAt.getTime() !== existing.scheduledAt.getTime()) {
+        shouldSyncCalendar = true;
+      }
     }
-    if (input.meetingType !== undefined) updateData.meetingType = input.meetingType;
+    if (input.meetingType !== undefined) {
+      updateData.meetingType = input.meetingType;
+      if (updateData.meetingType !== existing.meetingType) {
+        shouldSyncCalendar = true;
+      }
+    }
     if (input.location !== undefined) updateData.location = input.location;
     if (input.additionalInfo !== undefined) updateData.additionalInfo = input.additionalInfo;
+    if (input.meetingLink !== undefined) updateData.meetingLink = input.meetingLink;
     if (input.emailBody !== undefined) updateData.emailBody = input.emailBody;
     if (input.status !== undefined) updateData.status = input.status;
+
+    // Handle Google Meet generation if switched to ONLINE or no link exists
+    if (
+      (input.meetingType === "ONLINE" || (existing.meetingType === "ONLINE" && !input.meetingType)) &&
+      !input.meetingLink &&
+      !existing.meetingLink
+    ) {
+      if (googleCalendarService.isConfigured()) {
+        try {
+          const candidateName = [
+            existing.candidate?.user?.firstName,
+            existing.candidate?.user?.lastName,
+          ].filter(Boolean).join(" ") || "Candidate";
+
+          const calEvent = await googleCalendarService.createEvent({
+            title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
+            description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
+            startTime: updateData.scheduledAt || existing.scheduledAt,
+            durationMinutes: 60,
+            attendeeEmails: [
+              existing.candidateEmail,
+              existing.employer.user.email
+            ].filter(Boolean) as string[],
+            generateMeetLink: true,
+          });
+
+          if (!calEvent.meetLink) {
+            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+          }
+
+          updateData.meetingLink = calEvent.meetLink;
+          updateData.googleCalendarEventId = calEvent.eventId;
+          updateData.googleCalendarLink = calEvent.calendarLink;
+          console.log(`[Google Meet Updated/Generated] Link: ${updateData.meetingLink}`);
+          shouldSyncCalendar = false; // Already created/updated
+        } catch (calErr) {
+          console.error("Google Calendar update failed:", calErr);
+          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+        }
+      } else {
+        throw buildHttpError("Google Calendar is not configured. Please set GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, and GOOGLE_CALENDAR_ID in .env to generate Google Meet links.", 400);
+      }
+    }
+
+    // Sync existing calendar event if time/type changed but we didn't re-create it above
+    if (shouldSyncCalendar && existing.googleCalendarEventId && googleCalendarService.isConfigured()) {
+      try {
+        await googleCalendarService.updateEventTime(
+          existing.googleCalendarEventId,
+          updateData.scheduledAt || existing.scheduledAt
+        );
+      } catch (err) {
+        console.error("Failed to sync calendar event time:", err);
+      }
+    }
 
     const updated = await interviewRepository.update(id, employerProfileId, updateData);
     return mapToDTO(updated);
@@ -581,7 +645,7 @@ ${companyName}`;
       console.log(
         `[CancelAndSendEmail] Sending cancellation email to ${(existing as any).candidateEmail}`
       );
-      
+
       // Create and send email
       const candidateName = [
         (existing as any).candidate?.user?.firstName,

@@ -12,6 +12,7 @@ import {
   cancelAndSendEmail,
   generateCancelEmailPreview,
 } from "@/lib/employer/interviews.service";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   params: Promise<{ interviewId: string }>;
@@ -20,6 +21,7 @@ interface Props {
 export default function CancelInterviewPage({ params }: Props) {
   const { interviewId } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   console.log("[CancelInterviewPage] Mounted with interviewId:", interviewId);
 
@@ -142,6 +144,9 @@ export default function CancelInterviewPage({ params }: Props) {
       });
 
       console.log("[CancelInterview] Interview cancelled successfully:", result);
+
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-interviews"] });
 
       setCancelledInterview(result);
       setIsModalOpen(true);
