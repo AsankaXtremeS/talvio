@@ -11,7 +11,10 @@ interface AICoverLetterModalProps {
   onDone: (coverLetterText: string) => void;
   onClose: () => void;
   isAiRecommended?: boolean;
+  matchScore?: number;
 }
+
+import { AIJobAnalysis } from "@/lib/candidate/job.service";
 
 export default function AICoverLetterModal({
   jobId,
@@ -20,20 +23,23 @@ export default function AICoverLetterModal({
   onDone,
   onClose,
   isAiRecommended,
+  matchScore,
 }: AICoverLetterModalProps) {
+  const [analysis, setAnalysis] = useState<AIJobAnalysis | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCoverLetter = useCallback(async () => {
+  const fetchAnalysis = useCallback(async () => {
     try {
       setIsGenerating(true);
       setError(null);
-      const generatedLetter = await candidateJobService.generateCoverLetter(jobId);
-      setCoverLetter(generatedLetter);
+      const result = await candidateJobService.generateCoverLetter(jobId);
+      setAnalysis(result);
+      setCoverLetter(result.coverLetter);
     } catch (err: any) {
-      console.error("Failed to generate cover letter:", err);
-      const message = err instanceof Error ? err.message : "Failed to generate cover letter. Please try again.";
+      console.error("Failed to generate analysis:", err);
+      const message = err instanceof Error ? err.message : "Failed to generate analysis. Please try again.";
       setError(message);
     } finally {
       setIsGenerating(false);
@@ -41,11 +47,11 @@ export default function AICoverLetterModal({
   }, [jobId]);
 
   useEffect(() => {
-    fetchCoverLetter();
-  }, [fetchCoverLetter]);
+    fetchAnalysis();
+  }, [fetchAnalysis]);
 
   const handleRegenerate = () => {
-    fetchCoverLetter();
+    fetchAnalysis();
   };
 
   const handleDone = () => {
@@ -56,45 +62,89 @@ export default function AICoverLetterModal({
 
   return (
     <div className="fixed inset-0 z-95 overflow-hidden">
-      {/* Blurred backdrop */}
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-305 items-center justify-center px-4">
-        <div className="relative w-full max-w-155 animate-in fade-in zoom-in duration-300">
-
-          {/* Close button */}
+      <div className="relative z-10 mx-auto flex h-full max-w-6xl items-center justify-center px-4">
+        <div className="relative w-full animate-in fade-in zoom-in duration-300">
           <button
             onClick={onClose}
             className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
-            aria-label="Close"
           >
             <X size={20} />
           </button>
 
-          {/* Main card */}
-          <div className="relative w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl">
-
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
-                <Sparkles size={18} className="text-indigo-600" />
+          <div className="relative w-full rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px] max-h-[90vh]">
+            
+            {/* Left Column: Analysis */}
+            <div className="w-full md:w-2/5 bg-slate-50 p-8 border-r border-slate-100 overflow-y-auto">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-100">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900 leading-tight">AI Matching Insights</h1>
+                  <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">Personalized Analysis</p>
+                </div>
               </div>
-              <h1 className="text-[22px] font-bold text-slate-900">
-                AI Cover Letter Generator
-              </h1>
-            </div>
-            <p className="text-[14px] text-slate-500 mb-6 font-medium">
-              Writing for:{" "}
-              <span className="font-bold text-indigo-700">{jobTitle}</span>
-              <span className="text-slate-400"> ({candidateName})</span>
-            </p>
 
-            {/* Text area area */}
-            <div className="relative bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5 min-h-75 flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">
-                  Generated Draft
-                </p>
+              {isGenerating ? (
+                <div className="space-y-6 animate-pulse">
+                  <div className="h-32 bg-slate-200 rounded-2xl" />
+                  <div className="h-48 bg-slate-200 rounded-2xl" />
+                </div>
+              ) : analysis ? (
+                <div className="space-y-8">
+                  {/* Single AI Score Gauge */}
+                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-bold text-slate-700">AI Match Score</span>
+                      <span className={`text-lg font-black ${analysis.overallScore >= 80 ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                        {analysis.overallScore}%
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-1000 ease-out ${analysis.overallScore >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                        style={{ width: `${analysis.overallScore}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-3 font-medium">
+                      Deep analysis based on your stored CV and full job requirements.
+                    </p>
+                  </div>
+
+                  {/* Suggestions */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                      <Check size={14} className="text-indigo-500" />
+                      Key Suggestions
+                    </h3>
+                    <div className="space-y-3">
+                      {analysis.suggestions.map((suggestion, idx) => (
+                        <div key={idx} className="flex gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm transition-hover hover:border-indigo-200">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-bold text-indigo-600 border border-indigo-100">
+                            {idx + 1}
+                          </span>
+                          <p className="text-[13px] text-slate-600 leading-relaxed font-medium">
+                            {suggestion}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Right Column: Cover Letter Editor */}
+            <div className="flex-1 p-8 flex flex-col bg-white">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Tailored Cover Letter</h2>
+                  <p className="text-[13px] text-slate-500 font-medium">
+                    For <span className="text-indigo-600 font-bold">{jobTitle}</span>
+                  </p>
+                </div>
                 {isGenerating && (
                   <span className="flex items-center gap-1.5 text-[12px] text-indigo-600 font-bold animate-pulse">
                     <Loader2 size={14} className="animate-spin" />
@@ -103,72 +153,54 @@ export default function AICoverLetterModal({
                 )}
               </div>
 
-              {error ? (
-                <div className="flex flex-col items-center justify-center flex-1 text-center p-6 bg-red-50 rounded-lg border border-red-100">
-                  <p className="text-sm text-red-600 font-medium mb-3">{error}</p>
-                  <button 
-                    onClick={handleRegenerate}
-                    className="text-xs font-bold text-red-700 underline uppercase hover:text-red-800"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : (
-                <textarea
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  disabled={isGenerating}
-                  placeholder={isGenerating ? "" : "Your AI generated cover letter will appear here..."}
-                  className={`w-full flex-1 min-h-62.5 border border-slate-200 rounded-lg p-5 text-[14px] leading-relaxed resize-none bg-white font-serif outline-none transition shadow-inner ${
-                    isGenerating
-                      ? "text-slate-300 cursor-wait opacity-60"
-                      : "text-slate-700 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
-                  }`}
-                />
-              )}
-
-              {!isGenerating && !error && (
-                <p className="text-[11px] text-slate-400 mt-3 font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block" />
-                  You can personalize the AI&apos;s draft above before using it.
-                </p>
-              )}
-            </div>
-
-            {/* Success banner */}
-            {!isGenerating && !error && coverLetter && (
-              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-6">
-                <Check size={16} className="text-emerald-600 mt-0.5 shrink-0" />
-                <p className="text-[12px] text-emerald-700 font-medium leading-relaxed">
-                  Tailored based on your default CV and specific job requirements.
-                  {isAiRecommended && " Since this is a recommended job, we ensure the highest degree of personalization."}
-                </p>
+              <div className="flex-1 relative mb-6">
+                {error ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-red-50 rounded-2xl border border-red-100">
+                    <p className="text-sm text-red-600 font-medium mb-3">{error}</p>
+                    <button 
+                      onClick={handleRegenerate}
+                      className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    disabled={isGenerating}
+                    placeholder={isGenerating ? "" : "AI is preparing your personalized cover letter..."}
+                    className={`w-full h-full border border-slate-200 rounded-2xl p-6 text-[14px] leading-relaxed resize-none bg-slate-50/50 font-serif outline-none transition-all shadow-inner ${
+                      isGenerating
+                        ? "text-slate-300 cursor-wait opacity-60"
+                        : "text-slate-700 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                    }`}
+                  />
+                )}
               </div>
-            )}
 
-            {/* Action buttons */}
-            <div className="flex items-center justify-between gap-4 mt-2">
-              <button
-                onClick={handleRegenerate}
-                disabled={isGenerating}
-                className="flex items-center gap-2 h-11 px-5 border border-slate-200 bg-white rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
-              >
-                <RefreshCw
-                  size={16}
-                  className={isGenerating ? "animate-spin" : ""}
-                />
-                Regenerate
-              </button>
+              {/* Action buttons */}
+              <div className="flex items-center justify-between gap-4">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isGenerating}
+                  className="flex items-center gap-2 h-12 px-6 border border-slate-200 bg-white rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={isGenerating ? "animate-spin" : ""} />
+                  Regenerate
+                </button>
 
-              <button
-                onClick={handleDone}
-                disabled={isGenerating || !coverLetter}
-                className="flex flex-1 items-center justify-center gap-2 h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[15px] font-bold shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
-              >
-                <Check size={18} strokeWidth={3} />
-                Use this Letter
-              </button>
+                <button
+                  onClick={handleDone}
+                  disabled={isGenerating || !coverLetter}
+                  className="flex flex-1 items-center justify-center gap-2 h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[15px] font-bold shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+                >
+                  <Check size={18} strokeWidth={3} />
+                  Confirm and Apply
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       </div>

@@ -613,6 +613,7 @@ export default function CandidateDashboardPage() {
           jobTitle={selectedJob.title}
           candidateName={user?.firstName ? `${user.firstName} ${user.lastName || ""}` : "Candidate"}
           isAiRecommended={selectedJob.isAiRecommended}
+          matchScore={selectedJob.matchPercent}
           onDone={handleAIDone}
           onClose={() => setShowAIModal(false)}
         />
