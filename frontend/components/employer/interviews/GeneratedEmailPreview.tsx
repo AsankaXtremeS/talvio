@@ -51,8 +51,8 @@ export default function GeneratedEmailPreview({
   // Local fallback template (matches the clean structure requested by the user)
   const getLocalTemplate = () => {
     const greeting = `Hi ${candidateName},`;
-    
-    const header = isReschedule 
+
+    const header = isReschedule
       ? "\n⏰ Interview Rescheduled\n\nWe apologize for any inconvenience. Your interview has been rescheduled due to scheduling changes.\nPlease see the updated details below."
       : "\n🎉 Interview Invitation\n\nWe are excited to move forward with you in our interview process.\nPlease see the interview details below.";
 
@@ -72,7 +72,7 @@ export default function GeneratedEmailPreview({
     const detailsHeader = "\n\nInterview Details\n-----------------";
     const details = `📅 Date: ${formattedDate}\n⏰ Time: ${time}\n💼 Position: ${employerCompany}\n🖥️ Format: ${meetingType === "ONLINE" ? "Online" : meetingType === "ONSITE" ? "On-Site" : "Phone Call"}`;
 
-    const additionalInfoSection = additionalInfo 
+    const additionalInfoSection = additionalInfo
       ? `\n\n📝 Additional Information\n${additionalInfo}`
       : "";
 
@@ -84,8 +84,8 @@ export default function GeneratedEmailPreview({
   // Process the body for the textarea (converting HTML <br> to \n)
   const processBodyForEditing = (body: string) => {
     return body.replace(/<br\s*\/?>/gi, '\n')
-               .replace(/&nbsp;/g, ' ')
-               .replace(/<[^>]*>?/gm, ''); // Strip any other tags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>?/gm, ''); // Strip any other tags
   };
 
   const [editedEmail, setEditedEmail] = useState("");

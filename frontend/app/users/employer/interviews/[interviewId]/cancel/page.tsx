@@ -57,17 +57,17 @@ export default function CancelInterviewPage({ params }: Props) {
         setLoadingInterview(true);
         setLoadError(null);
         console.log("[CancelInterview] Fetching interview:", interviewId);
-        
+
         // Add timeout
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Request timeout")), 10000)
         );
-        
+
         const data = await Promise.race([
           getInterview(interviewId),
           timeoutPromise,
         ]) as InterviewDTO;
-        
+
         console.log("[CancelInterview] Interview fetched:", data);
         setInterview(data);
       } catch (err) {
@@ -101,7 +101,7 @@ export default function CancelInterviewPage({ params }: Props) {
       // Generate the email preview with cancellation reason
       const preview = await generateCancelEmailPreview(interviewId, cancellationReason);
       console.log("[CancelInterview] Email preview generated:", preview);
-      
+
       setShowEmailPreview(true);
       setCustomEmailBody(preview.body || null);
     } catch (err) {
@@ -351,8 +351,8 @@ function CancelEmailPreviewSection({
   // Process the body for the textarea (converting HTML <br> to \n)
   const processBodyForEditing = (body: string) => {
     return body.replace(/<br\s*\/?>/gi, '\n')
-               .replace(/&nbsp;/g, ' ')
-               .replace(/<[^>]*>?/gm, ''); // Strip any other tags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>?/gm, ''); // Strip any other tags
   };
 
   // Build/Rebuild email content when props change

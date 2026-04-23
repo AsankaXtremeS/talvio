@@ -136,7 +136,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
       // Fetch interviews for the newly selected date
       const response = await getInterviews({ date: newDate, status: "SCHEDULED" });
       setExistingInterviews(response.data);
-      
+
       // If interviews exist, show the modal
       if (response.data.length > 0) {
         setIsExistingInterviewsModalOpen(true);
@@ -196,7 +196,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
       // Step 3: Store the interview and show success modal
       setScheduledInterview(finalInterview);
       setIsModalOpen(true);
-      
+
       // Step 4: Auto-navigate to interviews page after 3 seconds
       setTimeout(() => {
         router.push("/users/employer/interviews");
@@ -226,9 +226,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
               Scheduling for Candidate ID: {candidateId}
             </p>
           </div>
-          
-          <button 
-            onClick={() => router.back()} 
+
+          <button
+            onClick={() => router.back()}
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
           >
             <ChevronLeft size={18} />
@@ -248,8 +248,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
           <div className="flex flex-col h-full min-h-full justify-stretch">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
-            <DateCalendar 
-              selectedDate={date} 
+            <DateCalendar
+              selectedDate={date}
               onDateChange={handleDateChange}
               scheduledDates={scheduledDates}
               onMonthChange={handleMonthChange}
@@ -258,7 +258,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Meeting Details</h2>
-            <ScheduleForm 
+            <ScheduleForm
               date={date}
               setDate={setDate}
               time={time}
@@ -274,7 +274,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
             {/* Email Preview Component - shown when Generate Email button is clicked */}
             {showEmailPreview && (
-              <EmailPreviewSection 
+              <EmailPreviewSection
                 candidateName={realCandidateData?.name || "Candidate"}
                 candidateEmail={realCandidateData?.email || "candidate@example.com"}
                 date={date}
@@ -291,7 +291,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
           </div>
         </div>
 
-        <ReadyToScheduleBar 
+        <ReadyToScheduleBar
           date={date}
           time={time}
           meetingType={meetingType}
@@ -314,18 +314,18 @@ export default function ScheduleInterviewPage({ params }: Props) {
       {/* Load Error Alert */}
       {loadError && !loadingIds && (
         <div className="fixed bottom-4 left-4 right-4 z-40 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">
-          <AlertTriangle size={20}/> {loadError}
+          <AlertTriangle size={20} /> {loadError}
         </div>
       )}
 
       {/* Schedule Error Alert */}
       {scheduleError && (
         <div className="fixed top-4 left-4 right-4 z-40 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <AlertTriangle size={20}/> {scheduleError}
+          <AlertTriangle size={20} /> {scheduleError}
         </div>
       )}
-      <SuccessModal 
-        isOpen={isModalOpen} 
+      <SuccessModal
+        isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setScheduledInterview(null);
