@@ -137,10 +137,16 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     if (cachedAnalysis) {
       return res.status(200).json({
         coverLetter: cachedAnalysis.coverLetter,
+        overallScore: cachedAnalysis.overallScore,
+        suggestions: cachedAnalysis.suggestions,
         fromCache: true
       });
     }
 
+    // 4. Extract Text & Generate CL
+    const cvText = await aiService.extractCvText(candidate.cvUrl);
+    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
+    
     // 4. Extract Text & Generate CL
     const cvText = await aiService.extractCvText(candidate.cvUrl);
     const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
@@ -152,7 +158,9 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     await aiRepository.updateAnalysisCache(userId, jobPostId, analysis);
 
     return res.status(200).json({
-      coverLetter: analysis.coverLetter
+      coverLetter: analysis.coverLetter,
+      overallScore: analysis.overallScore,
+      suggestions: analysis.suggestions
     });
   } catch (err: any) {
     console.error("generateCoverLetter error:", err);

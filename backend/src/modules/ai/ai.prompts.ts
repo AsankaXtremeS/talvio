@@ -45,7 +45,8 @@ YOUR TASK:
 2. **Improvement Suggestions**: Provide 3-5 specific, actionable points on how the candidate can improve their profile or CV specifically for THIS role. 
    Keep suggestions professional and constructive.
 3. **Cover Letter**: Write a high-impact, professional cover letter (approx. 150-200 words, 3 short paragraphs) that effectively sells this candidate's existing strengths to the hiring manager. 
-   Do NOT hallucinate skills the candidate does not have.
+   - **MANDATORY**: Mention the specific Company Name and Job Title from the Job Description in the first paragraph.
+   - Do NOT hallucinate skills the candidate does not have.
 
 Return ONLY a valid JSON object with this structure:
 {
