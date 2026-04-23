@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createJobPost } from "@/lib/employer/jobPosts.service";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
 import Popup from "@/components/admin/layout/Popup";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
 
 export default function JobPostPreviewPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [draft, setDraft] = useState<JobPostFormData | null>(null);
   const [loading, setLoading] = useState(false);
   const [popup, setPopup] = useState<{
@@ -61,6 +63,10 @@ export default function JobPostPreviewPage() {
       };
 
       await createJobPost(payload);
+      
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
+
       sessionStorage.removeItem("employerJobPostPreviewDraft");
       setPopup({
         open: true,

@@ -260,7 +260,7 @@ export default function InterviewsDashboardPage() {
   return (
     <div className="flex-1 min-h-screen bg-[#F7F9FC] font-sans flex flex-col">
       {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-40 bg-[#F7F9FC] backdrop-blur border-b ">
+      <div className="sticky top-0 z-40 bg-[#F7F9FC] backdrop-blur">
         <div className="max-w-7xl px-4 py-6 mx-auto">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

@@ -117,3 +117,67 @@ export const updateProfile = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+// ─── GET /api/employer/profile/calendar/auth-url ─────────────────────────────
+//
+// Generates the Google OAuth2 consent URL for the employer.
+// Response: { url: string }
+
+export const getCalendarAuthUrl = async (req: Request, res: Response) => {
+  try {
+    const url = await profileService.getCalendarAuthUrl();
+    res.json({ url });
+  } catch (err: any) {
+    logControllerError("getCalendarAuthUrl", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to generate auth URL."),
+    });
+  }
+};
+
+
+// ─── POST /api/employer/profile/calendar/connect ─────────────────────────────
+//
+// Exchanges the Google OAuth code for tokens and saves them.
+// Request body: { code: string }
+// Response: EmployerProfileDTO
+
+export const connectCalendar = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: "Auth code is required" });
+
+    const profile = await profileService.connectCalendar(userId, code);
+    res.json(profile);
+  } catch (err: any) {
+    logControllerError("connectCalendar", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to connect calendar."),
+    });
+  }
+};
+
+
+// ─── POST /api/employer/profile/calendar/disconnect ──────────────────────────
+//
+// Removes Google tokens and disconnects the calendar.
+// Response: EmployerProfileDTO
+
+export const disconnectCalendar = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const profile = await profileService.disconnectCalendar(userId);
+    res.json(profile);
+  } catch (err: any) {
+    logControllerError("disconnectCalendar", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to disconnect calendar."),
+    });
+  }
+};
