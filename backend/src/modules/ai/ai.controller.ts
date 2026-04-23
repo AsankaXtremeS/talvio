@@ -1,7 +1,8 @@
-import { ApplicationStatus, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { Request, Response } from "express";
 import { aiRepository } from "./ai.repository";
 import { aiService } from "./ai.service";
+import { candidateRepository } from "../candidate/candidate.repository";
 
 /**
  * Safely extract route param as string
@@ -22,8 +23,8 @@ export const getRecommendations = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const candidate = await aiRepository.findCandidateProfileByUserId(userId);
-    if (!candidate) return res.status(200).json({ jobs: [] });
+    const candidate = await candidateRepository.findProfileByUserId(userId);
+    if (!candidate) return res.status(200).json({ recommendations: [] });
 
     const userRole = req.user?.role;
     const type = userRole === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
@@ -46,17 +47,19 @@ export const getRecommendations = async (req: Request, res: Response) => {
       });
     }
 
-    // If candidate has no skills extracted yet, just return jobs with 0 match
-    if (!candidate.extractedSkills?.length) {
+    // Combine manual and extracted skills
+    const allCandidateSkills = [...new Set([...(candidate.skills || []), ...(candidate.extractedSkills || [])])];
+
+    if (allCandidateSkills.length === 0) {
       return res.status(200).json({
-        jobs: jobs.map(j => ({ ...j, matchScore: 0 }))
+        recommendations: []
       });
     }
 
     // 1. Initial filter by Keyword Similarity (Fast)
     let filteredJobs = await Promise.all(jobs.map(async (job) => {
       const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
-      const score = aiService.calculateSimilarity(candidate.extractedSkills, jdKeywords);
+      const score = aiService.calculateSimilarity(allCandidateSkills, jdKeywords);
       return { ...job, initialScore: score };
     }));
 
@@ -68,7 +71,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
     // 2. High-Accuracy AI Ranking
     const candidateSummary = {
       headline: candidate.headline,
-      skills: [...new Set([...candidate.skills, ...candidate.extractedSkills])],
+      skills: allCandidateSkills,
       bio: candidate.bio?.slice(0, 500)
     };
 
@@ -124,7 +127,7 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     if (!jobPost) return res.status(404).json({ message: "Job post not found" });
 
     // 2. Get Candidate Profile
-    const candidate = await aiRepository.findCandidateProfileByUserId(userId);
+    const candidate = await candidateRepository.findProfileByUserId(userId);
     if (!candidate?.cvUrl) {
       return res.status(400).json({ message: "No CV on file. Please upload a CV first." });
     }
@@ -158,61 +161,6 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET APPLICATION (For Result View)
-// GET /api/ai/applications/:applicationId
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const getApplicationResult = async (req: Request, res: Response) => {
-  try {
-    const applicationId = getParam(req.params.applicationId, "applicationId");
-    const application = await aiRepository.findApplicationById(applicationId);
-    
-    if (!application) return res.status(404).json({ message: "Application not found" });
-
-    return res.status(200).json(application);
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getRankedApplicants = async (req: Request, res: Response) => {
-  try {
-    const jobPostId = getParam(req.params.jobPostId, "jobPostId");
-    const applicants = await aiRepository.findRankedApplicants(jobPostId);
-
-    return res.status(200).json({
-      total: applicants.length,
-      applicants: applicants.map(a => ({
-        id: a.id,
-        aiScore: a.aiScore,
-        status: a.applicationStatus,
-        candidateName: `${a.candidateProfile.user.firstName} ${a.candidateProfile.user.lastName}`,
-        email: a.candidateProfile.user.email,
-        headline: a.candidateProfile.headline,
-        cvUrl: a.cvUrl
-      }))
-    });
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
-  }
-};
-
-export const updateApplicationStatus = async (req: Request, res: Response) => {
-  try {
-    const applicationId = getParam(req.params.applicationId, "applicationId");
-    const { status } = req.body as { status: ApplicationStatus };
-
-    const updated = await aiRepository.updateApplicationStatus(applicationId, status);
-    return res.status(200).json(updated);
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPLOYER: APPLICANTS
-// ─────────────────────────────────────────────────────────────────────────────

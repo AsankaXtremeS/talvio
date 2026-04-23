@@ -219,7 +219,7 @@ export default function ScheduleForm({
             Additional Information
           </label>
           <textarea
-            rows={3}
+            rows={6}
             value={additionalInfo}
             onChange={(e) => setAdditionalInfo(e.target.value)}
             placeholder="E.g. Please bring your portfolio, dress code is business casual, parking is available..."

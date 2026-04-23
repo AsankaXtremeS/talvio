@@ -196,6 +196,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
  */
 export async function getInterviews(options?: {
   status?: string;
+  date?: string;
   page?: number;
   limit?: number;
 }): Promise<{
@@ -204,6 +205,7 @@ export async function getInterviews(options?: {
 }> {
   const params = new URLSearchParams();
   if (options?.status) params.set("status", options.status);
+  if (options?.date)   params.set("date",   options.date);
   if (options?.page)   params.set("page",   String(options.page));
   if (options?.limit)  params.set("limit",  String(options.limit));
 

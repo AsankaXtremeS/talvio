@@ -6,7 +6,7 @@ import { UploadThingError } from "uploadthing/server";
 const f = createUploadthing();
 
 // Fake auth function for now, but we can integrate with our auth if needed
-const auth = (req: Request) => ({ id: "fakeId" }); 
+const auth = (req: Request) => ({ id: "fakeId" });
 
 export const ourFileRouter = {
   // Route for Business Registration PDF

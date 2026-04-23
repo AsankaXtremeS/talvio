@@ -2,7 +2,7 @@
 
 import { use, useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ChevronLeft, Hourglass, UserSquare } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Hourglass, UserSquare, Loader2 } from "lucide-react";
 import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
 import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
 import DateCalendar from "@/components/employer/interviews/DateCalendar";
@@ -10,8 +10,9 @@ import ScheduleForm from "@/components/employer/interviews/ScheduleForm";
 import GeneratedEmailPreview from "@/components/employer/interviews/GeneratedEmailPreview";
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
 import SuccessModal from "@/components/employer/interviews/SuccessModal";
+import ExistingInterviewsModal from "@/components/employer/interviews/ExistingInterviewsModal";
 import { MeetingType, InterviewDTO } from "@/types/employer/interview.types";
-import { createInterview, scheduleAndSend } from "@/lib/employer/interviews.service";
+import { createInterview, scheduleAndSend, getInterviews, getScheduledDates } from "@/lib/employer/interviews.service";
 import { getCandidateById } from "@/lib/employer/candidates.service";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
 
@@ -25,11 +26,13 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId");
 
-  // Initialize with a future date (7 days from now)
+  // Initialize with today's local date
   const [date, setDate] = useState(() => {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 7);
-    return futureDate.toISOString().split("T")[0];
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   });
   const [time, setTime] = useState("14:00");
   const [meetingType, setMeetingType] = useState<MeetingType>("ONLINE");
@@ -50,6 +53,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const [customEmailBody, setCustomEmailBody] = useState<string | null>(null);
   const [realCandidateData, setRealCandidateData] = useState<{ name: string; email: string } | null>(null);
   const [realJobPostData, setRealJobPostData] = useState<{ title: string; description: string } | null>(null);
+  const [existingInterviews, setExistingInterviews] = useState<InterviewDTO[]>([]);
+  const [loadingInterviews, setLoadingInterviews] = useState(false);
+  const [scheduledDates, setScheduledDates] = useState<string[]>([]);
+  const [isExistingInterviewsModalOpen, setIsExistingInterviewsModalOpen] = useState(false);
 
   // Fetch real candidate and job post IDs on mount
   useEffect(() => {
@@ -119,6 +126,38 @@ export default function ScheduleInterviewPage({ params }: Props) {
     fetchIds();
   }, [candidateId, postId]);
 
+  // Handle date change: fetch existing interviews immediately to show loading view
+  const handleDateChange = useCallback(async (newDate: string) => {
+    setDate(newDate);
+    if (!newDate) return;
+
+    try {
+      setLoadingInterviews(true);
+      // Fetch interviews for the newly selected date
+      const response = await getInterviews({ date: newDate, status: "SCHEDULED" });
+      setExistingInterviews(response.data);
+      
+      // If interviews exist, show the modal
+      if (response.data.length > 0) {
+        setIsExistingInterviewsModalOpen(true);
+      }
+    } catch (err) {
+      console.error("[ScheduleInterview] Failed to fetch existing interviews:", err);
+    } finally {
+      setLoadingInterviews(false);
+    }
+  }, []);
+
+  // Fetch scheduled dates for the month (keep this for the calendar dots)
+  const handleMonthChange = useCallback(async (year: number, month: number) => {
+    try {
+      const dates = await getScheduledDates(year, month);
+      setScheduledDates(dates);
+    } catch (err) {
+      console.error("[ScheduleInterview] Failed to fetch scheduled dates:", err);
+    }
+  }, []);
+
   // Handle scheduling: create interview and send invitation email
   const handleScheduleInterview = useCallback(async () => {
     setIsScheduling(true);
@@ -133,10 +172,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
       }
 
       // Step 1: Create a draft interview with real UUIDs
+      const localDateTime = new Date(`${date}T${time}:00`);
       const payload = {
         candidateProfileId: realCandidateId,
         jobPostId: realJobPostId,
-        scheduledAt: `${date}T${time}:00Z`,
+        scheduledAt: localDateTime.toISOString(),
         meetingType,
         location: meetingType === "ONSITE" ? location : undefined,
         additionalInfo: additionalInfo.trim() || undefined,
@@ -188,18 +228,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
           </div>
           
           <button 
-            onClick={() => {
-              if (postId) {
-                router.push(`/users/employer/job-posts/${postId}/candidates`);
-                return;
-              }
-
-              router.back();
-            }} 
+            onClick={() => router.back()} 
             className="flex items-center self-end gap-2 px-5 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 sm:self-auto"
           >
             <ChevronLeft size={18} />
-            Back To Candidate
+            Go Back
           </button>
         </div>
 
@@ -217,7 +250,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
             <DateCalendar 
               selectedDate={date} 
-              onDateChange={setDate}
+              onDateChange={handleDateChange}
+              scheduledDates={scheduledDates}
+              onMonthChange={handleMonthChange}
             />
           </div>
 
@@ -261,7 +296,6 @@ export default function ScheduleInterviewPage({ params }: Props) {
           time={time}
           meetingType={meetingType}
           location={location}
-          onSaveDraft={() => {}}
           onRemove={() => router.back()}
           onSchedule={handleScheduleInterview}
           hasEmailPreview={isEmailConfirmed}
@@ -290,7 +324,6 @@ export default function ScheduleInterviewPage({ params }: Props) {
           <AlertTriangle size={20}/> {scheduleError}
         </div>
       )}
-
       <SuccessModal 
         isOpen={isModalOpen} 
         onClose={() => {
@@ -306,6 +339,23 @@ export default function ScheduleInterviewPage({ params }: Props) {
         location={scheduledInterview?.location}
         emailSentAt={scheduledInterview?.emailSentAt}
       />
+
+      <ExistingInterviewsModal
+        isOpen={isExistingInterviewsModalOpen}
+        onClose={() => setIsExistingInterviewsModalOpen(false)}
+        date={date}
+        interviews={existingInterviews}
+      />
+
+      {/* Loading Overlay for fetching interviews */}
+      {loadingInterviews && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+            <p className="text-sm font-semibold text-gray-700">Checking schedule...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

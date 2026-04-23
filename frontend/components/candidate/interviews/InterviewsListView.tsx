@@ -11,12 +11,17 @@ import { CalendarDays, Cog } from "lucide-react";
 export default function InterviewsListView() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["candidate-interviews-list"],
-    queryFn: () => candidateInterviewsService.getInterviews({ status: "SCHEDULED", limit: 100 }),
-    staleTime: 30000,
+    queryFn: () => candidateInterviewsService.getInterviews({ status: "ALL", limit: 100 }),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const interviews = useMemo(
-    () => (data?.data ?? []).map(mapInterviewToItem),
+    () => (data?.data ?? [])
+      .filter((i) => i.status !== "CANCELLED" && i.status !== "COMPLETED")
+      .map(mapInterviewToItem),
     [data?.data]
   );
 

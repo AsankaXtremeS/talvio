@@ -6,11 +6,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface DateCalendarProps {
   selectedDate: string;
   onDateChange: (date: string) => void;
+  scheduledDates?: string[];
+  onMonthChange?: (year: number, month: number) => void;
 }
 
 export default function DateCalendar({
   selectedDate,
   onDateChange,
+  scheduledDates = [],
+  onMonthChange,
 }: DateCalendarProps) {
   // Set default selected date to today if not set
   useEffect(() => {
@@ -31,6 +35,11 @@ export default function DateCalendar({
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth());
   });
+
+  // Notify parent when month changes
+  useEffect(() => {
+    onMonthChange?.(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+  }, [currentMonth, onMonthChange]);
   
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const monthName = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -97,7 +106,7 @@ export default function DateCalendar({
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
           const dateStr = getDateString(day);
           const isSelected = selectedDate === dateStr;
-          const hasInterviews = day === 24 || day === 26; // Mock data
+          const hasInterviews = scheduledDates.includes(dateStr);
           const today = new Date();
           const thisDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
           const isPast = thisDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());

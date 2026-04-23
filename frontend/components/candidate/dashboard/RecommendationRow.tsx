@@ -10,6 +10,11 @@ export interface DashboardJob {
   tags: string[];
   companyLogoUrl?: string;
   isAiRecommended?: boolean;
+  interview?: {
+    scheduledAt: string;
+    meetingLink?: string;
+    status: string;
+  };
 }
 
 interface RecommendationRowProps {
@@ -27,16 +32,24 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            {job.companyLogoUrl ? (
-              <img src={job.companyLogoUrl} alt={job.company} className="h-full w-full object-cover" />
+            {job.companyLogoUrl && job.companyLogoUrl !== "null" && job.companyLogoUrl !== "undefined" ? (
+              <img 
+                src={job.companyLogoUrl} 
+                alt={job.company || "Company"} 
+                className="h-full w-full object-cover" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-sm font-bold text-indigo-700">${job.company?.charAt(0) || "?"}</span>`;
+                }}
+              />
             ) : (
-              <span className="text-sm font-bold text-indigo-700">{job.company.charAt(0)}</span>
+              <span className="text-sm font-bold text-indigo-700">{job.company?.charAt(0) || "?"}</span>
             )}
           </div>
           <div>
             <p className="text-md font-semibold leading-5 text-gray-900">{job.title}</p>
             <p className="text-xs font-medium text-blue-500">
-              {job.company} - {job.location}
+              {job.company || "Unknown Company"} - {job.location}
             </p>
             <p className="mt-1 text-[11px] text-gray-400">{job.postedAgo}</p>
           </div>
@@ -65,9 +78,28 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
           </button>
 
           {isApplied && showWithdraw ? (
-            <button onClick={() => onWithdraw(job.id)} className="cursor-pointer rounded-full border border-rose-200 bg-rose-50 px-7 py-1.5 text-sm font-semibold text-rose-700 hover:bg-rose-100">
-              Withdraw
-            </button>
+            <>
+              {job.interview && job.interview.status === "SCHEDULED" ? (
+                job.interview.meetingLink ? (
+                  <a 
+                    href={job.interview.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer rounded-full bg-blue-600 px-7 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Join Interview
+                  </a>
+                ) : (
+                  <span className="rounded-full bg-blue-100 px-7 py-1.5 text-sm font-semibold text-blue-800">
+                    Interview Scheduled
+                  </span>
+                )
+              ) : (
+                <button onClick={() => onWithdraw(job.id)} className="cursor-pointer rounded-full border border-rose-200 bg-rose-50 px-7 py-1.5 text-sm font-semibold text-rose-700 hover:bg-rose-100">
+                  Withdraw
+                </button>
+              )}
+            </>
           ) : isApplied ? (
             <button disabled className="cursor-not-allowed rounded-full border border-emerald-200 bg-emerald-50 px-7 py-1.5 text-sm font-semibold text-emerald-700">
               Applied

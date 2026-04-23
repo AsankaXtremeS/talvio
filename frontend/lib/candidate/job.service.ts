@@ -90,6 +90,11 @@ export const candidateJobService = {
         matchPercent: app.aiScore || 0,
         tags: [app.jobPost.workMode, app.jobPost.employmentType].filter(Boolean),
         companyLogoUrl: app.jobPost.employer.companyLogoUrl,
+        interview: app.jobPost.interviews?.[0] ? {
+          scheduledAt: app.jobPost.interviews[0].scheduledAt,
+          meetingLink: app.jobPost.interviews[0].meetingLink,
+          status: app.jobPost.interviews[0].status,
+        } : undefined,
       }
     }));
   },

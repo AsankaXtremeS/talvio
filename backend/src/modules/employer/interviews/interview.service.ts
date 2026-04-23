@@ -139,6 +139,32 @@ async function getEmployerProfileId(userId: string): Promise<string> {
 
 export const interviewService = {
   /**
+   * Fetch candidate profile details for schedule UI.
+   */
+  async getCandidateProfile(employerId: string, candidateProfileId: string) {
+    // Ensure requester is a valid employer account.
+    await getEmployerProfileId(employerId);
+
+    const candidate = await interviewRepository.findCandidateProfile(candidateProfileId);
+    if (!candidate) {
+      throw buildHttpError("Candidate profile not found", 404);
+    }
+
+    const fullName = [candidate.user.firstName, candidate.user.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Candidate";
+
+    return {
+      id: candidate.id,
+      name: fullName,
+      email: candidate.user.email,
+      headline: candidate.headline ?? "",
+      skills: candidate.skills ?? [],
+    };
+  },
+
+  /**
    * Create a draft interview.
    * For ONLINE meetings, creates a Google Calendar event with Meet link.
    * For ONSITE, creates a calendar event with location.
@@ -271,7 +297,7 @@ export const interviewService = {
    */
   async list(
     employerId: string,
-    options: { status?: string; page?: number; limit?: number }
+    options: { status?: string; date?: string; page?: number; limit?: number }
   ) {
     const employerProfileId = await getEmployerProfileId(employerId);
     const { total, interviews } = await interviewRepository.findAll(employerProfileId, options);

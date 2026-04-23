@@ -106,6 +106,9 @@ export const generateEmailSchema = z.object({
 
 export const interviewQuerySchema = z.object({
   status: z.enum(["DRAFT", "SCHEDULED", "CANCELLED", "COMPLETED"]).optional(),
+  date: z.string().optional().refine(val => !val || !isNaN(Date.parse(val)), {
+    message: "date must be a valid date string (YYYY-MM-DD)",
+  }),
   page: z
     .string()
     .optional()
