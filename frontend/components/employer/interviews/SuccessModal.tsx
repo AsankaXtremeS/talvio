@@ -20,6 +20,7 @@ interface Props {
   meetingType?: MeetingType;
   meetingLink?: string | null;
   location?: string | null;
+  emailSentAt?: string | null;
 }
 
 const MEETING_LABEL: Record<string, string> = {
@@ -57,11 +58,13 @@ export default function SuccessModal({
   meetingType,
   meetingLink,
   location,
+  emailSentAt,
 }: Props) {
   const router = useRouter();
   if (!isOpen) return null;
 
   const isCancelled = type === "cancelled";
+  const emailDelivered = !isCancelled ? !!emailSentAt : true;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -71,11 +74,11 @@ export default function SuccessModal({
       >
         {/* ── Top icon ── */}
         <div className="px-6 pt-8 pb-4 text-center border-b border-gray-100">
-          <div className={`flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full ${isCancelled ? "bg-red-100" : "bg-green-100"}`}>
+          <div className={`flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full ${isCancelled ? "bg-red-100" : emailDelivered ? "bg-green-100" : "bg-yellow-100"}`}>
             {isCancelled ? (
               <XCircle size={32} className="text-red-600" />
             ) : (
-              <CheckCircle2 size={32} className="text-green-600" />
+              <CheckCircle2 size={32} className={emailDelivered ? "text-green-600" : "text-yellow-600"} />
             )}
           </div>
           <h2 className="text-xl font-bold text-gray-900">
@@ -87,14 +90,27 @@ export default function SuccessModal({
                 The cancellation email has been sent to{" "}
                 <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
               </>
-            ) : (
+            ) : emailDelivered ? (
               <>
                 The invitation email has been sent to{" "}
+                <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
+              </>
+            ) : (
+              <>
+                The interview is scheduled, but we could not send the invitation email to{" "}
                 <span className="font-semibold text-gray-700">{candidateName ?? "the candidate"}</span>.
               </>
             )}
           </p>
         </div>
+
+        {!isCancelled && !emailDelivered && (
+          <div className="px-6 pb-4">
+            <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+              The interview was scheduled successfully, but email delivery failed. Please notify the candidate directly or try again later.
+            </div>
+          </div>
+        )}
 
         {/* ── Details ── */}
         <div className="px-6 py-4 space-y-3">
@@ -145,13 +161,20 @@ export default function SuccessModal({
             </div>
           )}
 
-          {/* Email sent to */}
+          {/* Email sent to / delivery status */}
           {candidateEmail && (
-            <div className="flex items-center gap-2.5 p-3 bg-green-50 rounded-xl border border-green-100">
-              <Mail size={15} className="text-green-500 shrink-0" />
+            <div className={`flex items-center gap-2.5 p-3 rounded-xl border ${emailDelivered ? "bg-green-50 border-green-100" : "bg-yellow-50 border-yellow-200"}`}>
+              <Mail size={15} className={`${emailDelivered ? "text-green-500" : "text-yellow-500"} shrink-0`} />
               <div>
-                <p className="text-xs text-green-600 font-medium">Email sent to</p>
-                <p className="text-sm font-semibold text-green-800">{candidateEmail}</p>
+                <p className={`text-xs font-medium ${emailDelivered ? "text-green-600" : "text-yellow-700"}`}>
+                  {emailDelivered ? "Email sent to" : "Email delivery failed for"}
+                </p>
+                <p className={`text-sm font-semibold ${emailDelivered ? "text-green-800" : "text-yellow-900"}`}>
+                  {candidateEmail}
+                </p>
+                {!emailDelivered && (
+                  <p className="mt-1 text-xs text-yellow-700">The interview was scheduled, but the email could not be delivered.</p>
+                )}
               </div>
             </div>
           )}

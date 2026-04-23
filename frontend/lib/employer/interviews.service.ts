@@ -33,8 +33,8 @@ function getStoredRefreshToken(): string | null {
   return localStorage.getItem("refreshToken");
 }
 
-const getHeaders = () => ({
-  "Content-Type": "application/json",
+const getHeaders = (hasBody = false) => ({
+  ...(hasBody ? { "Content-Type": "application/json" } : {}),
   ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
 });
 
@@ -96,10 +96,11 @@ async function refreshAccessToken(): Promise<boolean> {
 // ─── Fetch with Auth + Retry ──────────────────────────────────────────────────
 
 async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const hasBody = Boolean(init.body);
   const firstResponse = await fetch(url, {
     ...init,
     headers: {
-      ...getHeaders(),
+      ...getHeaders(hasBody),
       ...(init.headers ?? {}),
     },
     credentials: "include",
@@ -120,7 +121,7 @@ async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Respo
   return fetch(url, {
     ...init,
     headers: {
-      ...getHeaders(),
+      ...getHeaders(hasBody),
       ...(init.headers ?? {}),
     },
     credentials: "include",
@@ -174,6 +175,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
       }
     } catch (parseErr) {
       console.error("[interviews.service] Failed to parse error response:", parseErr);
+      const text = await res.text().catch(() => null);
+      if (text) {
+        message = text;
+      } else if (res.statusText) {
+        message = res.statusText;
+      }
     }
     throw new Error(message);
   }

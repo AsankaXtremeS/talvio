@@ -407,15 +407,25 @@ export const interviewService = {
 
     const emailData = buildEmailData(existing as any);
 
-    // Send the email — throws if SMTP fails
+    // Send the email — if delivery fails, still schedule the interview but log the failure.
     console.log(`[ScheduleAndSend] Interview ID: ${id}, Email recipient: ${emailData.candidateEmail}, MeetingType: ${emailData.meetingType}, MeetingLink: ${emailData.meetingLink}`);
-    await sendInterviewEmail(emailData);
+    let emailSent = false;
+    try {
+      await sendInterviewEmail(emailData);
+      emailSent = true;
+    } catch (emailErr) {
+      console.error("[ScheduleAndSend] Email delivery failed:", emailErr);
+    }
 
-    // Update status to SCHEDULED and record send time
+    // Update status to SCHEDULED. If email delivery failed, keep emailSentAt null.
     const updated = await interviewRepository.update(id, employerProfileId, {
       status: "SCHEDULED",
-      emailSentAt: new Date(),
+      emailSentAt: emailSent ? new Date() : null,
     });
+
+    if (!emailSent) {
+      console.warn(`[ScheduleAndSend] Interview scheduled but email was not delivered: ${id}`);
+    }
 
     return mapToDTO(updated);
   },

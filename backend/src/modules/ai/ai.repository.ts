@@ -2,7 +2,7 @@
 // This layer is the ONLY place where Prisma is used.
 
 import { prisma } from "../../config/db";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, Prisma } from "@prisma/client";
 
 export const aiRepository = {
 
@@ -42,7 +42,7 @@ export const aiRepository = {
         cvUrl: null,
         cvFileName: null,
         extractedSkills: [],
-        recommendationCache: null,
+        recommendationCache: Prisma.DbNull,
         lastRecommendedAt: null,
         jobAnalysisCache: {},
       },
