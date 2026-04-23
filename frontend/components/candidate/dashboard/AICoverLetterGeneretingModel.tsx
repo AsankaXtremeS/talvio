@@ -23,6 +23,7 @@ export default function AICoverLetterModal({
   onDone,
   onClose,
   isAiRecommended,
+  matchScore,
 }: AICoverLetterModalProps) {
   const [analysis, setAnalysis] = useState<AIJobAnalysis | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
@@ -93,29 +94,23 @@ export default function AICoverLetterModal({
                 </div>
               ) : analysis ? (
                 <div className="space-y-8">
-                  {/* Two-Score Section */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Match Score (Initial) */}
-                    <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Match Score</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-black text-slate-800">{matchScore || 0}%</span>
-                        <div className="h-1.5 w-12 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-indigo-400" style={{ width: `${matchScore || 0}%` }} />
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-slate-400 mt-2 leading-tight">Based on your profile summary.</p>
+                  {/* Single AI Score Gauge */}
+                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-bold text-slate-700">AI Match Score</span>
+                      <span className={`text-lg font-black ${analysis.overallScore >= 80 ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                        {analysis.overallScore}%
+                      </span>
                     </div>
-
-                    {/* AI Score (Deep Analysis) */}
-                    <div className="bg-indigo-600 rounded-2xl p-4 border border-indigo-700 shadow-lg shadow-indigo-100">
-                      <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider mb-1">AI Score</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-black text-white">{analysis.overallScore}%</span>
-                        <Sparkles size={14} className="text-indigo-300" />
-                      </div>
-                      <p className="text-[9px] text-indigo-100 mt-2 leading-tight">Deep CV & Job matching.</p>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-1000 ease-out ${analysis.overallScore >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                        style={{ width: `${analysis.overallScore}%` }}
+                      />
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-3 font-medium">
+                      Deep analysis based on your stored CV and full job requirements.
+                    </p>
                   </div>
 
                   {/* Suggestions */}

@@ -69,10 +69,20 @@ export const getRecommendations = async (req: Request, res: Response) => {
       .slice(0, 20);
 
     // 2. High-Accuracy AI Ranking
+    let cvText = "";
+    if (candidate.cvUrl) {
+      try {
+        cvText = await aiService.extractCvText(candidate.cvUrl);
+      } catch (e) {
+        console.error("Recommendation CV extraction failed:", e);
+      }
+    }
+
     const candidateSummary = {
       headline: candidate.headline,
       skills: allCandidateSkills,
-      bio: candidate.bio?.slice(0, 500)
+      bio: candidate.bio?.slice(0, 500),
+      cvContent: cvText?.slice(0, 2000) // Use CV content for better matching
     };
 
     const aiRankings = await aiService.rankJobsWithAI(candidateSummary, topJobs);
@@ -143,10 +153,6 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
       });
     }
 
-    // 4. Extract Text & Generate CL
-    const cvText = await aiService.extractCvText(candidate.cvUrl);
-    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
-    
     // 4. Extract Text & Generate CL
     const cvText = await aiService.extractCvText(candidate.cvUrl);
     const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;

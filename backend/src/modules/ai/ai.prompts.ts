@@ -92,9 +92,12 @@ JOB POSTS:
 YOUR TASK:
 For each job in the list, calculate a match percentage (0-100).
 Consider:
-1. **Title Match**: How well does the candidate's headline align with the job title?
-2. **Skill Match**: Do the candidate's skills match the required skills?
-3. **Experience/Role Match**: Is the candidate's profile suitable for the job type/level?
+1. **Title & Experience Match**: How well does the candidate's profile/CV align with the job title and seniority?
+2. **Skill Match**: Do the candidate's skills and the technical content in their CV match the required skills?
+3. **Relevance**: Is the candidate's background suitable for this specific role?
+
+STRICT RULES:
+- If "cvContent" is provided, use it as the primary source of truth for skills and experience.
 
 Return ONLY a valid JSON array of objects with "id" and "matchPercent".
 Example Output:
