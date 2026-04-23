@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Briefcase, CheckCircle2, AlertCircle } from "lucide-react";
-import { JobPost } from "@/types/employer/jobPost.types";
 import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
@@ -46,8 +45,8 @@ export default function JobPostsPage() {
     refetchOnWindowFocus: true,
   });
 
-  const posts = data?.posts || [];
-  const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0 };
+  const posts = useMemo(() => data?.posts || [], [data?.posts]);
+  const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0, applications: 0 };
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -312,7 +311,7 @@ export default function JobPostsPage() {
         <StatsRow
           totalPosts={stats.total}
           active={stats.active}
-          applications={totalApplications}
+          applications={stats.applications ?? 0}
           closed={stats.closed}
         />
       </div>
