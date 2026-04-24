@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail, MapPin, MoreHorizontal, Phone, SquarePen, Camera } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 const ProfileSummaryEditModal = dynamic(() => import("./ProfileSummaryEditModal"), { ssr: false });
 const ProfilePictureUpdateModal = dynamic(() => import("./ProfilePictureUpdateModal"), { ssr: false });
@@ -31,6 +31,12 @@ export default function ProfileSummaryCard({
   const [picModalOpen, setPicModalOpen] = useState(false);
   const [profile, setProfile] = useState({ fullName, location, email, phone, bio, skills, profilePictureUrl });
   const [showAllSkills, setShowAllSkills] = useState(false);
+
+  // Sync internal state with props when they change (e.g., after initial fetch)
+  useEffect(() => {
+    setProfile({ fullName, location, email, phone, bio, skills, profilePictureUrl });
+  }, [fullName, location, email, phone, bio, skills, profilePictureUrl]);
+
   const initials = fullName
     .split(" ")
     .map((part) => part[0])

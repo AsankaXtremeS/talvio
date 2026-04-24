@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Github, Linkedin, SquarePen, X, Save } from "lucide-react";
 import { profileService } from "@/lib/candidate/profile.service";
 
@@ -27,6 +27,12 @@ export default function ContactInfoCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Sync internal state with props when they change
+  useEffect(() => {
+    setCurrentGithub(githubUrl ?? "");
+    setCurrentLinkedin(linkedinUrl ?? "");
+  }, [githubUrl, linkedinUrl]);
 
   const handleOpen = () => {
     setGithub(currentGithub);
