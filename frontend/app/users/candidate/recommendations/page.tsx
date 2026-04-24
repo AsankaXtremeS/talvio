@@ -241,6 +241,7 @@ export default function CandidateRecommendationsPage() {
                 key={job.id}
                 {...job}
                 isApplied={appliedJobIds.includes(job.id)}
+                showMatchBadge={false}
                 onView={(id) => setSelectedJob(jobs.find((j) => j.id === id) ?? null)}
                 onApply={(id) => {
                   const selected = jobs.find((j) => j.id === id) ?? null;
