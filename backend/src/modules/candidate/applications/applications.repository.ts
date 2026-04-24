@@ -37,7 +37,12 @@ export const applicationsRepository = {
       include: {
         jobPost: {
           include: {
-            employer: true,
+            employer: {
+              select: {
+                companyName: true,
+                companyLogoUrl: true,
+              },
+            },
             interviews: {
               where: {
                 candidateProfileId: candidateProfileId,

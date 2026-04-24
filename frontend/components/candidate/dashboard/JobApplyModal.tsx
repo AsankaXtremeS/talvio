@@ -167,7 +167,7 @@ export default function JobApplyModal({
           {isLoading ? (
             <span className="flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
-              Processing AI...
+              Applying...
             </span>
           ) : (
             <span className="flex items-center gap-2">
