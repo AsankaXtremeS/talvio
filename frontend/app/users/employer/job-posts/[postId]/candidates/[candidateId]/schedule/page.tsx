@@ -442,6 +442,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         meetingType={draft?.meetingType ?? meetingType}
         meetingLink={draft?.meetingLink}
         location={draft?.location}
+        emailSentAt={draft?.emailSentAt}
       />
     </div>
   );

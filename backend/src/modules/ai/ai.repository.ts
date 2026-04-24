@@ -2,7 +2,7 @@
 // This layer is the ONLY place where Prisma is used.
 
 import { prisma } from "../../config/db";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, Prisma } from "@prisma/client";
 
 export const aiRepository = {
 

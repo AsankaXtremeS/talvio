@@ -465,6 +465,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         meetingType={scheduledInterview?.meetingType}
         meetingLink={scheduledInterview?.meetingLink}
         location={scheduledInterview?.location}
+        emailSentAt={scheduledInterview?.emailSentAt}
       />
 
       <ExistingInterviewsModal

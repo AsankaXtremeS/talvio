@@ -162,6 +162,7 @@ export const jobsRepository = {
             select: {
               id: true,
               companyName: true,
+              companyLogoUrl: true,
             },
           },
           _count: {
@@ -245,6 +246,7 @@ export const jobsRepository = {
           select: {
             id: true,
             companyName: true,
+            companyLogoUrl: true,
           },
         },
         _count: {

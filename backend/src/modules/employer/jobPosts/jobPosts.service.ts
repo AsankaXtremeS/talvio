@@ -36,6 +36,7 @@ interface JobPostDTO {
   location: string;
   company: {
     name: string;
+    logoUrl?: string | null;
   };
   createdAt?: string;
   updatedAt?: string;
@@ -112,6 +113,7 @@ const mapToDTO = (post: any): JobPostDTO => ({
   location: post.location ?? "",
   company: {
     name: post.employer?.companyName ?? "",
+    logoUrl: post.employer?.companyLogoUrl ?? null,
   },
   createdAt: post.createdAt ? post.createdAt.toISOString() : undefined,
   updatedAt: post.updatedAt ? post.updatedAt.toISOString() : undefined,

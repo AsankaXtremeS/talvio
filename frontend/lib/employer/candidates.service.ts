@@ -5,6 +5,103 @@
 
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  ""
+).replace(/\/+$|^\s+|\s+$/g, "");
+
+const apiUrl = (path: string) => {
+  if (!path.startsWith("/")) return API_BASE ? `${API_BASE}/${path}` : `/${path}`;
+  return API_BASE ? `${API_BASE}${path}` : path;
+};
+
+function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("accessToken");
+  localStorage.removeItem("token");
+  if (!token) return null;
+  return token.split(".").length === 3 ? token : null;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = typeof window === "undefined" ? null : localStorage.getItem("refreshToken");
+      const refreshRes = await fetch(apiUrl("/api/auth/refresh"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+      });
+
+      if (!refreshRes.ok) {
+        if (refreshRes.status === 401 && typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("token");
+        }
+        return false;
+      }
+
+      const payload = await refreshRes.json().catch(() => null);
+      if (
+        payload &&
+        typeof payload === "object" &&
+        "accessToken" in payload &&
+        typeof (payload as { accessToken?: unknown }).accessToken === "string" &&
+        typeof window !== "undefined"
+      ) {
+        localStorage.setItem("accessToken", (payload as { accessToken: string }).accessToken);
+        if (
+          "refreshToken" in payload &&
+          typeof (payload as { refreshToken?: unknown }).refreshToken === "string"
+        ) {
+          localStorage.setItem("refreshToken", (payload as { refreshToken: string }).refreshToken);
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("[refreshAccessToken] Error:", err);
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const firstResponse = await fetch(url, {
+    ...init,
+    headers: {
+      ...((init.headers ?? {}) as Record<string, string>),
+      ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
+    },
+    credentials: "include",
+  });
+
+  if (firstResponse.status !== 401) return firstResponse;
+
+  const refreshed = await refreshAccessToken();
+  if (!refreshed) return firstResponse;
+
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...((init.headers ?? {}) as Record<string, string>),
+      ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
+    },
+    credentials: "include",
+  });
+}
+
 // ─── Avatar gradient helper ───────────────────────────────────────────────────
 
 const GRADIENTS = [
@@ -170,8 +267,8 @@ export async function getCandidates(
   // If jobPostId provided, fetch from API
   if (jobPostId) {
     try {
-      const url = `/api/employer/job-posts/${jobPostId}/applications`;
-      const res = await fetch(url, { credentials: "include" });
+      const url = apiUrl(`/api/employer/job-posts/${jobPostId}/applications`);
+      const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = (await res.json()) as BackendApplicant[];
         const mapped = data

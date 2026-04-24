@@ -19,6 +19,7 @@ export interface JobPost {
   requirements?: string;
   applicantsCount?: number;
   companyName?: string;
+  companyLogoUrl?: string;
   workMode?: "On site" | "Remote" | "Hybrid";
   employmentType?: "Full-time" | "Part-time" | "Contract";
   additionalInformation?: string;
