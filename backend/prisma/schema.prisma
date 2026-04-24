@@ -145,6 +145,7 @@ model CandidateProfile {
   portfolioUrl        String?
   cvUrl               String?
   cvFileName          String?
+  profilePictureUrl   String?
   extractedSkills     String[]      @default([])
   recommendationCache Json?
   lastRecommendedAt   DateTime?

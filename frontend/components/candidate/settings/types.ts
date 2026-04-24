@@ -6,6 +6,7 @@ export interface CandidateSettingsProfile {
   phone: string;
   bio: string;
   skills: string[];
+  profilePictureUrl?: string;
   githubUrl?: string;
   linkedinUrl?: string;
   education: {

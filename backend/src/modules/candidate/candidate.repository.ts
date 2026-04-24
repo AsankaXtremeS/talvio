@@ -18,6 +18,7 @@ export const candidateRepository = {
       bio?: string | null;
       headline?: string | null;
       location?: string | null;
+      profilePictureUrl?: string | null;
     }
   ) {
     return prisma.candidateProfile.upsert({
