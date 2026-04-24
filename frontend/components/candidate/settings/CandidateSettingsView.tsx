@@ -65,7 +65,7 @@ export default function CandidateSettingsView({
         </div>
 
         <aside className="space-y-4">
-          {userRole === "STUDENT" && <UpgradeToProfessionalCard />}
+          <UpgradeToProfessionalCard />
           <ContactInfoCard githubUrl={profile.githubUrl} linkedinUrl={profile.linkedinUrl} />
         </aside>
       </div>
