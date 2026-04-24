@@ -45,7 +45,8 @@ YOUR TASK:
 2. **Improvement Suggestions**: Provide 3-5 specific, actionable points on how the candidate can improve their profile or CV specifically for THIS role. 
    Keep suggestions professional and constructive.
 3. **Cover Letter**: Write a high-impact, professional cover letter (approx. 150-200 words, 3 short paragraphs) that effectively sells this candidate's existing strengths to the hiring manager. 
-   Do NOT hallucinate skills the candidate does not have.
+   - **MANDATORY**: Mention the specific Company Name and Job Title from the Job Description in the first paragraph.
+   - Do NOT hallucinate skills the candidate does not have.
 
 Return ONLY a valid JSON object with this structure:
 {
@@ -91,9 +92,12 @@ JOB POSTS:
 YOUR TASK:
 For each job in the list, calculate a match percentage (0-100).
 Consider:
-1. **Title Match**: How well does the candidate's headline align with the job title?
-2. **Skill Match**: Do the candidate's skills match the required skills?
-3. **Experience/Role Match**: Is the candidate's profile suitable for the job type/level?
+1. **Title & Experience Match**: How well does the candidate's profile/CV align with the job title and seniority?
+2. **Skill Match**: Do the candidate's skills and the technical content in their CV match the required skills?
+3. **Relevance**: Is the candidate's background suitable for this specific role?
+
+STRICT RULES:
+- If "cvContent" is provided, use it as the primary source of truth for skills and experience.
 
 Return ONLY a valid JSON array of objects with "id" and "matchPercent".
 Example Output:

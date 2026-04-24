@@ -20,6 +20,7 @@ export interface EmployerProfileDTO {
   registrationFileName: string;
   verificationStatus: string;
   rejectionReason: string | null;
+  googleCalendarConnected: boolean;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -56,4 +57,16 @@ export const profileService = {
       method: 'PATCH',
       data,
     }),
+
+  getCalendarAuthUrl: () =>
+    apiClient<{ url: string }>('/api/employer/profile/calendar/auth-url', { method: 'GET' }),
+
+  connectCalendar: (code: string) =>
+    apiClient<EmployerProfileDTO>('/api/employer/profile/calendar/connect', {
+      method: 'POST',
+      data: { code },
+    }),
+
+  disconnectCalendar: () =>
+    apiClient<EmployerProfileDTO>('/api/employer/profile/calendar/disconnect', { method: 'POST' }),
 };

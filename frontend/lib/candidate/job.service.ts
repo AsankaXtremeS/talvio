@@ -36,6 +36,13 @@ export interface DashboardStats {
   profileViews: number;
 }
 
+export interface AIJobAnalysis {
+  coverLetter: string;
+  overallScore: number;
+  suggestions: string[];
+  fromCache?: boolean;
+}
+
 export const candidateJobService = {
   async getRecommendations(): Promise<DashboardJob[]> {
     const response = await apiClient<RecommendationResponse>('/api/ai/recommendations', {
@@ -64,18 +71,18 @@ export const candidateJobService = {
     });
   },
 
-  async generateCoverLetter(jobId: string): Promise<string> {
-    const response = await apiClient<{ coverLetter: string }>(`/api/ai/generate-cover-letter/${jobId}`, {
+  async generateCoverLetter(jobId: string): Promise<AIJobAnalysis> {
+    const response = await apiClient<AIJobAnalysis>(`/api/ai/generate-cover-letter/${jobId}`, {
       method: 'POST',
     });
-    return response.coverLetter;
+    return response;
   },
 
   async getMyApplications(): Promise<Application[]> {
     const response = await apiClient<MyApplicationsResponse>('/api/candidate/applications', {
       method: 'GET',
     });
-    
+
     // Map backend jobPost to frontend job property
     return response.applications.map((app: any) => ({
       id: app.id,

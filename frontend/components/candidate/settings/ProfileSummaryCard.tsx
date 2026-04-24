@@ -1,9 +1,10 @@
 "use client";
 
-import { Mail, MapPin, MoreHorizontal, Phone, SquarePen } from "lucide-react";
-import { useState } from "react";
+import { Mail, MapPin, MoreHorizontal, Phone, SquarePen, Camera } from "lucide-react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 const ProfileSummaryEditModal = dynamic(() => import("./ProfileSummaryEditModal"), { ssr: false });
+const ProfilePictureUpdateModal = dynamic(() => import("./ProfilePictureUpdateModal"), { ssr: false });
 
 interface ProfileSummaryCardProps {
   fullName: string;
@@ -12,6 +13,7 @@ interface ProfileSummaryCardProps {
   phone: string;
   bio: string;
   skills: string[];
+  profilePictureUrl?: string;
   onProfileUpdate?: (data: any) => void;
 }
 
@@ -22,11 +24,19 @@ export default function ProfileSummaryCard({
   phone,
   bio,
   skills,
+  profilePictureUrl,
   onProfileUpdate,
 }: ProfileSummaryCardProps) {
   const [editOpen, setEditOpen] = useState(false);
-  const [profile, setProfile] = useState({ fullName, location, email, phone, bio, skills });
+  const [picModalOpen, setPicModalOpen] = useState(false);
+  const [profile, setProfile] = useState({ fullName, location, email, phone, bio, skills, profilePictureUrl });
   const [showAllSkills, setShowAllSkills] = useState(false);
+
+  // Sync internal state with props when they change (e.g., after initial fetch)
+  useEffect(() => {
+    setProfile({ fullName, location, email, phone, bio, skills, profilePictureUrl });
+  }, [fullName, location, email, phone, bio, skills, profilePictureUrl]);
+
   const initials = fullName
     .split(" ")
     .map((part) => part[0])
@@ -39,8 +49,25 @@ export default function ProfileSummaryCard({
       <section className="rounded-3xl border border-[#E4E8F2] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#A5B4FC] to-[#60A5FA] text-2xl font-bold text-white">
-              {initials}
+            <div className="relative group">
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#A5B4FC] to-[#60A5FA] text-2xl font-bold text-white border-2 border-white shadow-sm">
+                {profile.profilePictureUrl ? (
+                  <img 
+                    src={profile.profilePictureUrl} 
+                    alt={profile.fullName} 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </div>
+              <button 
+                onClick={() => setPicModalOpen(true)}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white border border-[#E4E8F2] text-[#4F46E5] shadow-sm hover:bg-[#F9FAFF] transition-all opacity-0 group-hover:opacity-100 md:opacity-100"
+                title="Change Photo"
+              >
+                <Camera size={14} />
+              </button>
             </div>
 
             <button
@@ -48,7 +75,7 @@ export default function ProfileSummaryCard({
               onClick={() => setEditOpen(true)}
             >
               <SquarePen size={14} />
-              Edit Resume
+              Edit Profile
             </button>
           </div>
 
@@ -98,8 +125,17 @@ export default function ProfileSummaryCard({
           initial={profile}
           onClose={() => setEditOpen(false)}
           onSave={data => {
-            setProfile(data);
+            setProfile(prev => ({ ...prev, ...data }));
             if (onProfileUpdate) onProfileUpdate(data);
+          }}
+        />
+      )}
+      {picModalOpen && (
+        <ProfilePictureUpdateModal
+          onClose={() => setPicModalOpen(false)}
+          onSave={url => {
+            setProfile(prev => ({ ...prev, profilePictureUrl: url }));
+            if (onProfileUpdate) onProfileUpdate({ profilePictureUrl: url });
           }}
         />
       )}

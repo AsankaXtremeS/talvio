@@ -104,6 +104,7 @@ export default function CandidateSettingsPage() {
       phone: "+1123-456-7890",
       bio: realProfile?.bio || "A motivated web developer with 2 years of experience in React and Next.js.",
       skills: realProfile?.skills?.length ? realProfile.skills : ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
+      profilePictureUrl: realProfile?.profilePictureUrl,
       education: {
         degree: "Bachelor's of Science",
         field: "Computer Science",

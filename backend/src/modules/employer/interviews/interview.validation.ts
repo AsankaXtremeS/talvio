@@ -29,10 +29,8 @@ export const createInterviewSchema = z
       }),
 
     meetingType: meetingTypeEnum,
-
-    // Location is required only for ONSITE meetings — validated below
+    meetingLink: z.string().url("Invalid meeting link URL").max(1000).optional(),
     location: z.string().max(500).optional(),
-
     additionalInfo: z.string().max(2000).optional(),
 
     // Email body is optional — backend can generate a default template
@@ -65,6 +63,7 @@ export const updateInterviewSchema = z
       .optional(),
 
     meetingType: meetingTypeEnum.optional(),
+    meetingLink: z.string().url("Invalid meeting link URL").max(1000).optional().nullable(),
     location: z.string().max(500).optional().nullable(),
     additionalInfo: z.string().max(2000).optional().nullable(),
     emailBody: z.string().max(10000).optional().nullable(),

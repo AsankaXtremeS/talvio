@@ -21,6 +21,7 @@ const EMPLOYER_PROFILE_SELECT = {
   registrationFileName: true,
   verificationStatus: true,
   rejectionReason: true,
+  googleCalendarConnected: true,
   createdAt: true,
   updatedAt: true,
   user: {
@@ -37,6 +38,14 @@ export const profileRepository = {
   async findByUserId(userId: string) {
     return prisma.employerProfile.findUnique({
       where: { userId },
+      select: EMPLOYER_PROFILE_SELECT,
+    });
+  },
+
+  async updateGoogleTokensByUserId(userId: string, data: any) {
+    return prisma.employerProfile.update({
+      where: { userId },
+      data,
       select: EMPLOYER_PROFILE_SELECT,
     });
   },

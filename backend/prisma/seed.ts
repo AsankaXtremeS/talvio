@@ -196,27 +196,6 @@ async function main() {
       headline: "Full Stack Engineer",
       skills: ["Node.js", "React", "PostgreSQL", "Docker"],
     },
-    {
-      id: "c3d4e5f6-a7b8-49ca-1d3e-4f5a6b7c8d9e",
-      name: "Nishani Fernando",
-      email: "nishani.fernando@test.com",
-      headline: "UI/UX Designer",
-      skills: ["Figma", "Adobe XD", "Prototyping", "User Research"],
-    },
-    {
-      id: "d4e5f6a7-b8c9-40db-2e4f-5a6b7c8d9e0f",
-      name: "Kasun Bandara",
-      email: "kasun.bandara@test.com",
-      headline: "DevOps Engineer",
-      skills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
-    },
-    {
-      id: "e5f6a7b8-c9d0-41ec-3f50-6b7c8d9e0f1a",
-      name: "Tharushi Amarasinghe",
-      email: "tharushi.amarasinghe@test.com",
-      headline: "Data Analyst",
-      skills: ["Python", "SQL", "Power BI", "Pandas"],
-    },
   ];
 
   for (const candidate of testCandidates) {

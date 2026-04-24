@@ -17,14 +17,15 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, UserSquare } from "lucide-react";
 
-import JobPostPanel       from "@/components/employer/interviews/JobPostPanel";
-import ApplicantPanel     from "@/components/employer/interviews/ApplicantPanel";
-import DateCalendar      from "@/components/employer/interviews/DateCalendar";
-import ScheduleForm       from "@/components/employer/interviews/ScheduleForm";
+import JobPostPanel from "@/components/employer/interviews/JobPostPanel";
+import ApplicantPanel from "@/components/employer/interviews/ApplicantPanel";
+import DateCalendar from "@/components/employer/interviews/DateCalendar";
+import ScheduleForm from "@/components/employer/interviews/ScheduleForm";
 import GeneratedEmailPreview from "@/components/employer/interviews/GeneratedEmailPreview";
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
-import ConfirmationModal  from "@/components/employer/interviews/ConfirmationModel";
-import SuccessModal       from "@/components/employer/interviews/SuccessModal";
+import ConfirmationModal from "@/components/employer/interviews/ConfirmationModel";
+import SuccessModal from "@/components/employer/interviews/SuccessModal";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   createInterview,
@@ -51,21 +52,24 @@ interface Props {
 export default function ScheduleInterviewPage({ params }: Props) {
   const { postId, candidateId } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const interviewId = searchParams?.get("interviewId");
   const isReschedule = !!interviewId;
 
   // ── Form state ──
-  const [date, setDate]                     = useState("");
-  const [time, setTime]                     = useState("");
-  const [meetingType, setMeetingType]       = useState<MeetingType>("ONLINE");
-  const [location, setLocation]             = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [meetingType, setMeetingType] = useState<MeetingType>("ONLINE");
+  const [onlineOption, setOnlineOption] = useState<"GENERATE" | "CUSTOM">("GENERATE");
+  const [customLink, setCustomLink] = useState("");
+  const [location, setLocation] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
   // ── Draft state — InterviewDTO (same name as backend) ──
-  const [draft, setDraft]   = useState<InterviewDTO | null>(null);
-  const draftRef            = useRef<InterviewDTO | null>(null);
-  draftRef.current          = draft;
+  const [draft, setDraft] = useState<InterviewDTO | null>(null);
+  const draftRef = useRef<InterviewDTO | null>(null);
+  draftRef.current = draft;
 
   // ── Email preview state ──
   const [showEmailPreview, setShowEmailPreview] = useState(false);  // controls panel visibility
@@ -76,10 +80,16 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
   // ── UI loading flags ──
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
-  const [showConfirm, setShowConfirm]             = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isScheduling, setIsScheduling]           = useState(false);
   const [showSuccess, setShowSuccess]             = useState(false);
   const [error, setError]                         = useState<string | null>(null);
+  const [emailRefreshKey, setEmailRefreshKey]     = useState(0);
+
+  // Reset email confirmation if form fields change
+  useEffect(() => {
+    setShowEmailPreview(false);
+  }, [date, time, meetingType, onlineOption, customLink, location, additionalInfo]);
 
   // ── Load candidate info on mount ──
   useEffect(() => {
@@ -94,16 +104,20 @@ export default function ScheduleInterviewPage({ params }: Props) {
       try {
         const { getInterview } = await import("@/lib/employer/interviews.service");
         const interview = await getInterview(interviewId);
-        
+
         // Pre-fill form fields only — don't set as draft
         // (the loaded interview is SCHEDULED, we'll create a new DRAFT for reschedule)
         const scheduledDate = new Date(interview.scheduledAt);
         const dateStr = scheduledDate.toISOString().split("T")[0];
         const timeStr = scheduledDate.toISOString().split("T")[1].substring(0, 5);
-        
+
         setDate(dateStr);
         setTime(timeStr);
         setMeetingType(interview.meetingType);
+        if (interview.meetingType === "ONLINE" && interview.meetingLink) {
+          setOnlineOption("CUSTOM");
+          setCustomLink(interview.meetingLink);
+        }
         setLocation(interview.location || "");
         setAdditionalInfo(interview.additionalInfo || "");
       } catch (err) {
@@ -136,18 +150,19 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
       // Create or update draft to get meetingLink (for ONLINE Meet link)
       let currentDraft = draftRef.current;
-      
+
       if (isReschedule) {
         // In reschedule mode: always create a NEW draft (don't update scheduled interview)
         console.log("Creating NEW reschedule draft with rescheduledFromId:", interviewId);
         currentDraft = await createInterview({
-          jobPostId:          postId,
+          jobPostId: postId,
           candidateProfileId: candidateId,
           scheduledAt,
           meetingType,
-          location:       meetingType === "ONSITE" ? location : undefined,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
+          location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
-          isReschedule:   true,
+          isReschedule: true,
           rescheduledFromId: interviewId || undefined,
         });
         console.log("Reschedule draft created:", { id: currentDraft.id, rescheduledFromId: currentDraft.rescheduledFromId });
@@ -155,11 +170,12 @@ export default function ScheduleInterviewPage({ params }: Props) {
       } else if (!currentDraft) {
         // New schedule: create draft
         currentDraft = await createInterview({
-          jobPostId:          postId,
+          jobPostId: postId,
           candidateProfileId: candidateId,
           scheduledAt,
           meetingType,
-          location:       meetingType === "ONSITE" ? location : undefined,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
+          location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
         });
         setDraft(currentDraft);
@@ -168,7 +184,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
         currentDraft = await updateInterview(currentDraft.id, {
           scheduledAt,
           meetingType,
-          location:       meetingType === "ONSITE" ? location : undefined,
+          meetingLink: meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined,
+          location: meetingType === "ONSITE" ? location : undefined,
           additionalInfo: additionalInfo || undefined,
         });
         setDraft(currentDraft);
@@ -176,18 +193,19 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
       // ── Fetch "Official" backend email preview ───────────────────────────────
       const preview = await generateEmailPreview({
-        jobPostId:          postId,
+        jobPostId: postId,
         candidateProfileId: candidateId,
         scheduledAt,
         meetingType,
-        location:       meetingType === "ONSITE" ? location : undefined,
-        meetingLink:    currentDraft.meetingLink || undefined,
+        meetingLink: currentDraft.meetingLink || undefined,
+        location: meetingType === "ONSITE" ? location : undefined,
         additionalInfo: additionalInfo || undefined,
         isReschedule,
       });
 
       setBackendEmailBody(preview.body);
       setShowEmailPreview(true);
+      setEmailRefreshKey(prev => prev + 1);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to generate email preview.";
       console.error("Generate email error:", err);
@@ -195,7 +213,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
     } finally {
       setIsGeneratingEmail(false);
     }
-  }, [date, time, meetingType, location, additionalInfo, postId, candidateId, isReschedule, interviewId]);
+  }, [date, time, meetingType, onlineOption, customLink, location, additionalInfo, postId, candidateId, isReschedule, interviewId]);
 
   // ── Handle email confirmation ───────────────────────────────────────────────
   const handleEmailConfirm = useCallback(async (emailContent: string) => {
@@ -230,9 +248,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
   // ── Confirm — actually send email ───────────────────────────────────────────
   const handleConfirm = useCallback(async () => {
     const currentDraft = draftRef.current;
-    if (!currentDraft) { 
+    if (!currentDraft) {
       setError("No draft found. Please generate email preview first.");
-      return; 
+      return;
     }
 
     console.log("Confirming interview:", { id: currentDraft.id, isReschedule, rescheduledFromId: currentDraft.rescheduledFromId });
@@ -243,9 +261,13 @@ export default function ScheduleInterviewPage({ params }: Props) {
       const scheduled = await scheduleAndSend(currentDraft.id);
       console.log("Interview scheduled successfully:", { id: scheduled.id, rescheduledFromId: scheduled.rescheduledFromId });
       setDraft(scheduled);
+      
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-interviews"] });
+
       setShowConfirm(false);
       setShowSuccess(true);
-      
+
       // After success, delete the old interview if reschedule
       if (isReschedule && interviewId) {
         console.log("Cancelling old interview after scheduling new one:", interviewId);
@@ -286,7 +308,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               </h1>
             </div>
             <p className="ml-12 text-sm text-gray-500">
-              {isReschedule 
+              {isReschedule
                 ? "Update the interview details and send a reschedule notification to the candidate."
                 : "Set up an interview for this candidate and send them an invitation email."}
             </p>
@@ -327,8 +349,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
           <div className="flex flex-col h-full min-h-full justify-stretch">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
-            <DateCalendar 
-              selectedDate={date} 
+            <DateCalendar
+              selectedDate={date}
               onDateChange={setDate}
             />
           </div>
@@ -342,6 +364,10 @@ export default function ScheduleInterviewPage({ params }: Props) {
               setTime={setTime}
               meetingType={meetingType}
               setMeetingType={setMeetingType}
+              onlineOption={onlineOption}
+              setOnlineOption={setOnlineOption}
+              customLink={customLink}
+              setCustomLink={setCustomLink}
               location={location}
               setLocation={setLocation}
               additionalInfo={additionalInfo}
@@ -364,6 +390,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                 additionalInfo={additionalInfo}
                 isReschedule={isReschedule}
                 initialBody={backendEmailBody || undefined}
+                refreshKey={emailRefreshKey}
                 onConfirm={handleEmailConfirm}
               />
             )}

@@ -30,11 +30,11 @@ export const getRecommendations = async (req: Request, res: Response) => {
     const type = userRole === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
 
     const jobs = await aiRepository.findActiveJobsByRole(type);
-    
+
     // 0. Caching Logic (12 Hours)
     const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in ms
     const now = new Date();
-    
+
     if (
       candidate.recommendationCache &&
       candidate.lastRecommendedAt &&
@@ -69,10 +69,20 @@ export const getRecommendations = async (req: Request, res: Response) => {
       .slice(0, 20);
 
     // 2. High-Accuracy AI Ranking
+    let cvText = "";
+    if (candidate.cvUrl) {
+      try {
+        cvText = await aiService.extractCvText(candidate.cvUrl);
+      } catch (e) {
+        console.error("Recommendation CV extraction failed:", e);
+      }
+    }
+
     const candidateSummary = {
       headline: candidate.headline,
       skills: allCandidateSkills,
-      bio: candidate.bio?.slice(0, 500)
+      bio: candidate.bio?.slice(0, 500),
+      cvContent: cvText?.slice(0, 2000) // Use CV content for better matching
     };
 
     const aiRankings = await aiService.rankJobsWithAI(candidateSummary, topJobs);
@@ -137,6 +147,8 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     if (cachedAnalysis) {
       return res.status(200).json({
         coverLetter: cachedAnalysis.coverLetter,
+        overallScore: cachedAnalysis.overallScore,
+        suggestions: cachedAnalysis.suggestions,
         fromCache: true
       });
     }
@@ -144,7 +156,7 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     // 4. Extract Text & Generate CL
     const cvText = await aiService.extractCvText(candidate.cvUrl);
     const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
-    
+
     // We can use the same analyzeCv service but just take the cover letter
     const analysis = await aiService.analyzeCv(cvText, jobDescription);
 
@@ -152,7 +164,9 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
     await aiRepository.updateAnalysisCache(userId, jobPostId, analysis);
 
     return res.status(200).json({
-      coverLetter: analysis.coverLetter
+      coverLetter: analysis.coverLetter,
+      overallScore: analysis.overallScore,
+      suggestions: analysis.suggestions
     });
   } catch (err: any) {
     console.error("generateCoverLetter error:", err);
@@ -163,4 +177,5 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
+
 

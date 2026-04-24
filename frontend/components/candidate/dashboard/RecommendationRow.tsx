@@ -33,10 +33,10 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             {job.companyLogoUrl && job.companyLogoUrl !== "null" && job.companyLogoUrl !== "undefined" ? (
-              <img 
-                src={job.companyLogoUrl} 
-                alt={job.company || "Company"} 
-                className="h-full w-full object-cover" 
+              <img
+                src={job.companyLogoUrl}
+                alt={job.company || "Company"}
+                className="h-full w-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                   (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-sm font-bold text-indigo-700">${job.company?.charAt(0) || "?"}</span>`;
@@ -79,19 +79,29 @@ export default function RecommendationRow({ job, isApplied, showWithdraw, onView
 
           {isApplied && showWithdraw ? (
             <>
-              {job.interview && job.interview.status === "SCHEDULED" ? (
-                job.interview.meetingLink ? (
-                  <a 
-                    href={job.interview.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-pointer rounded-full bg-blue-600 px-7 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-                  >
-                    Join Interview
-                  </a>
+              {job.interview && (job.interview.status === "SCHEDULED" || job.interview.status === "COMPLETED" || job.interview.status === "DRAFT") ? (
+                job.interview.status === "SCHEDULED" ? (
+                  job.interview.meetingLink ? (
+                    <a
+                      href={job.interview.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cursor-pointer rounded-full bg-blue-600 px-7 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      Join Interview
+                    </a>
+                  ) : (
+                    <span className="rounded-full bg-blue-100 px-7 py-1.5 text-sm font-semibold text-blue-800">
+                      Interview Scheduled
+                    </span>
+                  )
+                ) : job.interview.status === "COMPLETED" ? (
+                  <span className="rounded-full bg-emerald-100 px-7 py-1.5 text-sm font-semibold text-emerald-800">
+                    Interview Completed
+                  </span>
                 ) : (
                   <span className="rounded-full bg-blue-100 px-7 py-1.5 text-sm font-semibold text-blue-800">
-                    Interview Scheduled
+                    Interview Processing
                   </span>
                 )
               ) : (

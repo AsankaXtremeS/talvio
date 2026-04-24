@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/db";
 
 export const candidateRepository = {
@@ -17,6 +18,7 @@ export const candidateRepository = {
       bio?: string | null;
       headline?: string | null;
       location?: string | null;
+      profilePictureUrl?: string | null;
     }
   ) {
     return prisma.candidateProfile.upsert({
@@ -36,7 +38,7 @@ export const candidateRepository = {
         cvUrl: null,
         cvFileName: null,
         extractedSkills: [],
-        recommendationCache: null,
+        recommendationCache: Prisma.DbNull,
         lastRecommendedAt: null,
         jobAnalysisCache: {},
       },

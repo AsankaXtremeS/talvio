@@ -39,6 +39,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       linkedinUrl,
       githubUrl,
       portfolioUrl,
+      profilePictureUrl,
     } = req.body;
 
     // Update User table
@@ -60,6 +61,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       linkedinUrl,
       githubUrl,
       portfolioUrl,
+      profilePictureUrl,
     });
 
     return res.status(200).json({
