@@ -26,6 +26,7 @@ interface JobCardProps {
   isApplied?: boolean;
   onView: (id: string) => void;
   onApply: (id: string) => void;
+  showMatchBadge?: boolean;
 }
 
 export default function JobCard({
@@ -40,6 +41,7 @@ export default function JobCard({
   isApplied,
   onView,
   onApply,
+  showMatchBadge = true,
 }: JobCardProps) {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3 hover:shadow-md transition-shadow">
@@ -70,10 +72,12 @@ export default function JobCard({
         </div>
 
         {/* Match badge */}
-        <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-600 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0">
-          <CheckCircle size={13} className="text-green-500" />
-          {matchPercent}% Match
-        </div>
+        {showMatchBadge && (
+          <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-600 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0">
+            <CheckCircle size={13} className="text-green-500" />
+            {matchPercent}% Match
+          </div>
+        )}
       </div>
 
       {/* Posted time */}
