@@ -4,7 +4,7 @@ import ContactInfoCard from "@/components/candidate/settings/ContactInfoCard";
 import ProfileHeader from "@/components/candidate/settings/ProfileHeader";
 import ProfileSummaryCard from "@/components/candidate/settings/ProfileSummaryCard";
 import SettingsTopBar from "@/components/candidate/settings/SettingsTopBar";
-import ResumeCard from "@/components/candidate/settings/ResumeCard";
+import ResumeCard, { ResumeUploadResult } from "@/components/candidate/settings/ResumeCard";
 import UpgradeToProfessionalCard from "@/components/candidate/settings/UpgradeToProfessionalCard";
 import type { CandidateSettingsProfile } from "@/components/candidate/settings/types";
 
@@ -50,6 +50,7 @@ export default function CandidateSettingsView({
             phone={profile.phone}
             bio={profile.bio}
             skills={profile.skills}
+            profilePictureUrl={profile.profilePictureUrl}
             onProfileUpdate={onProfileSaved}
           />
 

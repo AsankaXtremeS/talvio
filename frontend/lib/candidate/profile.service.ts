@@ -9,6 +9,7 @@ export interface CandidateProfile {
   bio?: string;
   cvUrl?: string;
   cvFileName?: string;
+  profilePictureUrl?: string;
   extractedSkills: string[];
   updatedAt: string;
 }
@@ -42,6 +43,7 @@ export const profileService = {
   linkedinUrl?: string;
   githubUrl?: string;
   portfolioUrl?: string;
+  profilePictureUrl?: string;
 }): Promise<CandidateProfile> {
   const res = await fetch("/api/candidate/profile", {
     method: "PUT",
