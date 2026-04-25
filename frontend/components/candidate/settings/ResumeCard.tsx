@@ -19,6 +19,7 @@ interface ResumeCardProps {
   onUploadSuccess: (res: ResumeUploadResult) => void;
   onUploadError: (error: string) => void;
   onRemove: () => void;
+  isProcessing?: boolean;
 }
 
 export default function ResumeCard({
@@ -28,6 +29,7 @@ export default function ResumeCard({
   onUploadSuccess,
   onUploadError,
   onRemove,
+  isProcessing = false,
 }: ResumeCardProps) {
   const hasResume = !!cvUrl;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,10 +92,10 @@ export default function ResumeCard({
           </p>
           <button
             onClick={triggerUpload}
-            disabled={isUploading}
+            disabled={isUploading || isProcessing}
             className="flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-semibold h-11 px-10 rounded-xl transition-all shadow-md active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isUploading ? (
+            {isUploading || isProcessing ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
                 <span>Uploading...</span>
@@ -136,10 +138,10 @@ export default function ResumeCard({
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <button
               onClick={triggerUpload}
-              disabled={isUploading}
+              disabled={isUploading || isProcessing}
               className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-semibold h-11 rounded-xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isUploading ? (
+              {isUploading || isProcessing ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   <span>Updating...</span>
@@ -153,7 +155,7 @@ export default function ResumeCard({
             </button>
             <button
               onClick={onRemove}
-              disabled={isUploading}
+              disabled={isUploading || isProcessing}
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-[#FEE2E2] bg-white px-5 h-11 text-sm font-semibold text-[#EF4444] transition-all hover:bg-[#FEF2F2] hover:border-[#EF4444] active:scale-[0.98] disabled:opacity-50"
             >
               <Trash2 size={16} />

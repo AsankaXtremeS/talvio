@@ -9,6 +9,7 @@ export interface CandidateSettingsProfile {
   profilePictureUrl?: string;
   githubUrl?: string;
   linkedinUrl?: string;
+  portfolioUrl?: string;
   education: {
     degree: string;
     field: string;

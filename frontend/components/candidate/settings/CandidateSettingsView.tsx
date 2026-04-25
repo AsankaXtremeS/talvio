@@ -34,7 +34,8 @@ export default function CandidateSettingsView({
   onRemoveResume,
   onProfileSaved,
   userRole,
-}: CandidateSettingsViewProps) {
+  isResumeProcessing,
+}: CandidateSettingsViewProps & { isResumeProcessing?: boolean }) {
   return (
     <div className="space-y-4 rounded-3xl bg-[#F4F6FB] p-4 md:p-5">
       <SettingsTopBar />
@@ -61,6 +62,7 @@ export default function CandidateSettingsView({
             onUploadSuccess={onResumeUpdate}
             onUploadError={onResumeError}
             onRemove={onRemoveResume}
+            isProcessing={isResumeProcessing}
           />
         </div>
 

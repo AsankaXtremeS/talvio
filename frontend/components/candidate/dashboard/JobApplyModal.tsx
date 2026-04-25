@@ -17,6 +17,7 @@ interface JobApplyModalProps {
   openJobDetails: (jobId: string) => void;
   handleApplySubmission: (useDefaultCv: boolean) => void;
   isLoading?: boolean;
+  defaultCvName?: string;
 }
 
 export default function JobApplyModal({
@@ -33,6 +34,7 @@ export default function JobApplyModal({
   openJobDetails,
   handleApplySubmission,
   isLoading,
+  defaultCvName,
 }: JobApplyModalProps) {
   const [cvOption, setCvOption] = useState<"default" | "custom">("default");
 
@@ -94,10 +96,19 @@ export default function JobApplyModal({
                 <FileText size={20} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-800 truncate">Default Profile CV</p>
-                <p className="text-xs text-slate-500">We'll use your current profile resume</p>
+                <p className="text-sm font-bold text-slate-800 truncate">
+                  {defaultCvName || "Default Profile CV"}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {defaultCvName ? "Using your current profile resume" : "No default resume found in profile"}
+                </p>
               </div>
             </div>
+            {!defaultCvName && (
+              <p className="mt-2 text-[10px] text-red-500 font-medium">
+                Please upload a resume below or add one in settings.
+              </p>
+            )}
           </div>
         ) : (
           <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-slate-50/50 p-6 text-center animate-in zoom-in-95 duration-300">
