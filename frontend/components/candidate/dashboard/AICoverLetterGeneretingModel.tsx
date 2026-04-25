@@ -12,6 +12,7 @@ interface AICoverLetterModalProps {
   onClose: () => void;
   isAiRecommended?: boolean;
   matchScore?: number;
+  customCvUrl?: string;
 }
 
 import { AIJobAnalysis } from "@/lib/candidate/job.service";
@@ -24,6 +25,7 @@ export default function AICoverLetterModal({
   onClose,
   isAiRecommended,
   matchScore,
+  customCvUrl,
 }: AICoverLetterModalProps) {
   const [analysis, setAnalysis] = useState<AIJobAnalysis | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
@@ -34,7 +36,7 @@ export default function AICoverLetterModal({
     try {
       setIsGenerating(true);
       setError(null);
-      const result = await candidateJobService.generateCoverLetter(jobId);
+      const result = await candidateJobService.generateCoverLetter(jobId, customCvUrl);
       setAnalysis(result);
       setCoverLetter(result.coverLetter);
     } catch (err: any) {
@@ -44,7 +46,7 @@ export default function AICoverLetterModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [jobId]);
+  }, [jobId, customCvUrl]);
 
   useEffect(() => {
     fetchAnalysis();

@@ -10,101 +10,146 @@ import {
   RANK_JOBS_PROMPT,
 } from "./ai.prompts";
 
-const geminiEnabled = Boolean(env.GEMINI_API_KEY);
-const genAI = geminiEnabled ? new GoogleGenerativeAI(env.GEMINI_API_KEY) : null;
+/**
+ * Configuration Constants
+ */
+const AI_MODEL_NAME = "gemini-2.0-flash";
+const CONCURRENT_AI_LIMIT = 3;
+const CV_SLICE_LENGTH = 4000;
+const JD_SLICE_LENGTH = 500;
+const DEFAULT_TEMP = 0.7;
+const LOW_TEMP = 0.1;
+const ANALYZE_TEMP = 0.2;
 
-// JSON result model
-const flashModel = genAI?.getGenerativeModel({
-  model: "gemini-2.0-flash",
-  generationConfig: { responseMimeType: "application/json", temperature: 0.1 },
+const isGeminiActive = Boolean(env.GEMINI_API_KEY);
+const genAiClient = isGeminiActive 
+  ? new GoogleGenerativeAI(env.GEMINI_API_KEY) 
+  : null;
+
+/**
+ * Generative model configured for JSON output
+ */
+const flashModel = genAiClient?.getGenerativeModel({
+  model: AI_MODEL_NAME,
+  generationConfig: { 
+    responseMimeType: "application/json", 
+    temperature: LOW_TEMP 
+  },
 });
 
-// JSON Cleaning Utility
-const cleanJson = (raw: string) => {
+/**
+ * Cleans raw AI response strings for reliable JSON parsing.
+ * Removes markdown blocks and problematic control characters.
+ */
+const sanitizeJsonResponse = (raw: string): string => {
   try {
-    // 1. Remove markdown code blocks if present
-    let cleaned = raw.replace(/```json|```/g, "").trim();
+    let processed = raw.replace(/```json|```/g, "").trim();
     
-    // 2. Stripe ASCII control characters (0-31) which cause JSON.parse to fail
-    // This is a common issue with Mistral and other providers
-    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+    // Remove ASCII control characters (0-31) that break JSON.parse
+    processed = processed.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
     
-    return cleaned;
-  } catch (e) {
+    return processed;
+  } catch (err) {
     return raw;
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SEMAPHORE & HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Simple Semaphore class to manage concurrent AI requests.
+ */
+class RequestSemaphore {
+  private activeCount = 0;
+  private readonly waitingQueue: Array<() => void> = [];
 
-class Semaphore {
-  private running = 0;
-  private readonly queue: Array<() => void> = [];
-  constructor(private readonly limit: number) {}
-  private acquire(): Promise<void> {
-    if (this.running < this.limit) {
-      this.running++;
+  constructor(private readonly maxConcurrent: number) {}
+
+  private async acquire(): Promise<void> {
+    if (this.activeCount < this.maxConcurrent) {
+      this.activeCount++;
       return Promise.resolve();
     }
-    return new Promise((resolve) => this.queue.push(resolve));
+    return new Promise((resolve) => this.waitingQueue.push(resolve));
   }
+
   private release(): void {
-    this.running--;
-    const next = this.queue.shift();
-    if (next) {
-      this.running++;
-      next();
+    this.activeCount--;
+    const nextTask = this.waitingQueue.shift();
+    if (nextTask) {
+      this.activeCount++;
+      nextTask();
     }
   }
-  async run<T>(fn: () => Promise<T>): Promise<T> {
+
+  public async execute<T>(task: () => Promise<T>): Promise<T> {
     await this.acquire();
     try {
-      return await fn();
+      return await task();
     } finally {
       this.release();
     }
   }
 }
 
-const aiQueue = new Semaphore(3);
+const aiRequestQueue = new RequestSemaphore(CONCURRENT_AI_LIMIT);
 
-async function openAiGenerate(provider: ProviderConfig, prompt: string, temperature = 0.7): Promise<string> {
-  if (!provider.apiKey || !provider.baseURL) throw new Error(`${provider.name}: not configured`);
-  const response = await fetch(`${provider.baseURL.replace(/\/$/, "")}/chat/completions`, {
+/**
+ * Helper to interact with OpenAI-compatible providers
+ */
+async function generateWithOpenAi(
+  provider: ProviderConfig, 
+  prompt: string, 
+  temperature = DEFAULT_TEMP
+): Promise<string> {
+  if (!provider.apiKey || !provider.baseURL) {
+    throw new Error(`${provider.name}: Configuration missing`);
+  }
+
+  const endpoint = `${provider.baseURL.replace(/\/$/, "")}/chat/completions`;
+  const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
+    headers: { 
+      "Content-Type": "application/json", 
+      "Authorization": `Bearer ${provider.apiKey}` 
+    },
     body: JSON.stringify({
       model: provider.model,
       messages: [{ role: "user", content: prompt }],
       temperature,
     }),
   });
-  if (!response.ok) throw new Error(`${provider.name} HTTP ${response.status}`);
-  const data = await response.json();
-  return data?.choices?.[0]?.message?.content ?? "";
+
+  if (!response.ok) {
+    throw new Error(`${provider.name} request failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+  return payload?.choices?.[0]?.message?.content ?? "";
 }
 
-async function requestWithFallback<T>(
-  providerPriority: string[],
-  fn: (provider: ProviderConfig) => Promise<T>
+/**
+ * Executes an AI request with fallback support across multiple providers.
+ */
+async function executeWithFallback<T>(
+  priorityList: string[],
+  action: (provider: ProviderConfig) => Promise<T>
 ): Promise<T> {
-  const providers = PROVIDERS.filter(p => providerPriority.includes(p.name) && (p.type === "gemini" ? geminiEnabled : !!p.apiKey));
-  const errors = [];
-  for (const provider of providers) {
+  const availableProviders = PROVIDERS.filter(p => 
+    priorityList.includes(p.name) && 
+    (p.type === "gemini" ? isGeminiActive : !!p.apiKey)
+  );
+
+  const errorLogs: string[] = [];
+
+  for (const provider of availableProviders) {
     try {
-      return await fn(provider);
+      return await action(provider);
     } catch (err: any) {
-      errors.push(`[${provider.name}] ${err.message}`);
+      errorLogs.push(`[${provider.name}] ${err.message}`);
     }
   }
-  throw new Error(`AI fail: ${errors.join(" | ")}`);
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
+  throw new Error(`AI service failure: ${errorLogs.join(" | ")}`);
+}
 
 export interface AnalysisResult {
   overallScore: number;
@@ -112,115 +157,151 @@ export interface AnalysisResult {
   coverLetter: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AI SERVICE
-// ─────────────────────────────────────────────────────────────────────────────
-
+/**
+ * Core Service for AI-driven logic
+ */
 export const aiService = {
-  async extractCvText(source: string): Promise<string> {
+  /**
+   * Extracts text content from a PDF source (URL or local path).
+   */
+  async extractCvText(sourcePath: string): Promise<string> {
     try {
-      let fileBuffer: Buffer;
+      let buffer: Buffer;
       
-      if (source.startsWith("http://") || source.startsWith("https://")) {
-        const response = await fetch(source);
-        if (!response.ok) throw new Error(`Failed to fetch PDF from URL: ${response.statusText}`);
-        fileBuffer = Buffer.from(await response.arrayBuffer());
+      if (sourcePath.startsWith("http")) {
+        const response = await fetch(sourcePath);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF from URL: ${response.statusText}`);
+        }
+        buffer = Buffer.from(await response.arrayBuffer());
       } else {
-        fileBuffer = await fs.promises.readFile(source);
+        buffer = await fs.promises.readFile(sourcePath);
       }
 
-      const parser = new PDFParse({ data: fileBuffer });
-      const parsed = await parser.getText();
-      return (parsed.text || "").trim().replace(/\0/g, "");
-    } catch (error: any) {
-      console.error("❌ PDF extraction error:", error);
-      throw new Error(`Failed to extract text from CV: ${error.message}`);
+      const pdfParser = new PDFParse({ data: buffer });
+      const result = await pdfParser.getText();
+      return (result.text || "").trim().replace(/\0/g, "");
+    } catch (err: any) {
+      // Re-throw if it's already a formatted error from fetch
+      if (err.message.startsWith("Failed to fetch PDF")) {
+        throw err;
+      }
+      console.error("PDF Extraction Failure:", err);
+      throw new Error(`Failed to extract text from CV: ${err.message}`);
     }
   },
 
   /**
-   * Extract skills once for profile
+   * Extracts professional skills from CV text using AI.
    */
-  async extractSkills(cvText: string): Promise<string[]> {
-    const prompt = EXTRACT_CV_SKILLS_PROMPT.replace("{cvText}", cvText.slice(0, 4000));
-
-    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
-      if (provider.type === "gemini") {
-        const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(cleanJson(raw));
-      }
-      const raw = await openAiGenerate(provider, prompt, 0.1);
-      return JSON.parse(cleanJson(raw));
-    }));
-  },
-
-  /**
-   * Comprehensive Analysis: Score + Suggestions + CL
-   */
-  async analyzeCv(cvText: string, jobDescription: string): Promise<AnalysisResult> {
-    const prompt = COMPREHENSIVE_ANALYSIS_PROMPT
-      .replace("{cvText}", cvText.slice(0, 4000))
-      .replace("{jobDescription}", jobDescription);
-
-    return aiQueue.run(() => requestWithFallback(["gemini", "mistral", "openrouter"], async (provider) => {
-      if (provider.type === "gemini") {
-        const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(cleanJson(raw));
-      }
-      const raw = await openAiGenerate(provider, prompt, 0.2);
-      return JSON.parse(cleanJson(raw));
-    }));
-  },
-
-  /**
-   * Fast Keyword Matching for Recommendations
-   */
-  calculateSimilarity(candidateSkills: string[], requiredSkills: string[]): number {
-    if (!requiredSkills.length) return 0;
-    const matched = candidateSkills.filter(s => 
-      requiredSkills.some(req => req.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(req.toLowerCase()))
+  async extractSkills(content: string): Promise<string[]> {
+    const prompt = EXTRACT_CV_SKILLS_PROMPT.replace(
+      "{cvText}", 
+      content.slice(0, CV_SLICE_LENGTH)
     );
-    return Math.round((matched.length / requiredSkills.length) * 100);
+
+    return aiRequestQueue.execute(() => 
+      executeWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
+        if (provider.type === "gemini") {
+          const rawResponse = await flashModel!
+            .generateContent(prompt)
+            .then(res => res.response.text());
+          return JSON.parse(sanitizeJsonResponse(rawResponse));
+        }
+        const rawResponse = await generateWithOpenAi(provider, prompt, LOW_TEMP);
+        return JSON.parse(sanitizeJsonResponse(rawResponse));
+      })
+    );
   },
 
-  async extractJdKeywords(jobDescription: string): Promise<string[]> {
-    const prompt = EXTRACT_JD_KEYWORDS_PROMPT.replace("{jobDescription}", jobDescription);
-
-    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
-      if (provider.type === "gemini") {
-        const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(cleanJson(raw));
-      }
-      const raw = await openAiGenerate(provider, prompt, 0.1);
-      return JSON.parse(cleanJson(raw));
-    }));
-  },
   /**
-   * 4. RANK JOBS (High Accuracy Batch Ranking)
-   * Goal: Evaluate a list of jobs against a candidate profile in one go.
+   * Performs a comprehensive analysis of a CV against a job description.
    */
-  async rankJobsWithAI(candidateSummary: any, jobs: any[]): Promise<any[]> {
-    if (!jobs.length) return [];
+  async analyzeCv(cvText: string, jobDesc: string): Promise<AnalysisResult> {
+    const prompt = COMPREHENSIVE_ANALYSIS_PROMPT
+      .replace("{cvText}", cvText.slice(0, CV_SLICE_LENGTH))
+      .replace("{jobDescription}", jobDesc);
+
+    return aiRequestQueue.execute(() => 
+      executeWithFallback(["gemini", "mistral", "openrouter"], async (provider) => {
+        if (provider.type === "gemini") {
+          const rawResponse = await flashModel!
+            .generateContent(prompt)
+            .then(res => res.response.text());
+          return JSON.parse(sanitizeJsonResponse(rawResponse));
+        }
+        const rawResponse = await generateWithOpenAi(provider, prompt, ANALYZE_TEMP);
+        return JSON.parse(sanitizeJsonResponse(rawResponse));
+      })
+    );
+  },
+
+  /**
+   * Calculates a simple similarity score between two skill sets.
+   */
+  calculateSimilarity(userSkills: string[], jobSkills: string[]): number {
+    if (jobSkills.length === 0) return 0;
     
-    const jobsList = jobs.map(j => ({
-      id: j.id,
-      title: j.title,
-      description: j.description?.slice(0, 500),
-      skillsRequired: j.skillsRequired
+    const matched = userSkills.filter(skill => 
+      jobSkills.some(req => 
+        req.toLowerCase().includes(skill.toLowerCase()) || 
+        skill.toLowerCase().includes(req.toLowerCase())
+      )
+    );
+
+    return Math.round((matched.length / jobSkills.length) * 100);
+  },
+
+  /**
+   * Extracts keywords from a job description.
+   */
+  async extractJdKeywords(description: string): Promise<string[]> {
+    const prompt = EXTRACT_JD_KEYWORDS_PROMPT.replace("{jobDescription}", description);
+
+    return aiRequestQueue.execute(() => 
+      executeWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
+        if (provider.type === "gemini") {
+          const rawResponse = await flashModel!
+            .generateContent(prompt)
+            .then(res => res.response.text());
+          return JSON.parse(sanitizeJsonResponse(rawResponse));
+        }
+        const rawResponse = await generateWithOpenAi(provider, prompt, LOW_TEMP);
+        return JSON.parse(sanitizeJsonResponse(rawResponse));
+      })
+    );
+  },
+
+  /**
+   * Ranks multiple jobs against a candidate profile using AI.
+   */
+  async rankJobsWithAI(profile: any, jobs: any[]): Promise<any[]> {
+    if (jobs.length === 0) return [];
+    
+    const simplifiedJobs = jobs.map(job => ({
+      id: job.id,
+      title: job.title,
+      description: job.description?.slice(0, JD_SLICE_LENGTH),
+      skillsRequired: job.skillsRequired
     }));
 
     const prompt = RANK_JOBS_PROMPT
-      .replace("{candidateProfile}", JSON.stringify(candidateSummary))
-      .replace("{jobsList}", JSON.stringify(jobsList));
+      .replace("{candidateProfile}", JSON.stringify(profile))
+      .replace("{jobsList}", JSON.stringify(simplifiedJobs));
 
-    return aiQueue.run(() => requestWithFallback(["gemini", "groq", "openrouter", "mistral"], async (provider) => {
-      if (provider.type === "gemini") {
-        const raw = await flashModel!.generateContent(prompt).then(r => r.response.text());
-        return JSON.parse(cleanJson(raw));
-      }
-      
-      const raw = await openAiGenerate(provider, prompt, 0.1);
-      return JSON.parse(cleanJson(raw));
-    }));
+    return aiRequestQueue.execute(() => 
+      executeWithFallback(["gemini", "groq", "openrouter", "mistral"], async (provider) => {
+        if (provider.type === "gemini") {
+          const rawResponse = await flashModel!
+            .generateContent(prompt)
+            .then(res => res.response.text());
+          return JSON.parse(sanitizeJsonResponse(rawResponse));
+        }
+        
+        const rawResponse = await generateWithOpenAi(provider, prompt, LOW_TEMP);
+        return JSON.parse(sanitizeJsonResponse(rawResponse));
+      })
+    );
   }
 };
+

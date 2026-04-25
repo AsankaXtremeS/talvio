@@ -119,7 +119,9 @@ export default function JobApplyModal({
                   endpoint="pdfUploader"
                   onClientUploadComplete={(res) => {
                     if (res && res[0]) {
-                      setCvUrl(res[0].url);
+                      // Use ufsUrl as per deprecation notice, fall back to url if needed
+                      const url = res[0].ufsUrl || res[0].url;
+                      setCvUrl(url);
                       setResumeFileName(res[0].name);
                     }
                   }}

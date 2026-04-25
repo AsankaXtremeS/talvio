@@ -1,20 +1,34 @@
-// All database operations for AI module.
-// This layer is the ONLY place where Prisma is used.
-
 import { prisma } from "../../config/db";
-import { ApplicationStatus, Prisma } from "@prisma/client";
 
+/**
+ * Interfaces for cached AI data structures
+ */
+export interface CachedAnalysis {
+  overallScore: number;
+  suggestions: string[];
+  coverLetter: string;
+  cachedAt?: Date;
+}
+
+/**
+ * Repository layer for AI-related database operations.
+ * Handles persistence for recommendations and analysis results.
+ */
 export const aiRepository = {
 
-  // ── AI Specific Cache Operations ───────────────────────────────────────────
-
+  /**
+   * Retrieves a candidate profile by their user ID.
+   */
   async findCandidateProfileByUserId(userId: string) {
     return prisma.candidateProfile.findUnique({
       where: { userId },
     });
   },
 
-  async updateRecommendationCache(userId: string, recommendations: any) {
+  /**
+   * Updates the recommendation cache for a specific candidate.
+   */
+  async updateRecommendationCache(userId: string, recommendations: any[]) {
     return prisma.candidateProfile.update({
       where: { userId },
       data: {
@@ -24,9 +38,13 @@ export const aiRepository = {
     });
   },
 
-  async updateAnalysisCache(userId: string, jobId: string, analysis: any) {
+  /**
+   * Updates the job analysis cache with a new entry.
+   * Merges with existing cache entries for other jobs.
+   */
+  async updateAnalysisCache(userId: string, jobId: string, analysis: CachedAnalysis) {
     const profile = await this.findCandidateProfileByUserId(userId);
-    const existingCache = (profile?.jobAnalysisCache as Record<string, any>) || {};
+    const existingCache = (profile?.jobAnalysisCache as unknown as Record<string, CachedAnalysis>) || {};
     
     return prisma.candidateProfile.update({
       where: { userId },
@@ -37,19 +55,23 @@ export const aiRepository = {
             ...analysis,
             cachedAt: new Date(),
           },
-        },
+        } as any,
       },
     });
   },
 
-  async findAnalysisInCache(userId: string, jobId: string) {
+  /**
+   * Retrieves a cached analysis result for a specific user and job.
+   */
+  async findAnalysisInCache(userId: string, jobId: string): Promise<CachedAnalysis | null> {
     const profile = await this.findCandidateProfileByUserId(userId);
-    const cache = (profile?.jobAnalysisCache as Record<string, any>) || {};
+    const cache = (profile?.jobAnalysisCache as unknown as Record<string, CachedAnalysis>) || {};
     return cache[jobId] || null;
   },
 
-  // ── AI Result Persistence ──────────────────────────────────────────────────
-
+  /**
+   * Persists the final AI analysis result to an application record.
+   */
   async saveAnalysisResult(
     applicationId: string,
     result: {
@@ -64,13 +86,14 @@ export const aiRepository = {
     });
   },
 
-  // ── Helper lookups for AI Context ──────────────────────────────────────────
-
-  async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
+  /**
+   * Retrieves active job posts filtered by type (JOB/INTERNSHIP).
+   */
+  async findActiveJobsByRole(jobType: "JOB" | "INTERNSHIP") {
     return prisma.jobPost.findMany({
       where: {
         status: "ACTIVE",
-        type: type,
+        type: jobType,
       },
       include: {
         employer: {
@@ -83,9 +106,12 @@ export const aiRepository = {
     });
   },
 
-  async findJobPostById(id: string) {
+  /**
+   * Fetches a detailed job post by its ID, including employer context.
+   */
+  async findJobPostById(postId: string) {
     return prisma.jobPost.findUnique({
-      where: { id },
+      where: { id: postId },
       include: {
         employer: {
           select: {
@@ -97,3 +123,4 @@ export const aiRepository = {
     });
   },
 };
+
