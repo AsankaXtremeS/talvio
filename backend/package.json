@@ -13,7 +13,8 @@
     "prisma:generate": "prisma generate",
     "test": "jest",
     "test:auth": "jest src/modules/auth",
-    "test:ai": "jest src/modules/ai"
+    "test:ai": "jest src/modules/ai",
+    "test:admin": "jest src/modules/admin"
   },
   "keywords": [],
   "author": "", 
