@@ -11,10 +11,13 @@
     "start": "node dist/server.js",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
-    "test": "jest",
-    "test:auth": "jest src/modules/auth",
-    "test:ai": "jest src/modules/ai",
-    "test:admin": "jest src/modules/admin"
+    "test": "jest --verbose",
+    "test:auth": "jest src/modules/auth --verbose",
+    "test:ai": "jest src/modules/ai --verbose",
+    "test:admin": "jest src/modules/admin --verbose",
+    "test:candidate": "jest src/modules/candidate --verbose",
+    "test:candidate:profile": "jest src/modules/candidate/profile --verbose",
+    "test:candidate:jobs": "jest src/modules/candidate/jobs --verbose"
   },
   "keywords": [],
   "author": "", 
