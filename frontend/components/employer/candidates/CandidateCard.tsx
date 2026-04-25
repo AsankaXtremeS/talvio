@@ -23,10 +23,9 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
   const grad      = candidate.avatarGradient ?? getAvatarGradient(index);
   const daysLabel = candidate.appliedDaysAgo === 1 ? "day" : "days";
   const ms        = matchStyle(candidate.matchScore);
-  // Use index + 1 for avatar number (index 0 -> avatar1, index 1 -> avatar2, etc.)
-  const avatarNum = index + 1;
-  const [imgSrc, setImgSrc] = useState(`/images/avatar${avatarNum}.jpg`);
-  const [imgError, setImgError] = useState(false);
+  const hasRealImage = !!candidate.avatarUrl;
+  const [imgSrc, setImgSrc] = useState(candidate.avatarUrl || "");
+  const [imgError, setImgError] = useState(!hasRealImage);
 
   return (
     <div className="group flex flex-col gap-4 rounded-2xl border border-[#E8EBF4] bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C7C4F4] hover:shadow-[0_8px_30px_rgba(79,70,229,0.10)]">
@@ -38,7 +37,7 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
         <div className="flex items-center min-w-0 gap-3">
           {imgError ? (
             <div
-              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl text-[18px] font-black text-white shadow-sm"
+              className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl text-[18px] font-black text-white shadow-sm"
               style={{ background: grad }}
             >
               {candidate.initial}
@@ -49,13 +48,9 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
               alt={candidate.name}
               width={52}
               height={52}
-              className="object-cover bg-gray-100 rounded-xl shrink-0"
+              className="object-cover bg-gray-100 rounded-xl shrink-0 h-[52px] w-[52px]"
               onError={() => {
-                if (imgSrc.endsWith('.jpg')) {
-                  setImgSrc(`/images/avatar${avatarNum}.png`);
-                } else {
-                  setImgError(true);
-                }
+                setImgError(true);
               }}
             />
           )}

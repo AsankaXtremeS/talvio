@@ -3,7 +3,7 @@
 // if the backend returns nothing or errors (useful during development).
 // SECURITY: Only fields needed for display are exposed — no raw DB rows.
 
-import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
+import { CandidateInfo, CandidateStatus, FullCandidateProfile } from "@/types/candidate/candidate.types";
 
 const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -204,6 +204,7 @@ interface BackendApplicant {
   appliedAt: string;
   cvUrl: string;
   aiScore: number;
+  profilePictureUrl?: string | null;
 }
 
 const mapBackendStatusToFrontend = (status: BackendApplicationStatus): CandidateStatus | null => {
@@ -240,6 +241,7 @@ const toCandidateInfo = (applicant: BackendApplicant): CandidateInfo | null => {
     skills: Array.isArray(applicant.skills) ? applicant.skills : [],
     email: applicant.email,
     status,
+    avatarUrl: applicant.profilePictureUrl || undefined,
   };
 };
 
@@ -299,7 +301,7 @@ export async function getCandidates(
  * Fetch a single candidate's profile by their candidateProfile ID.
  * Used in the schedule interview page to display applicant info.
  */
-export async function getCandidateById(candidateProfileId: string): Promise<CandidateInfo | null> {
+export async function getCandidateById(candidateProfileId: string): Promise<FullCandidateProfile | null> {
   try {
     const res = await fetch(`/api/employer/interviews/candidates/${candidateProfileId}`, {
       credentials: "include",
@@ -310,7 +312,7 @@ export async function getCandidateById(candidateProfileId: string): Promise<Cand
       if (res.status !== 404) {
         console.error(`[getCandidateById] Failed to fetch candidate: ${res.status}`);
       }
-      return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null;
+      return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
     }
 
     const data = (await res.json()) as {
@@ -319,6 +321,13 @@ export async function getCandidateById(candidateProfileId: string): Promise<Cand
       email: string;
       headline: string;
       skills: string[];
+      location?: string | null;
+      bio?: string | null;
+      linkedinUrl?: string | null;
+      githubUrl?: string | null;
+      portfolioUrl?: string | null;
+      cvUrl?: string | null;
+      profilePictureUrl?: string | null;
     };
 
     const safeName = data.name?.trim() || "Candidate";
@@ -334,9 +343,68 @@ export async function getCandidateById(candidateProfileId: string): Promise<Cand
       skills: Array.isArray(data.skills) ? data.skills : [],
       email: data.email,
       status: "Applied",
+      avatarUrl: data.profilePictureUrl || undefined,
+      location: data.location,
+      bio: data.bio,
+      linkedinUrl: data.linkedinUrl,
+      githubUrl: data.githubUrl,
+      portfolioUrl: data.portfolioUrl,
+      cvUrl: data.cvUrl,
     };
   } catch (err) {
     console.error("[getCandidateById] Error fetching candidate:", err);
-    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null;
+    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
   }
 }
+
+/**
+ * Mark a candidate's application as reviewed by the employer.
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/reviewed
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function markReviewed(
+  jobPostId: string,
+  candidateProfileId: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  try {
+    const url = apiUrl(
+      `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/reviewed`
+    );
+    const res = await fetchWithAuth(url, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.error("[markReviewed] Failed:", res.status, err);
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error("[markReviewed] Error:", err);
+    return null;
+  }
+}
+
+/**
+ * Shortlist a candidate's application.
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function markShortlisted(
+  jobPostId: string,
+  candidateProfileId: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  try {
+    const url = apiUrl(
+      `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/shortlisted`
+    );
+    const res = await fetchWithAuth(url, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.error("[markShortlisted] Failed:", res.status, err);
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error("[markShortlisted] Error:", err);
+    return null;
+  }
+}

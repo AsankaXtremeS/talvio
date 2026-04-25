@@ -336,6 +336,13 @@ export const interviewRepository = {
         id: true,
         headline: true,
         skills: true,
+        location: true,
+        bio: true,
+        linkedinUrl: true,
+        githubUrl: true,
+        portfolioUrl: true,
+        cvUrl: true,
+        profilePictureUrl: true,
         user: {
           select: {
             id: true,

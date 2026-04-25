@@ -83,8 +83,8 @@ export default function PostCandidatesPage({ params }: Props) {
       <CandidatesGrid
         candidates={filteredCandidates}
         onViewProfile={(id) => {
-          // Navigates to the Candidate's Profile page
-          router.push(`/users/employer/candidates/${id}`);
+          // Pass postId so the profile page can update application status in context
+          router.push(`/users/employer/candidates/${id}?postId=${postId}`);
         }}
         onSchedule={(id) => {
           // Route includes both postId and candidateProfileId.

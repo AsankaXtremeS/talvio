@@ -44,36 +44,6 @@ const APPLY_MODAL_CONTENT = {
 const STORAGE_KEY = "candidateAppliedJobIds";
 const NOTIFICATION_READ_STORAGE_KEY = "candidateReadInterviewNotificationIds";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function useCandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -408,19 +378,6 @@ function useCandidateDashboard() {
   const submitApplication = async (jobId: string, coverLetter?: string, cvUrl?: string, cvFileName?: string, useDefaultCv?: boolean) => {
     applyMutation.mutate({ jobId, coverLetter, cvUrl, cvFileName, useDefaultCv });
   };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   const handleWithdrawApplication = (jobId: string) => {
     withdrawMutation.mutate(jobId);

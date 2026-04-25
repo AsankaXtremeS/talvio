@@ -211,6 +211,13 @@ export const interviewService = {
       email: candidate.user.email,
       headline: candidate.headline ?? "",
       skills: candidate.skills ?? [],
+      location: candidate.location ?? null,
+      bio: candidate.bio ?? null,
+      linkedinUrl: candidate.linkedinUrl ?? null,
+      githubUrl: candidate.githubUrl ?? null,
+      portfolioUrl: candidate.portfolioUrl ?? null,
+      cvUrl: candidate.cvUrl ?? null,
+      profilePictureUrl: candidate.profilePictureUrl ?? null,
     };
   },
 
