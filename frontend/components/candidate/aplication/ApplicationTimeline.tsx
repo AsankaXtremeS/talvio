@@ -23,6 +23,10 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function formatStatus(status: string) {
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase().replace(/_/g, " ");
+}
+
 export default function ApplicationTimeline({
   applicationId,
   applicationTitle,
@@ -42,6 +46,10 @@ export default function ApplicationTimeline({
     enabled: !!applicationId,
     staleTime: 1000 * 60 * 2,
   });
+
+  const currentStatus = data?.statusHistory && data.statusHistory.length > 0 
+    ? data.statusHistory[data.statusHistory.length - 1].status 
+    : data?.applicationStatus || "PENDING";
 
   return (
     <AnimatePresence>
@@ -122,7 +130,7 @@ export default function ApplicationTimeline({
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Current Standing</span>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 size={18} className="text-emerald-400" />
-                        <span className="text-lg font-bold">{data.applicationStatus}</span>
+                        <span className="text-lg font-bold">{formatStatus(currentStatus)}</span>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -161,18 +169,18 @@ export default function ApplicationTimeline({
                         >
                           {/* Dot indicator */}
                           <div className={`absolute left-[-5px] top-1.5 h-3 w-3 rounded-full border-2 border-white shadow-sm ring-4 ring-white ${
-                            index === 0 ? "bg-indigo-600 scale-125" : "bg-slate-300"
+                            index === (data?.statusHistory?.length ?? 0) - 1 ? "bg-indigo-600 scale-125" : "bg-slate-300"
                           }`} />
 
                           <div className={`group relative rounded-2xl border p-5 transition-all hover:shadow-md ${
-                            index === 0 
-                              ? "border-indigo-100 bg-indigo-50/30 ring-1 ring-indigo-50" 
+                            index === (data?.statusHistory?.length ?? 0) - 1 
+                              ? "border-indigo-100 bg-indigo-50/30 ring-1 ring-indigo-50 shadow-sm" 
                               : "border-slate-100 bg-white"
                           }`}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="space-y-1">
                                 <h4 className={`text-sm font-bold ${index === 0 ? "text-indigo-900" : "text-slate-900"}`}>
-                                  {step.status}
+                                  {formatStatus(step.status)}
                                 </h4>
                                 {step.note && (
                                   <p className="text-sm text-slate-600 leading-relaxed max-w-md">

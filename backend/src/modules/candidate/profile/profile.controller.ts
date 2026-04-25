@@ -42,27 +42,32 @@ export const updateProfile = async (req: Request, res: Response) => {
       profilePictureUrl,
     } = req.body;
 
-    // Update User table
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
-        ...(email !== undefined && { email }),
-      },
-    });
+    // Update User table only if relevant fields are provided
+    const userUpdateData: any = {};
+    if (firstName !== undefined) userUpdateData.firstName = firstName;
+    if (lastName !== undefined) userUpdateData.lastName = lastName;
+    if (email !== undefined) userUpdateData.email = email;
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: userUpdateData,
+      });
+    }
 
     // Use candidateRepository for upserting profile
-    const updatedProfile = await candidateRepository.upsertProfile(userId, {
-      headline,
-      location,
-      bio,
-      skills: skills ?? [],
-      linkedinUrl,
-      githubUrl,
-      portfolioUrl,
-      profilePictureUrl,
-    });
+    const profileUpdateData: any = {
+      ...(headline !== undefined && { headline }),
+      ...(location !== undefined && { location }),
+      ...(bio !== undefined && { bio }),
+      ...(skills !== undefined && { skills }),
+      ...(linkedinUrl !== undefined && { linkedinUrl }),
+      ...(githubUrl !== undefined && { githubUrl }),
+      ...(portfolioUrl !== undefined && { portfolioUrl }),
+      ...(profilePictureUrl !== undefined && { profilePictureUrl }),
+    };
+
+    const updatedProfile = await candidateRepository.upsertProfile(userId, profileUpdateData);
 
     return res.status(200).json({
       message: "Profile updated successfully",

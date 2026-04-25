@@ -58,7 +58,7 @@ export const applyForJob = async (req: Request, res: Response) => {
   
     const { cvUrl, cvFileName, coverLetter, useDefaultCv } = req.body;
 
-    const application = await applicationsService.applyToJob(userId, jobPostId, {
+    const application = await applicationsService.applyToJob(userId, jobPostId as string, {
       cvUrl,
       cvFileName,
       coverLetter,
@@ -115,7 +115,9 @@ export const getStats = async (req: Request, res: Response) => {
 };
 export const getApplicationDetail = async (req: Request, res: Response) => {
   try {
-    const { applicationId } = req.params;
+    let { applicationId } = req.params;
+    if (Array.isArray(applicationId)) applicationId = applicationId[0];
+
     const application = await applicationsService.getApplicationById(applicationId);
     
     if (!application) return res.status(404).json({ message: "Application not found" });
