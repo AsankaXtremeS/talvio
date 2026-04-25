@@ -96,7 +96,7 @@ export class ApplicationsService {
       // We still allow application to proceed even if AI fails (robustness)
     }
 
-    // 6. Create Application Record
+    // 6. Create Application Record with initial history
     const application = await prisma.application.create({
       data: {
         candidateProfileId: candidateProfile.id,
@@ -106,6 +106,15 @@ export class ApplicationsService {
         coverLetter: finalCoverLetter,
         aiScore,
         aiSuggestions,
+        statusHistory: {
+          create: {
+            status: "PENDING",
+            note: "Application submitted",
+          },
+        },
+      },
+      include: {
+        statusHistory: true,
       },
     });
 
@@ -155,7 +164,12 @@ export class ApplicationsService {
       include: {
         jobPost: {
           include: {
-            employer: true,
+            employer: {
+              select: {
+                companyName: true,
+                companyLogoUrl: true,
+              },
+            },
           },
         },
         statusHistory: {
