@@ -450,6 +450,7 @@ function useCandidateDashboard() {
     isLoading,
     popup,
     setPopup,
+    profileData,
   };
 }
 
@@ -485,6 +486,7 @@ export default function CandidateDashboardPage() {
     isLoading,
     popup,
     setPopup,
+    profileData,
   } = useCandidateDashboard();
 
   const isSelectedJobApplied = selectedJob ? appliedJobIds.includes(selectedJob.id) : false;
@@ -604,6 +606,7 @@ export default function CandidateDashboardPage() {
                 openJobDetails={openJobDetails}
                 handleApplySubmission={handleApplySubmission}
                 isLoading={isLoading}
+                defaultCvName={profileData?.cvFileName}
               />
             )}
           </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RoleGate from "@/components/auth/RoleGate";
-import { profileService, CandidateProfile } from "@/lib/candidate/profile.service";
+import { profileService } from "@/lib/candidate/profile.service";
 import {
   CandidateSettingsProfile,
   CandidateSettingsView,
@@ -11,12 +11,12 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import Popup from "@/components/admin/layout/Popup";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { Loader2 } from "lucide-react";
 
 export default function CandidateSettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [realProfile, setRealProfile] = useState<CandidateProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
     open: false,
@@ -25,38 +25,32 @@ export default function CandidateSettingsPage() {
   });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
-      try {
-        setIsProfileLoading(true);
-        const data = await profileService.getProfile();
-        setRealProfile(data);
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-      } finally {
-        setIsProfileLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [user]);
+  // Fetch profile using React Query
+  const { data: realProfile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["candidate-profile", user?.id],
+    queryFn: () => profileService.getProfile(),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
 
   const handleResumeUpdate = async (res: any) => {
     if (res && res[0]) {
       try {
+        setIsResumeProcessing(true);
         const file = res[0];
-        const updated = await profileService.updateResume(file.ufsUrl || file.url, file.name);
-        setRealProfile(updated);
+        await profileService.updateResume(file.ufsUrl || file.url, file.name);
         
-        // Invalidate recommendations query to refresh dashboard data
-        queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
-        queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
-        queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
+        // Invalidate queries to refresh data
+        await queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
+        await queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
+        await queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
 
         setPopup({ open: true, message: "Resume updated and skills extracted successfully!", success: true });
       } catch (error: any) {
         console.error("Failed to update resume:", error);
         setPopup({ open: true, message: error.message || "Failed to save resume profile.", success: false });
+      } finally {
+        setIsResumeProcessing(false);
       }
     }
   };
@@ -72,23 +66,25 @@ export default function CandidateSettingsPage() {
   const handleConfirmRemove = async () => {
     setIsConfirmOpen(false);
     try {
-      const updated = await profileService.removeResume();
-      setRealProfile(updated);
+      setIsResumeProcessing(true);
+      await profileService.removeResume();
 
-      // Invalidate recommendations query to refresh dashboard data
-      queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
 
       setPopup({ open: true, message: "Resume removed successfully.", success: true });
     } catch (error: any) {
       console.error("Failed to remove resume:", error);
       setPopup({ open: true, message: error.message || "Failed to remove resume.", success: false });
+    } finally {
+      setIsResumeProcessing(false);
     }
   };
 
   const handleProfileSaved = (data: any) => {
-    setRealProfile((prev) => prev ? { ...prev, ...data } : prev);
+    queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
     setPopup({ open: true, message: "Profile updated successfully!", success: true });
   };
 
@@ -105,6 +101,9 @@ export default function CandidateSettingsPage() {
       bio: realProfile?.bio || "A motivated web developer with 2 years of experience in React and Next.js.",
       skills: realProfile?.skills?.length ? realProfile.skills : ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
       profilePictureUrl: realProfile?.profilePictureUrl,
+      linkedinUrl: realProfile?.linkedinUrl,
+      githubUrl: realProfile?.githubUrl,
+      portfolioUrl: realProfile?.portfolioUrl,
       education: {
         degree: "Bachelor's of Science",
         field: "Computer Science",
@@ -127,6 +126,14 @@ export default function CandidateSettingsPage() {
     };
   }, [displayName, user?.email, user?.role, realProfile]);
 
+  if (isProfileLoading) {
+    return (
+      <div className="flex h-96 w-full items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[#4F46E5]" />
+      </div>
+    );
+  }
+
   return (
     <RoleGate allowedRoles={["STUDENT", "PROFESSIONAL"]}>
       <CandidateSettingsView
@@ -142,6 +149,7 @@ export default function CandidateSettingsPage() {
         onRemoveResume={handleRemoveResume}
         onProfileSaved={handleProfileSaved}
         userRole={user?.role}
+        isResumeProcessing={isResumeProcessing}
       />
 
       <Popup
