@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import ContactForm from '@/components/landing/ContactForm'
+import ContactForm from './contactForm'
 
 const contactBg = '/images/landing/contact_background.png'
 

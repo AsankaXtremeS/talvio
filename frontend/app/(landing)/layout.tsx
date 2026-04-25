@@ -1,6 +1,6 @@
 import React from 'react';
-import WrapperNav from '@/components/landing_components/Home/Navbar/WrapperNav';
-import Footer from '@/components/landing_components/Home/Navbar/Footer/Footer';
+import WrapperNav from '@/components/landing/Home/Navbar/WrapperNav';
+import Footer from '@/components/landing/Home/Footer/Footer';
 import LandingScrollbarToggle from '@/components/layout/LandingScrollbarToggle';
 
 export default function LandingLayout({

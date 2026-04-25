@@ -1,5 +1,5 @@
 "use client";
-import Navlogo from '@/components/landing_components/Helper/Logo'
+import Navlogo from '@/components/landing/Helper/Logo'
 import { NAV_LINKS } from '@/constant/constant'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
