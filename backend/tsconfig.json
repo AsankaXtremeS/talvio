@@ -20,7 +20,7 @@
 
     /* Types */
     "typeRoots": ["./node_modules/@types"],
-    "types": ["node"],
+    "types": ["node", "jest"],
 
     /* Source Maps & Declarations */
     "sourceMap": true,

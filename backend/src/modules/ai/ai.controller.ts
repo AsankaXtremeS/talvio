@@ -5,162 +5,202 @@ import { aiService } from "./ai.service";
 import { candidateRepository } from "../candidate/candidate.repository";
 
 /**
- * Safely extract route param as string
+ * Controller Constants
  */
-const getParam = (value: string | string[] | undefined, name: string): string => {
-  const val = Array.isArray(value) ? value[0] : value;
-  if (!val) throw new Error(`Missing required param: ${name}`);
-  return val;
+const RECOMMENDATION_CACHE_HOURS = 12;
+const CACHE_DURATION_MS = RECOMMENDATION_CACHE_HOURS * 60 * 60 * 1000;
+const TOP_JOBS_FOR_AI_RANKING = 20;
+const MINIMUM_MATCH_THRESHOLD = 70;
+const CANDIDATE_BIO_LIMIT = 500;
+const CV_TEXT_PREVIEW_LIMIT = 2000;
+
+/**
+ * Safely extracts a single parameter from the request.
+ * Handles both string and string array cases.
+ */
+const extractRequiredParam = (
+  value: string | string[] | undefined, 
+  paramName: string
+): string => {
+  const normalizedValue = Array.isArray(value) ? value[0] : value;
+  
+  if (!normalizedValue) {
+    throw new Error(`Missing required parameter: ${paramName}`);
+  }
+  
+  return normalizedValue;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RECOMMENDATIONS
-// GET /api/ai/recommendations
-// ─────────────────────────────────────────────────────────────────────────────
-
+/**
+ * GET /api/ai/recommendations
+ * Generates personalized job recommendations for the authenticated candidate.
+ */
 export const getRecommendations = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    if (!userId) {
+      return res.status(401).json({ message: "User session not found" });
+    }
 
+    // 1. Retrieve Candidate Profile
     const candidate = await candidateRepository.findProfileByUserId(userId);
-    if (!candidate) return res.status(200).json({ recommendations: [] });
+    if (!candidate) {
+      return res.status(200).json({ recommendations: [] });
+    }
 
-    const userRole = req.user?.role;
-    const type = userRole === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
-
-    const jobs = await aiRepository.findActiveJobsByRole(type);
-
-    // 0. Caching Logic (12 Hours)
-    const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in ms
+    // 2. Check for Valid Cache
     const now = new Date();
-
-    if (
+    const hasValidCache = 
       candidate.recommendationCache &&
       candidate.lastRecommendedAt &&
-      (now.getTime() - candidate.lastRecommendedAt.getTime()) < CACHE_DURATION &&
-      candidate.lastRecommendedAt >= candidate.updatedAt
-    ) {
+      (now.getTime() - candidate.lastRecommendedAt.getTime()) < CACHE_DURATION_MS &&
+      candidate.lastRecommendedAt >= candidate.updatedAt;
+
+    if (hasValidCache) {
       return res.status(200).json({
         recommendations: candidate.recommendationCache,
         fromCache: true
       });
     }
 
-    // Combine manual and extracted skills
-    const allCandidateSkills = [...new Set([...(candidate.skills || []), ...(candidate.extractedSkills || [])])];
+    // 3. Prepare Recommendation Data
+    const jobType = req.user?.role === Role.PROFESSIONAL ? "JOB" : "INTERNSHIP";
+    const availableJobs = await aiRepository.findActiveJobsByRole(jobType);
 
-    if (allCandidateSkills.length === 0) {
-      return res.status(200).json({
-        recommendations: []
-      });
+    const mergedSkills = [
+      ...new Set([
+        ...(candidate.skills || []), 
+        ...(candidate.extractedSkills || [])
+      ])
+    ];
+
+    if (mergedSkills.length === 0) {
+      return res.status(200).json({ recommendations: [] });
     }
 
-    // 1. Initial filter by Keyword Similarity (Fast)
-    let filteredJobs = await Promise.all(jobs.map(async (job) => {
-      const jdKeywords = job.skillsRequired?.length ? job.skillsRequired : await aiService.extractJdKeywords(job.description || job.title);
-      const score = aiService.calculateSimilarity(allCandidateSkills, jdKeywords);
-      return { ...job, initialScore: score };
-    }));
+    // 4. Initial Ranking by Keyword Similarity
+    const preRankedJobs = await Promise.all(
+      availableJobs.map(async (job) => {
+        const keywords = job.skillsRequired?.length 
+          ? job.skillsRequired 
+          : await aiService.extractJdKeywords(job.description || job.title);
+          
+        const initialScore = aiService.calculateSimilarity(mergedSkills, keywords);
+        return { ...job, initialScore };
+      })
+    );
 
-    // Take top 20 for AI ranking to ensure accuracy while keeping latency reasonable
-    const topJobs = filteredJobs
+    // Filter to top candidates for expensive AI ranking
+    const topCandidates = preRankedJobs
       .sort((a, b) => b.initialScore - a.initialScore)
-      .slice(0, 20);
+      .slice(0, TOP_JOBS_FOR_AI_RANKING);
 
-    // 2. High-Accuracy AI Ranking
-    let cvText = "";
+    // 5. High-Precision AI Ranking
+    let cvContent = "";
     if (candidate.cvUrl) {
       try {
-        cvText = await aiService.extractCvText(candidate.cvUrl);
-      } catch (e) {
-        console.error("Recommendation CV extraction failed:", e);
+        cvContent = await aiService.extractCvText(candidate.cvUrl);
+      } catch (err) {
+        console.error("Non-critical CV extraction failure during ranking:", err);
       }
     }
 
     const candidateSummary = {
       headline: candidate.headline,
-      skills: allCandidateSkills,
-      bio: candidate.bio?.slice(0, 500),
-      cvContent: cvText?.slice(0, 2000) // Use CV content for better matching
+      skills: mergedSkills,
+      bio: candidate.bio?.slice(0, CANDIDATE_BIO_LIMIT),
+      cvContent: cvContent?.slice(0, CV_TEXT_PREVIEW_LIMIT)
     };
 
-    const aiRankings = await aiService.rankJobsWithAI(candidateSummary, topJobs);
+    const detailedRankings = await aiService.rankJobsWithAI(
+      candidateSummary, 
+      topCandidates
+    );
 
-    // 3. Map results back
-    const recommendations = topJobs.map(job => {
-      const ranking = aiRankings.find(r => r.id === job.id);
-      return {
-        id: job.id,
-        title: job.title,
-        company: job.employer.companyName,
-        companyLogoUrl: job.employer.companyLogoUrl,
-        location: job.location,
-        type: job.type,
-        matchPercent: ranking ? ranking.matchPercent : job.initialScore,
-        createdAt: job.createdAt,
-        tags: [job.workMode, job.employmentType].filter(Boolean)
-      };
-    });
-
-    const finalRecommendations = recommendations
-      .filter(j => j.matchPercent >= 70) // Higher threshold for AI matches
+    // 6. Consolidate and Format Final Recommendations
+    const finalResults = topCandidates
+      .map(job => {
+        const aiRank = detailedRankings.find(r => r.id === job.id);
+        const matchPercent = aiRank ? aiRank.matchPercent : job.initialScore;
+        
+        return {
+          id: job.id,
+          title: job.title,
+          company: job.employer.companyName,
+          companyLogoUrl: job.employer.companyLogoUrl,
+          location: job.location,
+          type: job.type,
+          matchPercent,
+          createdAt: job.createdAt,
+          tags: [job.workMode, job.employmentType].filter(Boolean)
+        };
+      })
+      .filter(job => job.matchPercent >= MINIMUM_MATCH_THRESHOLD)
       .sort((a, b) => b.matchPercent - a.matchPercent);
 
-    // Save to Cache
-    await aiRepository.updateRecommendationCache(userId, finalRecommendations);
+    // 7. Update Cache and Respond
+    await aiRepository.updateRecommendationCache(userId, finalResults);
 
-    return res.status(200).json({
-      recommendations: finalRecommendations
-    });
+    return res.status(200).json({ recommendations: finalResults });
   } catch (err: any) {
-    console.error("getRecommendations error:", err);
-    return res.status(500).json({ message: err.message });
+    console.error("Recommendation Generation Error:", err);
+    return res.status(500).json({ message: "Internal server error during recommendation processing" });
   }
 };
 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GENERATE COVER LETTER ONLY
-// POST /api/ai/generate-cover-letter/:jobPostId
-// ─────────────────────────────────────────────────────────────────────────────
-
+/**
+ * POST /api/ai/generate-cover-letter/:jobPostId
+ * Generates a tailored cover letter for a specific job post.
+ */
 export const generateCoverLetter = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-    const jobPostId = getParam(req.params.jobPostId, "jobPostId");
-
-    // 1. Get Job Post
-    const jobPost = await aiRepository.findJobPostById(jobPostId);
-    if (!jobPost) return res.status(404).json({ message: "Job post not found" });
-
-    // 2. Get Candidate Profile
-    const candidate = await candidateRepository.findProfileByUserId(userId);
-    if (!candidate?.cvUrl) {
-      return res.status(400).json({ message: "No CV on file. Please upload a CV first." });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized access" });
     }
 
-    // 3. Check Cache First
-    const cachedAnalysis = await aiRepository.findAnalysisInCache(userId, jobPostId);
-    if (cachedAnalysis) {
+    const jobPostId = extractRequiredParam(req.params.jobPostId, "jobPostId");
+
+    // 1. Fetch Contextual Data
+    const [jobPost, candidate] = await Promise.all([
+      aiRepository.findJobPostById(jobPostId),
+      candidateRepository.findProfileByUserId(userId)
+    ]);
+
+    if (!jobPost) {
+      return res.status(404).json({ message: "Target job post not found" });
+    }
+
+    const customCvUrl = req.body.customCvUrl;
+    const activeCvUrl = customCvUrl || candidate?.cvUrl;
+
+    if (!activeCvUrl) {
+      return res.status(400).json({ message: "No CV provided for analysis" });
+    }
+
+    // 2. Check Analysis Cache (Only bypass for custom CVs)
+    const cachedResult = !customCvUrl 
+      ? await aiRepository.findAnalysisInCache(userId, jobPostId)
+      : null;
+
+    if (cachedResult) {
       return res.status(200).json({
-        coverLetter: cachedAnalysis.coverLetter,
-        overallScore: cachedAnalysis.overallScore,
-        suggestions: cachedAnalysis.suggestions,
+        ...cachedResult,
         fromCache: true
       });
     }
 
-    // 4. Extract Text & Generate CL
-    const cvText = await aiService.extractCvText(candidate.cvUrl);
-    const jobDescription = `${jobPost.title}\n${jobPost.description}\nSkills: ${jobPost.skillsRequired.join(", ")}`;
+    // 3. Generate New Analysis and Cover Letter
+    const cvContent = await aiService.extractCvText(activeCvUrl);
+    const jobDescription = [
+      jobPost.title,
+      jobPost.description,
+      `Skills: ${jobPost.skillsRequired.join(", ")}`
+    ].join("\n");
 
-    // We can use the same analyzeCv service but just take the cover letter
-    const analysis = await aiService.analyzeCv(cvText, jobDescription);
+    const analysis = await aiService.analyzeCv(cvContent, jobDescription);
 
-    // 5. Save to Cache
+    // 4. Persistence and Response
     await aiRepository.updateAnalysisCache(userId, jobPostId, analysis);
 
     return res.status(200).json({
@@ -169,13 +209,11 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
       suggestions: analysis.suggestions
     });
   } catch (err: any) {
-    console.error("generateCoverLetter error:", err);
-    return res.status(500).json({ message: err.message });
+    console.error("Cover Letter Generation Error:", err);
+    return res.status(500).json({ message: "Failed to generate tailored cover letter" });
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYER: APPLICANTS
 // ─────────────────────────────────────────────────────────────────────────────
-
-

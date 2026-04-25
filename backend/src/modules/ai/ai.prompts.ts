@@ -1,10 +1,15 @@
-// ai.prompts.ts
-// Optimized prompts for Talent Matching and Career Advancement.
+/**
+ * AI Prompts for Talent Matching and Career Analysis
+ * 
+ * This file contains the system prompts used to guide the LLM in various 
+ * tasks including skill extraction, CV analysis, and job ranking.
+ */
 
 /**
- * 1. EXTRACT CV SKILLS 
- * Goal: Get a clean, structured list of technical skills from CV text.
- * Used when a profile is created or updated.
+ * Prompt: Extract Technical Skills from CV
+ * 
+ * Target: Converts unstructured CV text into a clean list of technical proficiencies.
+ * Usage: Triggered during candidate profile creation or CV updates.
  */
 export const EXTRACT_CV_SKILLS_PROMPT = `
 You are an expert technical recruiter. 
@@ -24,9 +29,11 @@ Example Output:
 `;
 
 /**
- * 2. COMPREHENSIVE CV ANALYSIS (The "Best Algorithm")
- * Goal: In one single call, evaluate the candidate against the Job Description.
- * Returns: Overall Score, Improvement Suggestions, and a Professional Cover Letter.
+ * Prompt: Comprehensive CV vs Job Description Analysis
+ * 
+ * Target: Provides a multi-dimensional evaluation of a candidate for a specific role.
+ * Output: Includes a match score, constructive suggestions, and a tailored cover letter.
+ * Usage: Used in the detailed "Application Insight" section for candidates.
  */
 export const COMPREHENSIVE_ANALYSIS_PROMPT = `
 You are a career growth specialist and a strict hiring manager.
@@ -62,8 +69,10 @@ STRICT RULES:
 `;
 
 /**
- * 3. EXTRACT JD KEYWORDS (For fast dashboard matching)
- * Goal: Extract skills from a JD to allow local matching against stored CV skills.
+ * Prompt: Extract Job Description Keywords
+ * 
+ * Target: Identifies core technical requirements from a job posting.
+ * Usage: Enables efficient client-side filtering and initial match scoring.
  */
 export const EXTRACT_JD_KEYWORDS_PROMPT = `
 Extract core technical requirements from this Job Description.
@@ -76,8 +85,10 @@ Example: ["Java", "Spring Boot", "MySQL"]
 `;
 
 /**
- * 4. RANK JOBS (High Accuracy Batch Ranking)
- * Goal: Evaluate a list of jobs against a candidate profile in one go.
+ * Prompt: Batch Job Ranking
+ * 
+ * Target: Evaluates a list of job postings against a single candidate profile in one operation.
+ * Usage: Powers the "Recommended Jobs" dashboard feature with high accuracy.
  */
 export const RANK_JOBS_PROMPT = `
 You are an advanced talent matching system. 
@@ -109,4 +120,4 @@ Example Output:
 STRICT RULES:
 - Return ONLY the JSON array. No markdown, no explanations.
 - Be realistic—only give >80% if it's a very strong match.
-`;
+`;

@@ -389,6 +389,7 @@ export default function CandidateRecommendationsPage() {
               jobId={selectedJob.id}
               jobTitle={selectedJob.title}
               candidateName={user?.name || "Your Name"}
+              customCvUrl={cvUrl}
               onDone={(generatedCoverLetter) => {
                 setCoverLetter(generatedCoverLetter);
                 setShowAIModal(false);

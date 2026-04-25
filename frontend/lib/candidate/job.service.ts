@@ -71,9 +71,10 @@ export const candidateJobService = {
     });
   },
 
-  async generateCoverLetter(jobId: string): Promise<AIJobAnalysis> {
+  async generateCoverLetter(jobId: string, customCvUrl?: string): Promise<AIJobAnalysis> {
     const response = await apiClient<AIJobAnalysis>(`/api/ai/generate-cover-letter/${jobId}`, {
       method: 'POST',
+      data: { customCvUrl },
     });
     return response;
   },
