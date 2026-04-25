@@ -11,14 +11,14 @@ export const authRepository = {
           mode: "insensitive",
         },
       },
-      include: { employerProfile: true },
+      include: { employerProfile: true, candidateProfile: true },
     });
   },
 
   findUserById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: { employerProfile: true },
+      include: { employerProfile: true, candidateProfile: true },
     });
   },
 
@@ -34,7 +34,7 @@ export const authRepository = {
       },
       include: {
         user: {
-          include: { employerProfile: true },
+          include: { employerProfile: true, candidateProfile: true },
         },
       },
     });

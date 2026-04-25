@@ -52,6 +52,9 @@ export default function CandidateSettingsView({
             bio={profile.bio}
             skills={profile.skills}
             profilePictureUrl={profile.profilePictureUrl}
+            linkedinUrl={profile.linkedinUrl}
+            githubUrl={profile.githubUrl}
+            portfolioUrl={profile.portfolioUrl}
             onProfileUpdate={onProfileSaved}
           />
 

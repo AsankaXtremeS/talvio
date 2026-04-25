@@ -76,6 +76,11 @@ const buildSessionUser = (user: any) => ({
         rejectionReason: user.employerProfile.rejectionReason ?? null,
       }
     : null,
+  candidateProfile: user.candidateProfile
+    ? {
+        profilePictureUrl: user.candidateProfile.profilePictureUrl ?? null,
+      }
+    : null,
 });
 
 // Issues access and refresh tokens for a given user ID and role.(Access token is short-lived, refresh token is long-lived and stored in DB for rotation and revocation)
@@ -137,6 +142,11 @@ export const authService = {
             companyLogoUrl: user.employerProfile.companyLogoUrl ?? null,
             verificationStatus: user.employerProfile.verificationStatus,
             rejectionReason: user.employerProfile.rejectionReason,
+          }
+        : null,
+      candidateProfile: user.candidateProfile
+        ? {
+            profilePictureUrl: user.candidateProfile.profilePictureUrl ?? null,
           }
         : null,
     };
