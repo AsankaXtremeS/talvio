@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Cog } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RecommendationsFilterBar from "@/components/candidate/recommendations/RecommendationsFilterBar";
 import JobCard from "@/components/candidate/recommendations/JobCards";
 import JobViewModal from "@/components/candidate/recommendations/JobViewModel";
@@ -49,6 +49,7 @@ export default function CandidateRecommendationsPage() {
   const { user } = useAuth();
   const isProfessional = user?.role === "PROFESSIONAL";
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,6 +368,9 @@ export default function CandidateRecommendationsPage() {
                       useDefaultCv
                     );
                     await refetchApplications();
+                    // Invalidate other relevant queries
+                    queryClient.invalidateQueries({ queryKey: ["candidate-stats"] });
+                    queryClient.invalidateQueries({ queryKey: ["candidate-recommendations"] });
                     setShowApplyModal(false);
                     setSelectedJob(null);
                   } catch (error: any) {

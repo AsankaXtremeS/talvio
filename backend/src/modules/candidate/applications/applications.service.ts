@@ -97,7 +97,7 @@ export class ApplicationsService {
     }
 
     // 6. Create Application Record
-    return prisma.application.create({
+    const application = await prisma.application.create({
       data: {
         candidateProfileId: candidateProfile.id,
         jobPostId,
@@ -108,6 +108,14 @@ export class ApplicationsService {
         aiSuggestions,
       },
     });
+
+    // 7. Invalidate Recommendation Cache by updating candidateProfile.updatedAt
+    await prisma.candidateProfile.update({
+      where: { id: candidateProfile.id },
+      data: { updatedAt: new Date() }
+    });
+
+    return application;
   }
 
   async withdrawApplication(userId: string, applicationId: string) {

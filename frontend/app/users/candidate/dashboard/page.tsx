@@ -195,6 +195,8 @@ function useCandidateDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["candidate-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-recommendations"] });
       setPopup({ open: true, message: "Application submitted successfully!", success: true });
       setActiveModal("details");
     },
