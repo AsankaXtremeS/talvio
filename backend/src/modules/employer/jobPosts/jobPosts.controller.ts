@@ -344,3 +344,57 @@ export const getJobPostApplications = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/reviewed
+ * Employer marks they have reviewed the candidate (sets isReviewed = true).
+ * Independent from shortlisting.
+ */
+export const markReviewed = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const jobPostId = String(req.params.jobPostId);
+    const candidateProfileId = String(req.params.candidateProfileId);
+    if (!jobPostId || !isUuid(jobPostId))
+      return res.status(400).json({ message: "Invalid job post ID" });
+    if (!candidateProfileId || !isUuid(candidateProfileId))
+      return res.status(400).json({ message: "Invalid candidate profile ID" });
+
+    const result = await jobsService.markReviewed(userId, jobPostId, candidateProfileId);
+    res.json(result);
+  } catch (err: any) {
+    logControllerError("markReviewed", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to mark as reviewed."),
+    });
+  }
+};
+
+/**
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
+ * Employer shortlists the candidate (sets isShortlisted = true, applicationStatus = SHORTLISTED).
+ * Independent from reviewed.
+ */
+export const markShortlisted = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const jobPostId = String(req.params.jobPostId);
+    const candidateProfileId = String(req.params.candidateProfileId);
+    if (!jobPostId || !isUuid(jobPostId))
+      return res.status(400).json({ message: "Invalid job post ID" });
+    if (!candidateProfileId || !isUuid(candidateProfileId))
+      return res.status(400).json({ message: "Invalid candidate profile ID" });
+
+    const result = await jobsService.markShortlisted(userId, jobPostId, candidateProfileId);
+    res.json(result);
+  } catch (err: any) {
+    logControllerError("markShortlisted", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to shortlist candidate."),
+    });
+  }
+};

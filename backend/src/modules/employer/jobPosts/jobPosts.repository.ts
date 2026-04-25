@@ -1,5 +1,5 @@
 // Repository layer for employer job post management.
-// Responsible ONLY for database access — no business logic lives here.
+// Responsible ONLY for database access â€” no business logic lives here.
 // All queries are built with Prisma and typed explicitly.
 
 import { prisma } from "../../../config/db";
@@ -99,10 +99,10 @@ export interface GetJobPostsOptions {
 }
 
 export const jobsRepository = {
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FIND EMPLOYER PROFILE — Used to verify employer exists and is approved.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // FIND EMPLOYER PROFILE â€” Used to verify employer exists and is approved.
   // Called by service layer to check if user has an employer account.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async findEmployerProfileByUserId(userId: string) {
     // Query employer profile by user ID; only fetch id and verification status
     return prisma.employerProfile.findUnique({
@@ -114,11 +114,11 @@ export const jobsRepository = {
     });
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FIND ALL JOB POSTS — Returns paginated, filtered list of job posts.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // FIND ALL JOB POSTS â€” Returns paginated, filtered list of job posts.
   // Supports filtering by status, type, and text search in title.
   // IMPORTANT: Always filters by employerId to ensure data isolation.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async findAll(options: GetJobPostsOptions) {
     // Ensure 'closingDate' column exists (schema migration for backward compatibility)
     await ensureClosingDateColumnCompatibility();
@@ -177,10 +177,10 @@ export const jobsRepository = {
     return { posts, total };
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET STATS — Returns count of job posts by status.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // GET STATS â€” Returns count of job posts by status.
   // Used by dashboard to show: Total | Active | Draft | Closed
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async getStats(employerId: string) {
     await ensureClosingDateColumnCompatibility();
 
@@ -212,11 +212,11 @@ export const jobsRepository = {
     return result;
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FIND BY ID — Returns a single job post by ID.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // FIND BY ID â€” Returns a single job post by ID.
   // IMPORTANT: WHERE clause includes employerId to enforce ownership.
   // CRITICAL: If post exists but doesn't belong to employerId, returns null.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async findById(id: string, employerId: string) {
     await ensureClosingDateColumnCompatibility();
 
@@ -258,10 +258,10 @@ export const jobsRepository = {
     });
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CREATE — Inserts a new job post into the database.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // CREATE â€” Inserts a new job post into the database.
   // Defaults to ACTIVE status if not specified.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async create(employerId: string, data: CreateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
@@ -362,11 +362,11 @@ export const jobsRepository = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UPDATE — Partially updates a job post.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // UPDATE â€” Partially updates a job post.
   // Only updates fields that are provided (all fields optional for partial PATCH).
   // IMPORTANT: WHERE clause includes employerId to prevent cross-employer updates.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async update(id: string, employerId: string, data: UpdateJobPostInput) {
     await ensureClosingDateColumnCompatibility();
 
@@ -457,11 +457,11 @@ export const jobsRepository = {
     return updated;
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DELETE BY ID — Permanently deletes a job post.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // DELETE BY ID â€” Permanently deletes a job post.
   // IMPORTANT: WHERE clause includes employerId to prevent cross-employer deletion.
-  // CRITICAL: This operation is IRREVERSIBLE — no recovery possible.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // CRITICAL: This operation is IRREVERSIBLE â€” no recovery possible.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async deleteById(id: string, employerId: string) {
     await ensureClosingDateColumnCompatibility();
 
@@ -474,11 +474,11 @@ export const jobsRepository = {
     });
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET APPLICATIONS FOR JOB POST — Returns all candidates who applied for this post.
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // GET APPLICATIONS FOR JOB POST â€” Returns all candidates who applied for this post.
   // Filters by status if provided.
   // IMPORTANT: WHERE clause includes employerId to ensure the employer owns the job post.
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async findApplicationsByJobPost(jobPostId: string, employerId: string, status?: string) {
     // First verify the job post belongs to this employer
     const jobPost = await prisma.jobPost.findFirst({
@@ -505,6 +505,7 @@ export const jobsRepository = {
             id: true,
             headline: true,
             skills: true,
+            profilePictureUrl: true,
             user: {
               select: {
                 id: true,
@@ -517,6 +518,39 @@ export const jobsRepository = {
         },
       },
       orderBy: { appliedAt: "desc" },
+    });
+  },
+
+  // Find a single application by jobPostId + candidateProfileId
+  async findApplicationByJobAndCandidate(jobPostId: string, candidateProfileId: string) {
+    return prisma.application.findFirst({
+      where: { jobPostId, candidateProfileId },
+      select: {
+        id: true,
+        applicationStatus: true,
+        isReviewed: true,
+        isShortlisted: true,
+        cvUrl: true,
+        cvFileName: true,
+      },
+    });
+  },
+
+  // Set isReviewed = true on an application (independent of isShortlisted).
+  async markReviewed(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: { isReviewed: true },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+    });
+  },
+
+  // Set isShortlisted = true on an application (independent of isReviewed).
+  async markShortlisted(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: { isShortlisted: true, applicationStatus: "SHORTLISTED" },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
 };

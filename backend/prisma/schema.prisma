@@ -167,6 +167,8 @@ model Application {
   aiScore            Int?
   aiSuggestions      String[]                   @default([])
   applicationStatus  ApplicationStatus          @default(PENDING)
+  isReviewed         Boolean                    @default(false)
+  isShortlisted      Boolean                    @default(false)
   appliedAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
   candidateProfile   CandidateProfile           @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
