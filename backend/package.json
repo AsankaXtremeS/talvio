@@ -12,10 +12,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "test": "jest",
-    "test:auth": "jest src/modules/auth"
+    "test:auth": "jest src/modules/auth",
+    "test:ai": "jest src/modules/ai"
   },
   "keywords": [],
-  "author": "",
+  "author": "", 
   "license": "ISC",
   "description": "",
   "dependencies": {

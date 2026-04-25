@@ -9,4 +9,5 @@ module.exports = {
     '^../../utils/jwt$': '<rootDir>/src/utils/jwt',
     '^../../utils/email$': '<rootDir>/src/utils/email',
   },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
