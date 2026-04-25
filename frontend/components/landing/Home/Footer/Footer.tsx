@@ -73,7 +73,7 @@ const Footer = () => {
           </div>
 
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', margin: 0, textAlign: 'center' }}>
-            © 2025 NexHire. All rights reserved. |{' '}
+            © 2025 Talvio. All rights reserved. |{' '}
             <a href='/privacy-policy' className='footer-link' style={{ color: 'rgba(255,255,255,0.9)', textDecoration: 'none' }}>
               Privacy Policy
             </a>{' '}

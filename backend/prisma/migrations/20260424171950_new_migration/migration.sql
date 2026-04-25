@@ -119,6 +119,10 @@ CREATE TABLE "EmployerProfile" (
     "linkedInUrl" TEXT,
     "facebookUrl" TEXT,
     "twitterUrl" TEXT,
+    "googleAccessToken" TEXT,
+    "googleRefreshToken" TEXT,
+    "googleTokenExpiry" BIGINT,
+    "googleCalendarConnected" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -163,12 +167,13 @@ CREATE TABLE "CandidateProfile" (
     "portfolioUrl" TEXT,
     "cvUrl" TEXT,
     "cvFileName" TEXT,
+    "profilePictureUrl" TEXT,
     "extractedSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "recommendationCache" JSONB,
-    "jobAnalysisCache" JSONB DEFAULT '{}',
     "lastRecommendedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "jobAnalysisCache" JSONB DEFAULT '{}',
 
     CONSTRAINT "CandidateProfile_pkey" PRIMARY KEY ("id")
 );
@@ -218,12 +223,12 @@ CREATE TABLE "Interview" (
     "googleCalendarLink" TEXT,
     "candidateEmail" TEXT NOT NULL,
     "emailSentAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "cancelledAt" TIMESTAMP(3),
     "cancellationReason" TEXT,
     "rescheduledFromId" TEXT,
     "rescheduledToId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Interview_pkey" PRIMARY KEY ("id")
 );
