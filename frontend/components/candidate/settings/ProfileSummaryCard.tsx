@@ -14,6 +14,9 @@ interface ProfileSummaryCardProps {
   bio: string;
   skills: string[];
   profilePictureUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
   onProfileUpdate?: (data: any) => void;
 }
 
@@ -25,17 +28,42 @@ export default function ProfileSummaryCard({
   bio,
   skills,
   profilePictureUrl,
+  linkedinUrl,
+  githubUrl,
+  portfolioUrl,
   onProfileUpdate,
 }: ProfileSummaryCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [picModalOpen, setPicModalOpen] = useState(false);
-  const [profile, setProfile] = useState({ fullName, location, email, phone, bio, skills, profilePictureUrl });
+  const [profile, setProfile] = useState({ 
+    fullName, 
+    location, 
+    email, 
+    phone, 
+    bio, 
+    skills, 
+    profilePictureUrl,
+    linkedinUrl,
+    githubUrl,
+    portfolioUrl 
+  });
   const [showAllSkills, setShowAllSkills] = useState(false);
 
   // Sync internal state with props when they change (e.g., after initial fetch)
   useEffect(() => {
-    setProfile({ fullName, location, email, phone, bio, skills, profilePictureUrl });
-  }, [fullName, location, email, phone, bio, skills, profilePictureUrl]);
+    setProfile({ 
+      fullName, 
+      location, 
+      email, 
+      phone, 
+      bio, 
+      skills, 
+      profilePictureUrl,
+      linkedinUrl,
+      githubUrl,
+      portfolioUrl 
+    });
+  }, [fullName, location, email, phone, bio, skills, profilePictureUrl, linkedinUrl, githubUrl, portfolioUrl]);
 
   const initials = fullName
     .split(" ")

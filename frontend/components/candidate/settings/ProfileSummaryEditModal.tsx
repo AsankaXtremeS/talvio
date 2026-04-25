@@ -12,6 +12,9 @@ interface ProfileSummaryEditModalProps {
     phone: string;
     bio: string;
     skills: string[];
+    linkedinUrl?: string;
+    githubUrl?: string;
+    portfolioUrl?: string;
   };
   onClose: () => void;
   onSave: (data: any) => void;
@@ -60,6 +63,9 @@ export default function ProfileSummaryEditModal({
   const [location, setLocation] = useState(initial.location ?? "");
   const [bio, setBio] = useState(initial.bio ?? "");
   const [skills, setSkills] = useState<string[]>(initial.skills ?? []);
+  const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedinUrl ?? "");
+  const [githubUrl, setGithubUrl] = useState(initial.githubUrl ?? "");
+  const [portfolioUrl, setPortfolioUrl] = useState(initial.portfolioUrl ?? "");
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) onClose();
@@ -84,14 +90,22 @@ export default function ProfileSummaryEditModal({
         location,
         bio,
         skills,
+        linkedinUrl,
+        githubUrl,
+        portfolioUrl,
       });
       onSave({
         fullName: `${firstName} ${lastName}`.trim(),
+        firstName,
+        lastName,
         location,
         email,
         phone,
         bio,
         skills,
+        linkedinUrl,
+        githubUrl,
+        portfolioUrl,
       });
       onClose();
     } catch (err: any) {
@@ -184,6 +198,29 @@ export default function ProfileSummaryEditModal({
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="City, Province, Country"
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="LinkedIn URL">
+                    <input
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </Field>
+                  <Field label="GitHub URL">
+                    <input
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      placeholder="https://github.com/username"
+                    />
+                  </Field>
+                </div>
+                <Field label="Portfolio URL">
+                  <input
+                    value={portfolioUrl}
+                    onChange={(e) => setPortfolioUrl(e.target.value)}
+                    placeholder="https://yourportfolio.com"
                   />
                 </Field>
               </>

@@ -14,7 +14,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import { Loader2 } from "lucide-react";
 
 export default function CandidateSettingsPage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
   const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
@@ -85,6 +85,20 @@ export default function CandidateSettingsPage() {
 
   const handleProfileSaved = (data: any) => {
     queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
+    
+    // Update AuthContext user state so sidebar reflects changes immediately
+    if (user) {
+      setUser({
+        ...user,
+        firstName: data.firstName !== undefined ? data.firstName : user.firstName,
+        lastName: data.lastName !== undefined ? data.lastName : user.lastName,
+        candidateProfile: data.profilePictureUrl !== undefined ? {
+          ...(user.candidateProfile || {}),
+          profilePictureUrl: data.profilePictureUrl
+        } : user.candidateProfile
+      });
+    }
+    
     setPopup({ open: true, message: "Profile updated successfully!", success: true });
   };
 
@@ -100,10 +114,10 @@ export default function CandidateSettingsPage() {
       phone: "+1123-456-7890",
       bio: realProfile?.bio || "A motivated web developer with 2 years of experience in React and Next.js.",
       skills: realProfile?.skills?.length ? realProfile.skills : ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
-      profilePictureUrl: realProfile?.profilePictureUrl,
-      linkedinUrl: realProfile?.linkedinUrl,
-      githubUrl: realProfile?.githubUrl,
-      portfolioUrl: realProfile?.portfolioUrl,
+      profilePictureUrl: realProfile?.profilePictureUrl || undefined,
+      linkedinUrl: realProfile?.linkedinUrl || undefined,
+      githubUrl: realProfile?.githubUrl || undefined,
+      portfolioUrl: realProfile?.portfolioUrl || undefined,
       education: {
         degree: "Bachelor's of Science",
         field: "Computer Science",

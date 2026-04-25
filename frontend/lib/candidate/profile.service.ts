@@ -10,6 +10,9 @@ export interface CandidateProfile {
   cvUrl?: string;
   cvFileName?: string;
   profilePictureUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
   extractedSkills: string[];
   updatedAt: string;
 }
