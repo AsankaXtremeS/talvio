@@ -2,16 +2,16 @@
 
 import { FileText } from "lucide-react";
 
-interface ActivityItem {
+export interface RecentActivityFeedActivityItem {
   id: string;
   text: string;
   time: string;
 }
 
 interface RecentActivityFeedProps {
-  activities: ActivityItem[];
+  activities: RecentActivityFeedActivityItem[];
   onViewAll?: () => void;
-  onViewItem?: (activity: ActivityItem) => void;
+  onViewItem?: (activity: RecentActivityFeedActivityItem) => void;
 }
 
 export default function RecentActivityFeed({ activities, onViewAll, onViewItem }: RecentActivityFeedProps) {

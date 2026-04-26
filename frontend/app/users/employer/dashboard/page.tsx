@@ -11,15 +11,14 @@ import StatsRow from "@/components/employer/dashboard/StatsRow";
 import AIMatchedWidget from "@/components/employer/dashboard/AIMatchedWidget";
 import UpcomingInterviewsWidget from "@/components/employer/dashboard/UpcomingInterviewsWidget";
 import JobsPreviewWidget from "@/components/employer/dashboard/JobsPreviewWidget";
-import RecentActivityFeed from "@/components/employer/dashboard/RecentActivityFeed";
+import RecentActivityFeed, {
+  type RecentActivityFeedActivityItem,
+} from "@/components/employer/dashboard/RecentActivityFeed";
 import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import type { InterviewDTO } from "@/types/employer/interview.types";
 import type { JobPost } from "@/types/employer/jobPost.types";
 
-interface ActivityItem {
-  id: string;
-  text: string;
-  time: string;
+interface DashboardActivityItem extends RecentActivityFeedActivityItem {
   sortValue: number;
 }
 
@@ -45,7 +44,7 @@ function formatRelativeTime(iso: string) {
 const createActivityItems = (
   interviews: InterviewDTO[],
   jobs: JobPost[]
-): ActivityItem[] => {
+): DashboardActivityItem[] => {
   const interviewItems = interviews.map((interview) => {
     const eventTime = interview.updatedAt || interview.createdAt || interview.scheduledAt;
     return {
@@ -113,7 +112,7 @@ export default function DashboardPage() {
     enabled: Boolean(activeJob?.id),
   });
 
-  const activityFeed = useMemo(
+  const activityFeed = useMemo<DashboardActivityItem[]>(
     () => createActivityItems(upcomingInterviews, jobPosts),
     [upcomingInterviews, jobPosts]
   );
@@ -125,31 +124,28 @@ export default function DashboardPage() {
   const recentActivityList = activityFeed.slice(0, 3);
   const recentActivityModalList = activityFeed.slice(0, 10);
 
-  const handleRecentActivityView = (activity: ActivityItem) => {
+  const handleRecentActivityView = (activity: RecentActivityFeedActivityItem) => {
     if (activity.id.startsWith("job-")) {
       router.push(`/users/employer/job-posts/${activity.id.replace("job-", "")}`);
       return;
     }
-
     if (activity.id.startsWith("interview-")) {
       router.push("/users/employer/interviews");
       return;
     }
-
     router.push("/users/employer/job-posts");
   };
 
   const closeRecentActivityModal = () => setIsRecentActivityModalOpen(false);
 
   return (
-    <div className="flex-1 min-h-screen overflow-auto p-7 [&_button:not(:disabled)]:cursor-pointer">
-      <div className="sticky top-0 z-30 bg-[#f4f6fb] pt-0 -mt-7 pb-2">
+    <div className="flex-1 min-h-screen bg-[#f4f6fb] [&_button:not(:disabled)]:cursor-pointer">
+      {/* Sticky header — single block, no nesting */}
+      <div className="sticky top-0 z-30 bg-[#f4f6fb] px-7 pt-7 pb-3 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)]">
         <div className="bg-white rounded-2xl px-7 py-5 mb-3 flex items-center justify-between shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-indigo-700 flex items-center gap-2">
-              <span className="text-2xl">
-                <LayoutDashboard />
-              </span>{" "}
+              <LayoutDashboard />
               Dashboard
             </h1>
             <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
@@ -171,19 +167,19 @@ export default function DashboardPage() {
             Post New Job
           </button>
         </div>
-        <div className="sticky top-24 z-20 bg-[#f4f6fb] pb-2">
-          <StatsRow
-            stats={{
-              activePosts: stats?.active ?? 0,
-              interviews: upcomingInterviews.length,
-              applications: stats?.applications ?? 0,
-              aiMatches: aiCandidates.length,
-            }}
-          />
-        </div>
+
+        <StatsRow
+          stats={{
+            activePosts: stats?.active ?? 0,
+            interviews: upcomingInterviews.length,
+            applications: stats?.applications ?? 0,
+            aiMatches: aiCandidates.length,
+          }}
+        />
       </div>
 
-      <div className="grid gap-6 mt-6 px-2 pb-4 lg:grid-cols-[1.6fr_1fr]">
+      {/* Scrollable content */}
+      <div className="grid gap-6 mt-6 px-9 pb-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           <AIMatchedWidget
             candidates={aiCandidates}
@@ -215,6 +211,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Recent Activity Modal */}
       {isRecentActivityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-xl">
