@@ -42,8 +42,8 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
         <Tooltip
           contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 12 }}
           formatter={(value) => [
-  value ? Number(value).toLocaleString() : '0',
-  'Users'
+          value ? Number(value).toLocaleString() : '0',
+          'Users'
 ]}
         />
         <Area
