@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
+import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import { getCandidates } from "@/lib/employer/candidates.service";
+import type { JobPost } from "@/types/employer/jobPost.types";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
 interface Props {
@@ -19,19 +21,24 @@ export default function PostCandidatesPage({ params }: Props) {
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
+  const [jobPost, setJobPost] = useState<JobPost | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
+    setIsLoading(true);
     getCandidates(status, postId)
       .then((data) => {
         if (mounted) {
           setCandidates(data);
+          setIsLoading(false);
         }
       })
       .catch(() => {
         if (mounted) {
           setCandidates([]);
+          setIsLoading(false);
         }
       });
 
@@ -39,6 +46,22 @@ export default function PostCandidatesPage({ params }: Props) {
       mounted = false;
     };
   }, [status, postId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getJobPostById(postId)
+      .then((data) => {
+        if (mounted) setJobPost(data);
+      })
+      .catch(() => {
+        if (mounted) setJobPost(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [postId]);
 
   const filteredCandidates = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -69,7 +92,7 @@ export default function PostCandidatesPage({ params }: Props) {
 
       {/* Used text-gray-900 to ensure the heading is clearly visible on the light background */}
       <h1 className="text-2xl font-bold text-gray-900">
-        Candidates for Post — {postId}
+        Candidates for Post — {jobPost?.title ?? postId}
       </h1>
 
       <CandidateFilterBar
@@ -82,6 +105,7 @@ export default function PostCandidatesPage({ params }: Props) {
       {/* ─── UPDATED GRID ROUTING ───────────────────────────────────── */}
       <CandidatesGrid
         candidates={filteredCandidates}
+        isLoading={isLoading}
         onViewProfile={(id) => {
           // Pass postId so the profile page can update application status in context
           router.push(`/users/employer/candidates/${id}?postId=${postId}`);

@@ -1,3 +1,5 @@
+"use client";
+
 import { FileText } from "lucide-react";
 
 interface ActivityItem {
@@ -9,9 +11,10 @@ interface ActivityItem {
 interface RecentActivityFeedProps {
   activities: ActivityItem[];
   onViewAll?: () => void;
+  onViewItem?: (activity: ActivityItem) => void;
 }
 
-export default function RecentActivityFeed({ activities, onViewAll }: RecentActivityFeedProps) {
+export default function RecentActivityFeed({ activities, onViewAll, onViewItem }: RecentActivityFeedProps) {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm ring-1 ring-slate-200/70">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -38,7 +41,11 @@ export default function RecentActivityFeed({ activities, onViewAll }: RecentActi
                 <p className="text-sm text-slate-900 leading-snug">{activity.text}</p>
                 <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
               </div>
-              <button className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
+              <button
+                type="button"
+                onClick={() => onViewItem?.(activity)}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+              >
                 View
               </button>
             </div>
