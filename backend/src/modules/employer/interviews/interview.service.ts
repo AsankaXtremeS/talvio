@@ -597,7 +597,48 @@ export const interviewService = {
       console.warn(`[ScheduleAndSend] Interview scheduled but email was not delivered: ${id}`);
     }
 
-    return mapToDTO(updated);
+    try {
+      return mapToDTO(updated);
+    } catch (mapErr) {
+      console.error(`[ScheduleAndSend] Failed to map scheduled interview to DTO for ${id}:`, mapErr);
+
+      return {
+        id: updated.id,
+        status: updated.status,
+        scheduledAt: updated.scheduledAt instanceof Date ? updated.scheduledAt.toISOString() : String(updated.scheduledAt),
+        meetingType: updated.meetingType,
+        location: updated.location ?? null,
+        meetingLink: updated.meetingLink ?? null,
+        googleCalendarLink: updated.googleCalendarLink ?? null,
+        additionalInfo: updated.additionalInfo ?? null,
+        emailBody: updated.emailBody ?? null,
+        emailSentAt: updated.emailSentAt instanceof Date ? updated.emailSentAt.toISOString() : null,
+        candidateEmail: updated.candidateEmail,
+        rescheduledFromId: updated.rescheduledFromId ?? null,
+        rescheduledToId: updated.rescheduledToId ?? null,
+        candidate: {
+          id: updated.candidate?.id ?? "",
+          name: [updated.candidate?.user?.firstName, updated.candidate?.user?.lastName]
+            .filter(Boolean)
+            .join(" ") || "Candidate",
+          email: updated.candidate?.user?.email ?? updated.candidateEmail,
+          headline: updated.candidate?.headline ?? null,
+          skills: updated.candidate?.skills ?? [],
+        },
+        jobPost: {
+          id: updated.jobPost?.id ?? "",
+          title: updated.jobPost?.title ?? "",
+          type: updated.jobPost?.type === "JOB" ? "Job" : "Internship",
+          companyName: updated.employer?.companyName ?? "",
+        },
+        employer: {
+          companyName: updated.employer?.companyName ?? "",
+          email: updated.employer?.user?.email ?? "",
+        },
+        createdAt: updated.createdAt instanceof Date ? updated.createdAt.toISOString() : String(updated.createdAt),
+        updatedAt: updated.updatedAt instanceof Date ? updated.updatedAt.toISOString() : String(updated.updatedAt),
+      } as InterviewDTO;
+    }
   },
 
   /**
@@ -733,13 +774,39 @@ ${companyName}`;
       );
     }
 
-    // Send cancellation email
+    // Remove Google Calendar event before cancelling the interview.
+    const googleEventId = (existing as any).googleCalendarEventId;
+    if (googleEventId) {
+      const auth = await getEmployerGoogleAuth(employerProfileId);
+      if (auth) {
+        try {
+          await googleCalendarService.deleteEvent(auth, googleEventId);
+          console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
+        } catch (err) {
+          console.error(
+            "Failed to delete Google Calendar event:",
+            err
+          );
+          // Don't fail the operation if calendar delete fails
+        }
+      }
+    }
+
+    // Update status to CANCELLED
+    const updated = await interviewRepository.update(id, employerProfileId, {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+      cancellationReason: reason,
+    });
+
+    console.log(`[CancelAndSendEmail] Interview cancelled: ${id}`);
+
+    // Send cancellation email after the interview is cancelled so email is only delivered when the cancellation succeeds.
     try {
       console.log(
         `[CancelAndSendEmail] Sending cancellation email to ${(existing as any).candidateEmail}`
       );
 
-      // Create and send email
       const candidateName = [
         (existing as any).candidate?.user?.firstName,
         (existing as any).candidate?.user?.lastName,
@@ -769,39 +836,9 @@ ${companyName}`;
         cancellationReason: reason,
       } as any);
     } catch (err) {
-      console.error("Failed to send cancellation email:", err);
-      throw buildHttpError(
-        `Failed to send cancellation email: ${(err as Error).message}`,
-        500
-      );
+      console.error("Failed to send cancellation email, continuing cancellation anyway:", err);
     }
 
-    // Remove Google Calendar event
-    const googleEventId = (existing as any).googleCalendarEventId;
-    if (googleEventId) {
-      const auth = await getEmployerGoogleAuth(employerProfileId);
-      if (auth) {
-        try {
-          await googleCalendarService.deleteEvent(auth, googleEventId);
-          console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
-        } catch (err) {
-          console.error(
-            "Failed to delete Google Calendar event:",
-            err
-          );
-          // Don't fail the operation if calendar delete fails
-        }
-      }
-    }
-
-    // Update status to CANCELLED
-    const updated = await interviewRepository.update(id, employerProfileId, {
-      status: "CANCELLED",
-      cancelledAt: new Date(),
-      cancellationReason: reason,
-    });
-
-    console.log(`[CancelAndSendEmail] Interview cancelled: ${id}`);
     return mapToDTO(updated);
   },
 };

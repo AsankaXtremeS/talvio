@@ -105,9 +105,7 @@ export default function DashboardPage() {
     queryKey: ["employer", "aiCandidates", activeJob?.id],
     queryFn: async () => {
       if (!activeJob?.id) return [];
-      const candidates = await getCandidates("AI Matches", activeJob.id);
-      if (candidates.length > 0) return candidates;
-      return await getCandidates("AI Matches");
+      return await getCandidates("AI Matches", activeJob.id);
     },
     enabled: Boolean(activeJob?.id),
   });
