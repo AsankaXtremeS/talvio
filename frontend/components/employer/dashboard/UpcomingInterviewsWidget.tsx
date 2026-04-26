@@ -5,6 +5,7 @@ interface UpcomingInterviewsWidgetProps {
   interviews: InterviewDTO[];
   isLoading?: boolean;
   onViewAll?: () => void;
+  onViewInterview?: (interview: InterviewDTO) => void;
 }
 
 function Avatar({ seed }: { seed: string }) {
@@ -32,7 +33,7 @@ function formatInterviewTime(iso: string) {
   });
 }
 
-export default function UpcomingInterviewsWidget({ interviews, isLoading, onViewAll }: UpcomingInterviewsWidgetProps) {
+export default function UpcomingInterviewsWidget({ interviews, isLoading, onViewAll, onViewInterview }: UpcomingInterviewsWidgetProps) {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm ring-1 ring-slate-200/70">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -73,7 +74,11 @@ export default function UpcomingInterviewsWidget({ interviews, isLoading, onView
                   <CalendarDays size={12} />
                   {formatInterviewTime(interview.scheduledAt)}
                 </span>
-                <button className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
+                <button
+                  type="button"
+                  onClick={() => onViewInterview?.(interview)}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                >
                   View details
                 </button>
               </div>

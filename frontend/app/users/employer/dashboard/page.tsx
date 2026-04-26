@@ -12,6 +12,7 @@ import AIMatchedWidget from "@/components/employer/dashboard/AIMatchedWidget";
 import UpcomingInterviewsWidget from "@/components/employer/dashboard/UpcomingInterviewsWidget";
 import JobsPreviewWidget from "@/components/employer/dashboard/JobsPreviewWidget";
 import RecentActivityFeed from "@/components/employer/dashboard/RecentActivityFeed";
+import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import type { InterviewDTO } from "@/types/employer/interview.types";
 import type { JobPost } from "@/types/employer/jobPost.types";
 
@@ -117,6 +118,8 @@ export default function DashboardPage() {
     [upcomingInterviews, jobPosts]
   );
 
+  const [selectedInterview, setSelectedInterview] = useState<InterviewDTO | null>(null);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
   const upcomingInterviewList = upcomingInterviews.slice(0, 2);
   const recentActivityList = activityFeed.slice(0, 3);
@@ -195,6 +198,10 @@ export default function DashboardPage() {
             interviews={upcomingInterviewList}
             isLoading={interviewsLoading}
             onViewAll={() => router.push("/users/employer/interviews")}
+            onViewInterview={(interview) => {
+              setSelectedInterview(interview);
+              setIsInterviewModalOpen(true);
+            }}
           />
           <RecentActivityFeed
             activities={recentActivityList}
@@ -260,6 +267,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <InterviewDetailsModal
+        interview={selectedInterview}
+        isOpen={isInterviewModalOpen}
+        onClose={() => setIsInterviewModalOpen(false)}
+      />
     </div>
   );
 }
