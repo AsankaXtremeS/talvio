@@ -29,18 +29,31 @@ const ContactForm = () => {
   // ✅ Moved fetch inside useEffect (top-level await not allowed in client components)
   useEffect(() => {
     const fetchCountryCodes = async () => {
-      const res = await fetch("https://restcountries.com/v3.1/all");
-      const data = await res.json();
-      const codes = (data as CountryData[])
-        .map((c) => ({
-          name: c.name.common,
-          code: c.idd?.root
-            ? c.idd.root + (c.idd?.suffixes?.[0] || "")
-            : "",
-        }))
-        .filter((c) => c.code) 
-        .sort((a, b) => a.name.localeCompare(b.name)); 
-      setCountryCodes(codes);
+      try {
+        const res = await fetch("https://restcountries.com/v3.1/all");
+        if (!res.ok) throw new Error("Failed to fetch country codes");
+        const data = await res.json();
+        
+        if (!Array.isArray(data)) {
+          console.warn("Expected array from restcountries API, got:", typeof data);
+          return;
+        }
+
+        const codes = (data as CountryData[])
+          .map((c) => ({
+            name: c.name?.common || "Unknown",
+            code: c.idd?.root
+              ? c.idd.root + (c.idd?.suffixes?.[0] || "")
+              : "",
+          }))
+          .filter((c) => c.code) 
+          .sort((a, b) => a.name.localeCompare(b.name)); 
+        setCountryCodes(codes);
+      } catch (err) {
+        console.error("Error fetching country codes:", err);
+        // Provide a default fallback so the UI still works
+        setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
+      }
     };
     fetchCountryCodes();
   }, []);
