@@ -16,6 +16,12 @@ const apiUrl = (path: string) => {
   return API_BASE ? `${API_BASE}${path}` : path;
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_REGEX.test(value);
+}
+
 function getStoredAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem("accessToken");
@@ -302,6 +308,13 @@ export async function getCandidates(
  * Used in the schedule interview page to display applicant info.
  */
 export async function getCandidateById(candidateProfileId: string): Promise<FullCandidateProfile | null> {
+  if (!candidateProfileId || !isUuid(candidateProfileId)) {
+    console.warn(
+      `[getCandidateById] Skipping API fetch for invalid candidate profile id: ${candidateProfileId}`
+    );
+    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+  }
+
   try {
     const res = await fetch(`/api/employer/interviews/candidates/${candidateProfileId}`, {
       credentials: "include",

@@ -5,6 +5,7 @@ import type { CandidateInfo } from "@/types/candidate/candidate.types";
 interface AIMatchedWidgetProps {
   candidates: CandidateInfo[];
   isLoading?: boolean;
+  onViewProfile?: (candidateId: string) => void;
 }
 
 function Avatar({ seed }: { seed: string }) {
@@ -20,7 +21,7 @@ function Avatar({ seed }: { seed: string }) {
   );
 }
 
-export default function AIMatchedWidget({ candidates, isLoading }: AIMatchedWidgetProps) {
+export default function AIMatchedWidget({ candidates, isLoading, onViewProfile }: AIMatchedWidgetProps) {
   const roles = useMemo(
     () => ["Show All", ...Array.from(new Set(candidates.map((candidate) => candidate.role)))],
     [candidates]
@@ -97,7 +98,23 @@ export default function AIMatchedWidget({ candidates, isLoading }: AIMatchedWidg
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Loading AI matches…</div>
         ) : filteredCandidates.length > 0 ? (
           filteredCandidates.map((candidate) => (
-            <div key={candidate.id} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div
+              key={candidate.id}
+              role={onViewProfile ? "button" : undefined}
+              tabIndex={onViewProfile ? 0 : undefined}
+              onClick={onViewProfile ? () => onViewProfile(candidate.id) : undefined}
+              onKeyDown={
+                onViewProfile
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onViewProfile(candidate.id);
+                      }
+                    }
+                  : undefined
+              }
+              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
               <Avatar seed={candidate.name} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{candidate.name}</p>

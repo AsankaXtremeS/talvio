@@ -185,7 +185,11 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 mt-6 px-2 pb-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
-          <AIMatchedWidget candidates={aiCandidates} isLoading={aiCandidatesLoading} />
+          <AIMatchedWidget
+            candidates={aiCandidates}
+            isLoading={aiCandidatesLoading}
+            onViewProfile={(candidateId) => router.push(`/users/employer/candidates/${candidateId}`)}
+          />
           <JobsPreviewWidget
             jobs={jobPosts}
             isLoading={jobsLoading}
