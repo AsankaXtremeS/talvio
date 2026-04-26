@@ -113,7 +113,7 @@ export default function AIMatchedWidget({ candidates, isLoading, onViewProfile }
                     }
                   : undefined
               }
-              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 cursor-pointer transition hover:border-slate-300 hover:bg-slate-100"
             >
               <Avatar seed={candidate.name} />
               <div className="min-w-0 flex-1">
