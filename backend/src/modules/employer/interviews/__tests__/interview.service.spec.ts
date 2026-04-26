@@ -168,10 +168,15 @@ describe("interviewService", () => {
       candidateProfileId: "e5f6a7b8-c9d0-1234-efab-345678901234",
       scheduledAt: "2099-06-01T10:00:00Z",
       meetingType: "ONLINE" as const,
+      meetingLink: "https://meet.google.com/abc",
       isReschedule: false,
     } satisfies import("../interview.validation").CreateInterviewInput;
 
     it("should create a DRAFT interview when candidate has an application", async () => {
+      const { prisma } = require("../../../../config/db");
+      prisma.employerProfile.findUnique
+        .mockResolvedValueOnce({ id: EMPLOYER_PROFILE_ID })  // 1st call: getEmployerProfileId
+        .mockResolvedValueOnce({ ...mockEmployerProfile });   // 2nd call: getEmployerGoogleAuth
       (interviewRepository.findJobPostForEmployer as jest.Mock).mockResolvedValue(mockJobPost);
       (interviewRepository.findApplication as jest.Mock).mockResolvedValue({
         id: "app-1",
@@ -188,6 +193,10 @@ describe("interviewService", () => {
     });
 
     it("should create a DRAFT using direct candidate lookup when no application exists", async () => {
+      const { prisma } = require("../../../../config/db");
+      prisma.employerProfile.findUnique
+        .mockResolvedValueOnce({ id: EMPLOYER_PROFILE_ID })  // 1st call: getEmployerProfileId
+        .mockResolvedValueOnce({ ...mockEmployerProfile });   // 2nd call: getEmployerGoogleAuth
       (interviewRepository.findJobPostForEmployer as jest.Mock).mockResolvedValue(mockJobPost);
       (interviewRepository.findApplication as jest.Mock).mockResolvedValue(null);
       (interviewRepository.findCandidateProfile as jest.Mock).mockResolvedValue(mockCandidate);
@@ -254,7 +263,7 @@ describe("interviewService", () => {
         meetingLink: "https://meet.google.com/generated",
       });
 
-      const inputWithoutLink = { ...baseInput };
+      const inputWithoutLink = { ...baseInput, meetingLink: undefined };
       const result = await interviewService.createDraft(EMPLOYER_USER_ID, inputWithoutLink as any);
 
       expect(googleCalendarService.createEvent).toHaveBeenCalled();

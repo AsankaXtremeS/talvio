@@ -17,10 +17,12 @@
     "test:admin": "jest src/modules/admin --verbose",
     "test:candidate": "jest src/modules/candidate --verbose",
     "test:candidate:profile": "jest src/modules/candidate/profile --verbose",
-    "test:candidate:jobs": "jest src/modules/candidate/jobs --verbose"
+    "test:candidate:jobs": "jest src/modules/candidate/jobs --verbose",
+    "test:employer": "jest src/modules/employer --verbose",
+    "test:employer:interviews": "jest src/modules/employer/interviews --verbose"
   },
   "keywords": [],
-  "author": "", 
+  "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
