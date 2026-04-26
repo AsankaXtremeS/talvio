@@ -69,38 +69,35 @@ model PasswordResetToken {
 }
 
 model EmployerProfile {
-  id                   String             @id @default(uuid())
-  userId               String             @unique
-  companyName          String
-  registrationFileUrl  String
-  registrationFileName String
-  verificationStatus   VerificationStatus @default(PENDING)
-  rejectionReason      String?
-  companyDescription   String?
-  companyLogoUrl       String?
-  companyWebsite       String?
-  companyLocation      String?
-  coverImageUrl        String?
-  industry             String?
-  companyType          String?
-  companySize          String?
-  foundedYear          Int?
-  specialties          String?
-  linkedInUrl          String?
-  facebookUrl          String?
-  twitterUrl           String?
-  
-  // Google Calendar Integration
+  id                      String             @id @default(uuid())
+  userId                  String             @unique
+  companyName             String
+  registrationFileUrl     String
+  registrationFileName    String
+  verificationStatus      VerificationStatus @default(PENDING)
+  rejectionReason         String?
+  companyDescription      String?
+  companyLogoUrl          String?
+  companyWebsite          String?
+  companyLocation         String?
+  coverImageUrl           String?
+  industry                String?
+  companyType             String?
+  companySize             String?
+  foundedYear             Int?
+  specialties             String?
+  linkedInUrl             String?
+  facebookUrl             String?
+  twitterUrl              String?
   googleAccessToken       String?
   googleRefreshToken      String?
   googleTokenExpiry       BigInt?
-  googleCalendarConnected Boolean @default(false)
-
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interviews           Interview[]
-  jobPosts             JobPost[]
+  googleCalendarConnected Boolean            @default(false)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviews              Interview[]
+  jobPosts                JobPost[]
 }
 
 model JobPost {
@@ -167,10 +164,10 @@ model Application {
   aiScore            Int?
   aiSuggestions      String[]                   @default([])
   applicationStatus  ApplicationStatus          @default(PENDING)
-  isReviewed         Boolean                    @default(false)
-  isShortlisted      Boolean                    @default(false)
   appliedAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
+  isReviewed         Boolean                    @default(false)
+  isShortlisted      Boolean                    @default(false)
   candidateProfile   CandidateProfile           @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
   jobPost            JobPost                    @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
   statusHistory      ApplicationStatusHistory[]
