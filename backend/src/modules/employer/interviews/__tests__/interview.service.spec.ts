@@ -173,6 +173,10 @@ describe("interviewService", () => {
     } satisfies import("../interview.validation").CreateInterviewInput;
 
     it("should create a DRAFT interview when candidate has an application", async () => {
+      const { prisma } = require("../../../../config/db");
+      prisma.employerProfile.findUnique
+        .mockResolvedValueOnce({ id: EMPLOYER_PROFILE_ID })  // 1st call: getEmployerProfileId
+        .mockResolvedValueOnce({ ...mockEmployerProfile });   // 2nd call: getEmployerGoogleAuth
       (interviewRepository.findJobPostForEmployer as jest.Mock).mockResolvedValue(mockJobPost);
       (interviewRepository.findApplication as jest.Mock).mockResolvedValue({
         id: "app-1",
@@ -189,6 +193,10 @@ describe("interviewService", () => {
     });
 
     it("should create a DRAFT using direct candidate lookup when no application exists", async () => {
+      const { prisma } = require("../../../../config/db");
+      prisma.employerProfile.findUnique
+        .mockResolvedValueOnce({ id: EMPLOYER_PROFILE_ID })  // 1st call: getEmployerProfileId
+        .mockResolvedValueOnce({ ...mockEmployerProfile });   // 2nd call: getEmployerGoogleAuth
       (interviewRepository.findJobPostForEmployer as jest.Mock).mockResolvedValue(mockJobPost);
       (interviewRepository.findApplication as jest.Mock).mockResolvedValue(null);
       (interviewRepository.findCandidateProfile as jest.Mock).mockResolvedValue(mockCandidate);
