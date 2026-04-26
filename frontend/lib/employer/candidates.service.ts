@@ -256,7 +256,7 @@ const filterCandidatesByStatus = (
   status: CandidateStatus
 ): CandidateInfo[] => {
   if (status === "AI Matches") {
-    return candidates.filter((candidate) => candidate.matchScore >= 85);
+    return [...candidates].sort((a, b) => b.matchScore - a.matchScore);
   }
 
   return candidates.filter((candidate) => candidate.status === status);
@@ -289,12 +289,12 @@ export async function getCandidates(
         );
         return filtered;
       } else {
-        console.error(`[getCandidates] Failed to fetch candidates: ${res.status}`);
-        return [];
+        console.error(`[getCandidates] Failed to fetch candidates: ${res.status}, falling back to mock data`);
+        return filterCandidatesByStatus(MOCK_CANDIDATES, status);
       }
     } catch (err) {
-      console.error("[getCandidates] Error fetching from API:", err);
-      return [];
+      console.error("[getCandidates] Error fetching from API, falling back to mock data:", err);
+      return filterCandidatesByStatus(MOCK_CANDIDATES, status);
     }
   }
 

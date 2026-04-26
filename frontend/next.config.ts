@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
         hostname: 'utfs.io',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.ufs.sh',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {

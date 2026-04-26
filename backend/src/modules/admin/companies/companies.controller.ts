@@ -1,11 +1,11 @@
-// Controller layer for admin company management.
+// Admin company controller.
 //
-// A controller's only job is HTTP: read the request, call the service,
-// send the response. No business logic or DB queries belong here.
+// Parses HTTP requests, invokes the service layer, and returns JSON.
+// Business logic belongs in services.
 //
-// Error handling pattern:
-//   We let service errors bubble up. Typed errors (with statusCode) are
-//   surfaced with that code; anything else falls back to 500.
+// Error handling:
+// - Known service errors may include `statusCode`.
+// - Unknown errors default to 500.
 
 import { Request, Response } from "express";
 import { companiesService } from "./companies.service";
@@ -16,8 +16,8 @@ type CompanyIdParams = { id: string };
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Resolve HTTP status code from a thrown error.
- * Services attach a `statusCode` property for known error cases (e.g. 404).
+ * Resolve HTTP status code from a service error.
+ * Falls back to 500 for unknown errors.
  */
 const resolveStatusCode = (err: any): number => {
   if (typeof err?.statusCode === "number") return err.statusCode;
@@ -27,14 +27,12 @@ const resolveStatusCode = (err: any): number => {
 
 // ─── GET /admin/companies ─────────────────────────────────────────────────────
 //
-// Returns a paginated list of all approved companies.
+// List approved companies with optional search and pagination.
 //
 // Query params:
-//   search  - optional string, filters by company name or email
-//   page    - optional number (default: 1)
-//   limit   - optional number (default: 20, max: 100)
-//
-// Response: { data: CompanyDTO[], pagination: { total, page, limit, totalPages } }
+//   search - optional name or email filter
+//   page   - optional page number (default: 1)
+//   limit  - optional page size (default: 20, max: 100)
 
 export const getCompanies = async (req: Request, res: Response) => {
   try {
@@ -55,14 +53,7 @@ export const getCompanies = async (req: Request, res: Response) => {
 
 // ─── GET /admin/companies/:id ─────────────────────────────────────────────────
 //
-// Returns the profile of a single approved company by user ID.
-// Used by the "View" button on the Companies list page.
-//
-// Route params:
-//   id  - the user's UUID
-//
-// Response: CompanyDTO
-// Errors:   404 if no approved company found with that ID
+// Retrieve a single approved company by UUID.
 
 export const getCompanyById = async (req: Request<CompanyIdParams>, res: Response) => {
   try {
@@ -81,14 +72,7 @@ export const getCompanyById = async (req: Request<CompanyIdParams>, res: Respons
 
 // ─── DELETE /admin/companies/:id ─────────────────────────────────────────────
 //
-// Permanently removes a company (the employer user and all related records).
-// Only approved employer accounts can be deleted via this endpoint.
-//
-// Route params:
-//   id  - the user's UUID
-//
-// Response: { message: "Company removed successfully." }
-// Errors:   404 if not found or not an approved employer
+// Delete an approved employer company and related records.
 
 export const deleteCompany = async (req: Request<CompanyIdParams>, res: Response) => {
   try {

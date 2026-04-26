@@ -1,10 +1,9 @@
-// Repository layer for admin company management.
-// Responsible ONLY for database access — no business logic lives here.
-// All queries are built with Prisma and typed explicitly.
+// Admin company repository.
+// Database access only. Business logic belongs in services.
 
 import { prisma } from "../../../config/db";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 export interface GetCompaniesOptions {
   search?: string;       // filter by company name or email (case-insensitive)
@@ -12,17 +11,12 @@ export interface GetCompaniesOptions {
   limit?: number;        // records per page (default: 20, max enforced in service)
 }
 
-// ─── Repository ───────────────────────────────────────────────────────────────
+// ─── Repository ──────────────────────────────────────────────────────────────
 
 export const companiesRepository = {
 
   /**
-   * Return a paginated, optionally-filtered list of approved EMPLOYER accounts.
-   * Each record includes the joined User + EmployerProfile data.
-   *
-   * Why we filter by verificationStatus = APPROVED:
-   *   Pending/rejected employers are managed in the Pending Approvals module.
-   *   The Companies page shows only active, approved companies.
+   * Return a paginated list of approved employers with profile data.
    */
   async findAll(options: GetCompaniesOptions = {}) {
     const { search, page = 1, limit = 20 } = options;
@@ -85,8 +79,8 @@ export const companiesRepository = {
   },
 
   /**
-   * Find a single company (approved employer) by their user ID.
-   * Returns null if not found — the service layer decides how to handle that.
+   * Find an approved employer by user ID.
+   * Returns null if not found.
    */
   async findById(userId: string) {
     return prisma.user.findFirst({
@@ -122,16 +116,7 @@ export const companiesRepository = {
   },
 
   /**
-   * Hard-delete a user and all their related data.
-   * Prisma Cascade (defined in schema) will remove:
-   *   - EmployerProfile
-   *   - RefreshTokens
-   *   - PasswordResetTokens
-   *   - VerificationTokens
-   *   - AuthAccounts
-   *
-   * We verify the user is an EMPLOYER before deleting to prevent
-   * accidental deletion of ADMIN or other role accounts.
+   * Hard-delete a user and related records via Prisma cascade.
    */
   async deleteById(userId: string) {
     return prisma.user.delete({
@@ -140,8 +125,7 @@ export const companiesRepository = {
   },
 
   /**
-   * Verify a user is an approved employer before we allow deletion.
-   * Separated from deleteById so the service can return a clear 404 vs 403.
+   * Check whether the user is an approved employer.
    */
   async isApprovedEmployer(userId: string): Promise<boolean> {
     const user = await prisma.user.findFirst({
