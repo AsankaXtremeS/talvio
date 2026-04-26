@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MeetingType } from "@/types/employer/interview.types";
 
 interface Props {
@@ -17,6 +17,8 @@ interface Props {
   employerName?: string;
   employerEmail?: string;
   isReschedule?: boolean;
+  initialBody?: string;
+  refreshKey?: number;
   onConfirm?: (emailContent: string) => void;
 }
 
@@ -33,6 +35,8 @@ export default function GeneratedEmailPreview({
   employerName = "Hiring Team",
   employerEmail = "recruitment@talvio.com",
   isReschedule = false,
+  initialBody,
+  refreshKey,
   onConfirm,
 }: Props) {
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -46,55 +50,55 @@ export default function GeneratedEmailPreview({
     day: "numeric",
   });
 
-  // Build email content
-  const greeting = isReschedule
-    ? `Dear ${candidateName},
+  // Local fallback template (matches the clean structure requested by the user)
+  const getLocalTemplate = () => {
+    const greeting = `Hi ${candidateName},`;
 
-We hope this message finds you well. We would like to reschedule your upcoming interview due to unforeseen circumstances. We sincerely apologize for any inconvenience this may cause.
+    const header = isReschedule
+      ? "\n⏰ Interview Rescheduled\n\nWe apologize for any inconvenience. Your interview has been rescheduled due to scheduling changes.\nPlease see the updated details below."
+      : "\n🎉 Interview Invitation\n\nWe are excited to move forward with you in our interview process.\nPlease see the interview details below.";
 
-Please see the updated interview details below:
+    const intro = isReschedule
+      ? `\nYour interview for the ${employerCompany} position at ${employerCompany} has been rescheduled.\nPlease review the updated interview details below and confirm your availability.`
+      : `\nYou have been selected for an interview for the ${employerCompany} position at ${employerCompany}.\nPlease review the details below and confirm your availability.`;
 
-📅 Date: ${formattedDate}
-⏰ Time: ${time}`
-    : `Dear ${candidateName},
+    let meetingDetails = "";
+    if (meetingType === "ONLINE" && meetingLink) {
+      meetingDetails = `\nA Google Meet link has been provided for your convenience:\n🔗 ${meetingLink}`;
+    } else if (meetingType === "ONSITE" && location) {
+      meetingDetails = `\nPlease arrive 10 minutes early at the location provided:\n📍 ${location}`;
+    } else if (meetingType === "PHONE") {
+      meetingDetails = `\nWe will call you at your registered phone number.`;
+    }
 
-Congratulations on your application! We are excited to move forward with you in our interview process.
+    const detailsHeader = "\n\nInterview Details\n-----------------";
+    const details = `📅 Date: ${formattedDate}\n⏰ Time: ${time}\n💼 Position: ${employerCompany}\n🖥️ Format: ${meetingType === "ONLINE" ? "Online" : meetingType === "ONSITE" ? "On-Site" : "Phone Call"}`;
 
-We would like to schedule an interview with you at the following details:
+    const additionalInfoSection = additionalInfo
+      ? `\n\n📝 Additional Information\n${additionalInfo}`
+      : "";
 
-📅 Date: ${formattedDate}
-⏰ Time: ${time}`;
+    const footer = `\n\n${employerName}\n${employerCompany}\n${employerEmail}`;
 
-  const emailContent = greeting;
+    return `${greeting}${header}${intro}${meetingDetails}${detailsHeader}\n${details}${additionalInfoSection}${footer}`;
+  };
 
-  let meetingDetails = "";
-  if (meetingType === "ONLINE" && meetingLink) {
-    meetingDetails = `🔗 Meeting Link: ${meetingLink}
-   Please join the Google Meet call using this link at the scheduled time.`;
-  } else if (meetingType === "ONSITE" && location) {
-    meetingDetails = `📍 Location: ${location}
-   Please arrive 10 minutes early.`;
-  } else if (meetingType === "PHONE") {
-    meetingDetails = `☎️ Call Type: Phone Interview
-   We will call you at your registered phone number.`;
-  }
+  // Process the body for the textarea (converting HTML <br> to \n)
+  const processBodyForEditing = (body: string) => {
+    return body.replace(/<br\s*\/?>/gi, '\n')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>?/gm, ''); // Strip any other tags
+  };
 
-  const closingMessage = isReschedule
-    ? "If you have any questions or concerns regarding the rescheduled time, please don't hesitate to reach out."
-    : "We look forward to hearing from you. If you have any questions or need to reschedule, please feel free to reach out.";
+  const [editedEmail, setEditedEmail] = useState("");
 
-  const fullEmail = `${emailContent}
-${meetingDetails}
-
-${additionalInfo ? `Additional Information:\n${additionalInfo}\n` : ""}
-${closingMessage}
-
-Best regards,
-${employerName}
-${employerCompany}
-${employerEmail}`;
-
-  const [editedEmail, setEditedEmail] = useState(fullEmail);
+  // Sync editedEmail when props change
+  useEffect(() => {
+    // We prefer the local template for the preview as it's cleaner than the raw HTML from the backend
+    const baseBody = getLocalTemplate();
+    setEditedEmail(baseBody);
+    setIsConfirmed(false);
+  }, [additionalInfo, date, time, meetingType, meetingLink, location, isReschedule, refreshKey]);
 
   const handleConfirm = () => {
     setIsConfirmed(true);

@@ -23,8 +23,10 @@ interface JobCardProps {
   matchPercent: number;
   tags: string[];
   companyLogoUrl?: string;
+  isApplied?: boolean;
   onView: (id: string) => void;
   onApply: (id: string) => void;
+  showMatchBadge?: boolean;
 }
 
 export default function JobCard({
@@ -36,8 +38,10 @@ export default function JobCard({
   matchPercent,
   tags,
   companyLogoUrl,
+  isApplied,
   onView,
   onApply,
+  showMatchBadge = true,
 }: JobCardProps) {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3 hover:shadow-md transition-shadow">
@@ -46,10 +50,17 @@ export default function JobCard({
         <div className="flex items-center gap-3">
           {/* Company logo/icon */}
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
-            {companyLogoUrl === "google" ? (
-              <div className="w-8 h-8"><GoogleLogo /></div>
+            {companyLogoUrl && companyLogoUrl !== "null" && companyLogoUrl !== "undefined" ? (
+              companyLogoUrl === "google" ? (
+                <div className="w-8 h-8"><GoogleLogo /></div>
+              ) : (
+                <img src={companyLogoUrl} alt={company} className="h-full w-full object-cover" onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-lg font-bold text-indigo-600">${company.charAt(0)}</span>`;
+                }} />
+              )
             ) : (
-              <span className="text-lg font-bold text-indigo-600">{company.charAt(0)}</span>
+              <span className="text-lg font-bold text-indigo-600">{company?.charAt(0) || "?"}</span>
             )}
           </div>
           <div>
@@ -61,10 +72,12 @@ export default function JobCard({
         </div>
 
         {/* Match badge */}
-        <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-600 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0">
-          <CheckCircle size={13} className="text-green-500" />
-          {matchPercent}% Match
-        </div>
+        {showMatchBadge && (
+          <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-600 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0">
+            <CheckCircle size={13} className="text-green-500" />
+            {matchPercent}% Match
+          </div>
+        )}
       </div>
 
       {/* Posted time */}
@@ -90,12 +103,21 @@ export default function JobCard({
         >
           View
         </button>
-        <button
-          onClick={() => onApply(id)}
-          className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Apply now
-        </button>
+        {isApplied ? (
+          <button
+            onClick={() => onView(id)}
+            className="px-6 py-2 border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-xl"
+          >
+            Applied
+          </button>
+        ) : (
+          <button
+            onClick={() => onApply(id)}
+            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Apply now
+          </button>
+        )}
       </div>
     </div>
   );

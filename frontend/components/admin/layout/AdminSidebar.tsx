@@ -12,7 +12,6 @@ import {
   LogOut,
   PanelLeftOpen,
   PanelLeftClose,
-  Settings,
   MessageSquare,
   X,
 } from 'lucide-react';
@@ -103,14 +102,6 @@ export default function AdminSidebar({
               {initial}
             </div>
             <span className="truncate text-sm font-semibold text-gray-800">{displayName}</span>
-            <Link
-              href="/users/admin/settings"
-              className="ml-auto text-gray-400 transition-colors hover:text-gray-600"
-              aria-label="Admin settings"
-              onClick={() => setMobileOpen && setMobileOpen(false)}
-            >
-              <Settings size={16} />
-            </Link>
           </div>
 
           <nav className="flex-1 px-3">
@@ -180,11 +171,6 @@ export default function AdminSidebar({
           <span className="text-white text-sm font-semibold">{initial}</span>
         </div>
         {!collapsed && <span className="text-sm font-semibold text-gray-800">{displayName}</span>}
-        {!collapsed && (
-          <Link href="/users/admin/settings" className="ml-auto text-gray-400 hover:text-gray-600 transition-colors">
-            <Settings size={16} />
-          </Link>
-        )}
       </div>
 
       <nav className="flex-1 px-3">

@@ -36,10 +36,22 @@ export default function CompaniesTable({ companies, onView, onRemove }: Companie
                 <td className="px-6 py-3.5">
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                      className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-xs font-bold text-white"
                       style={{ backgroundColor: company.logoColor || '#1e3a8a' }}
                     >
-                      {company.logoText?.slice(0, 2) || company.name.slice(0, 2)}
+                      <span>{company.logoText?.slice(0, 2) || company.name.slice(0, 2)}</span>
+                      {company.companyLogoUrl ? (
+                        <img
+                          src={company.companyLogoUrl}
+                          alt={`${company.name} logo`}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : null}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{company.name}</p>

@@ -3,7 +3,104 @@
 // if the backend returns nothing or errors (useful during development).
 // SECURITY: Only fields needed for display are exposed — no raw DB rows.
 
-import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
+import { CandidateInfo, CandidateStatus, FullCandidateProfile } from "@/types/candidate/candidate.types";
+
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  ""
+).replace(/\/+$|^\s+|\s+$/g, "");
+
+const apiUrl = (path: string) => {
+  if (!path.startsWith("/")) return API_BASE ? `${API_BASE}/${path}` : `/${path}`;
+  return API_BASE ? `${API_BASE}${path}` : path;
+};
+
+function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("accessToken");
+  localStorage.removeItem("token");
+  if (!token) return null;
+  return token.split(".").length === 3 ? token : null;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = typeof window === "undefined" ? null : localStorage.getItem("refreshToken");
+      const refreshRes = await fetch(apiUrl("/api/auth/refresh"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+      });
+
+      if (!refreshRes.ok) {
+        if (refreshRes.status === 401 && typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("token");
+        }
+        return false;
+      }
+
+      const payload = await refreshRes.json().catch(() => null);
+      if (
+        payload &&
+        typeof payload === "object" &&
+        "accessToken" in payload &&
+        typeof (payload as { accessToken?: unknown }).accessToken === "string" &&
+        typeof window !== "undefined"
+      ) {
+        localStorage.setItem("accessToken", (payload as { accessToken: string }).accessToken);
+        if (
+          "refreshToken" in payload &&
+          typeof (payload as { refreshToken?: unknown }).refreshToken === "string"
+        ) {
+          localStorage.setItem("refreshToken", (payload as { refreshToken: string }).refreshToken);
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("[refreshAccessToken] Error:", err);
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const firstResponse = await fetch(url, {
+    ...init,
+    headers: {
+      ...((init.headers ?? {}) as Record<string, string>),
+      ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
+    },
+    credentials: "include",
+  });
+
+  if (firstResponse.status !== 401) return firstResponse;
+
+  const refreshed = await refreshAccessToken();
+  if (!refreshed) return firstResponse;
+
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...((init.headers ?? {}) as Record<string, string>),
+      ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
+    },
+    credentials: "include",
+  });
+}
 
 // ─── Avatar gradient helper ───────────────────────────────────────────────────
 
@@ -95,6 +192,70 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
   },
 ];
 
+type BackendApplicationStatus = "PENDING" | "REVIEWED" | "SHORTLISTED" | "REJECTED" | "HIRED";
+
+interface BackendApplicant {
+  id: string;
+  name: string;
+  email: string;
+  headline: string;
+  skills: string[];
+  status: BackendApplicationStatus;
+  appliedAt: string;
+  cvUrl: string;
+  aiScore: number;
+  profilePictureUrl?: string | null;
+}
+
+const mapBackendStatusToFrontend = (status: BackendApplicationStatus): CandidateStatus | null => {
+  if (status === "SHORTLISTED") return "Shortlisted";
+  if (status === "HIRED") return "Hired";
+  if (status === "REVIEWED") return "Interview Scheduled";
+  if (status === "PENDING") return "Applied";
+  return null;
+};
+
+const toAppliedDaysAgo = (appliedAt: string): number => {
+  const appliedDate = new Date(appliedAt);
+  if (Number.isNaN(appliedDate.getTime())) return 0;
+  const now = Date.now();
+  const diffMs = Math.max(0, now - appliedDate.getTime());
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+};
+
+const toCandidateInfo = (applicant: BackendApplicant): CandidateInfo | null => {
+  const status = mapBackendStatusToFrontend(applicant.status);
+  if (!status) return null;
+
+  const safeName = applicant.name?.trim() || "Unknown Applicant";
+  const role = applicant.headline?.trim() || "Applicant";
+
+  return {
+    id: applicant.id,
+    name: safeName,
+    role,
+    initial: safeName.charAt(0).toUpperCase() || "A",
+    experience: "Not specified",
+    appliedDaysAgo: toAppliedDaysAgo(applicant.appliedAt),
+    matchScore: Number.isFinite(applicant.aiScore) ? applicant.aiScore : 0,
+    skills: Array.isArray(applicant.skills) ? applicant.skills : [],
+    email: applicant.email,
+    status,
+    avatarUrl: applicant.profilePictureUrl || undefined,
+  };
+};
+
+const filterCandidatesByStatus = (
+  candidates: CandidateInfo[],
+  status: CandidateStatus
+): CandidateInfo[] => {
+  if (status === "AI Matches") {
+    return candidates.filter((candidate) => candidate.matchScore >= 85);
+  }
+
+  return candidates.filter((candidate) => candidate.status === status);
+};
+
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 /**
@@ -108,17 +269,26 @@ export async function getCandidates(
   // If jobPostId provided, fetch from API
   if (jobPostId) {
     try {
-      const url = `/api/employer/job-posts/${jobPostId}/applications?status=${status}`;
-      const res = await fetch(url, { credentials: "include" });
+      const url = apiUrl(`/api/employer/job-posts/${jobPostId}/applications`);
+      const res = await fetchWithAuth(url);
       if (res.ok) {
-        const data = await res.json();
-        console.log(`[getCandidates] Fetched ${data.length} candidates for job post ${jobPostId} with status ${status}`);
-        return data;
+        const data = (await res.json()) as BackendApplicant[];
+        const mapped = data
+          .map(toCandidateInfo)
+          .filter((candidate): candidate is CandidateInfo => candidate !== null);
+        const filtered = filterCandidatesByStatus(mapped, status);
+
+        console.log(
+          `[getCandidates] Fetched ${filtered.length} candidates for job post ${jobPostId} with status ${status}`
+        );
+        return filtered;
       } else {
         console.error(`[getCandidates] Failed to fetch candidates: ${res.status}`);
+        return [];
       }
     } catch (err) {
       console.error("[getCandidates] Error fetching from API:", err);
+      return [];
     }
   }
 
@@ -131,11 +301,110 @@ export async function getCandidates(
  * Fetch a single candidate's profile by their candidateProfile ID.
  * Used in the schedule interview page to display applicant info.
  */
-export async function getCandidateById(candidateProfileId: string): Promise<CandidateInfo | null> {
-  // When the endpoint is available:
-  // const res = await fetch(`/api/employer/candidates/${candidateProfileId}`, { credentials: "include" });
-  // if (res.ok) return res.json();
+export async function getCandidateById(candidateProfileId: string): Promise<FullCandidateProfile | null> {
+  try {
+    const res = await fetch(`/api/employer/interviews/candidates/${candidateProfileId}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
 
-  // For now: look up from mock data
-  return Promise.resolve(MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) ?? null);
+    if (!res.ok) {
+      if (res.status !== 404) {
+        console.error(`[getCandidateById] Failed to fetch candidate: ${res.status}`);
+      }
+      return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+    }
+
+    const data = (await res.json()) as {
+      id: string;
+      name: string;
+      email: string;
+      headline: string;
+      skills: string[];
+      location?: string | null;
+      bio?: string | null;
+      linkedinUrl?: string | null;
+      githubUrl?: string | null;
+      portfolioUrl?: string | null;
+      cvUrl?: string | null;
+      profilePictureUrl?: string | null;
+    };
+
+    const safeName = data.name?.trim() || "Candidate";
+
+    return {
+      id: data.id,
+      name: safeName,
+      role: data.headline?.trim() || "Applicant",
+      initial: safeName.charAt(0).toUpperCase() || "C",
+      experience: "Not specified",
+      appliedDaysAgo: 0,
+      matchScore: 0,
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      email: data.email,
+      status: "Applied",
+      avatarUrl: data.profilePictureUrl || undefined,
+      location: data.location,
+      bio: data.bio,
+      linkedinUrl: data.linkedinUrl,
+      githubUrl: data.githubUrl,
+      portfolioUrl: data.portfolioUrl,
+      cvUrl: data.cvUrl,
+    };
+  } catch (err) {
+    console.error("[getCandidateById] Error fetching candidate:", err);
+    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+  }
 }
+
+/**
+ * Mark a candidate's application as reviewed by the employer.
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/reviewed
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function markReviewed(
+  jobPostId: string,
+  candidateProfileId: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  try {
+    const url = apiUrl(
+      `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/reviewed`
+    );
+    const res = await fetchWithAuth(url, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.error("[markReviewed] Failed:", res.status, err);
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error("[markReviewed] Error:", err);
+    return null;
+  }
+}
+
+/**
+ * Shortlist a candidate's application.
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function markShortlisted(
+  jobPostId: string,
+  candidateProfileId: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  try {
+    const url = apiUrl(
+      `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/shortlisted`
+    );
+    const res = await fetchWithAuth(url, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.error("[markShortlisted] Failed:", res.status, err);
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error("[markShortlisted] Error:", err);
+    return null;
+  }
+}

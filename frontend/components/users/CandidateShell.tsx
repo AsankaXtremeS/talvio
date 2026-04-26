@@ -31,6 +31,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const roleLabel = user?.role === "PROFESSIONAL" ? "Professional" : "Undergraduate";
+  const isProfessional = user?.role === "PROFESSIONAL";
   const isApplyJobPage = false;
 
   const navItems = [
@@ -45,7 +46,7 @@ export default function CandidateShell({ children }: CandidateShellProps) {
       icon: <FileText size={18} />,
     },
     {
-      label: "Recommendations",
+      label: isProfessional ? "All Job Posts" : "All Internships",
       href: "/users/candidate/recommendations",
       icon: <Cog size={18} />,
     },
@@ -114,8 +115,16 @@ export default function CandidateShell({ children }: CandidateShellProps) {
             `}
           >
             <div className="flex items-center min-w-0 gap-3">
-              <div className="w-9 h-9 rounded-full bg-indigo-100 shrink-0 flex items-center justify-center">
-                <span className="text-sm font-semibold text-indigo-700">{avatarInitial}</span>
+              <div className="w-9 h-9 rounded-full bg-indigo-100 shrink-0 flex items-center justify-center overflow-hidden border border-gray-100">
+                {user?.candidateProfile?.profilePictureUrl ? (
+                  <img 
+                    src={user.candidateProfile.profilePictureUrl} 
+                    alt={displayName} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold text-indigo-700">{avatarInitial}</span>
+                )}
               </div>
 
               {!collapsed && (

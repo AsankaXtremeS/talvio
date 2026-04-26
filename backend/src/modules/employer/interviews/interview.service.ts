@@ -8,7 +8,7 @@
 import { prisma } from "../../../config/db";
 import { interviewRepository } from "./interview.repository";
 import { CreateInterviewInput, UpdateInterviewInput, GenerateEmailInput } from "./interview.validation";
-import { googleCalendarService } from "../../../utils/googleCalendar";
+import { googleCalendarService, getEmployerGoogleClient } from "../../../utils/googleCalendar";
 import {
   buildInterviewEmailHtml,
   buildInterviewEmailSubject,
@@ -137,7 +137,90 @@ async function getEmployerProfileId(userId: string): Promise<string> {
   return employerProfile.id;
 }
 
+/**
+ * Helper to get a Google Auth client for a specific employer.
+ * Returns null if the employer hasn't connected their calendar.
+ */
+async function getEmployerGoogleAuth(employerProfileId: string) {
+  const employer = await prisma.employerProfile.findUnique({
+    where: { id: employerProfileId },
+    select: { 
+      googleAccessToken: true, 
+      googleRefreshToken: true, 
+      googleTokenExpiry: true,
+      googleCalendarConnected: true
+    }
+  });
+
+  if (!employer || !employer.googleCalendarConnected || !employer.googleAccessToken || !employer.googleRefreshToken) {
+    return null;
+  }
+
+  const tokens = {
+    accessToken: employer.googleAccessToken,
+    refreshToken: employer.googleRefreshToken,
+    expiryDate: employer.googleTokenExpiry ? Number(employer.googleTokenExpiry) : undefined,
+  };
+
+  const auth = getEmployerGoogleClient(tokens);
+
+  // Auto-update tokens in DB if they are refreshed by the library
+  auth.on("tokens", async (newTokens) => {
+    try {
+      const updateData: any = {};
+      if (newTokens.access_token) updateData.googleAccessToken = newTokens.access_token;
+      if (newTokens.refresh_token) updateData.googleRefreshToken = newTokens.refresh_token;
+      if (newTokens.expiry_date) updateData.googleTokenExpiry = BigInt(newTokens.expiry_date);
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.employerProfile.update({
+          where: { id: employerProfileId },
+          data: updateData
+        });
+        console.log(`[Google Tokens Refreshed] Employer: ${employerProfileId}`);
+      }
+    } catch (err) {
+      console.error("Failed to update refreshed Google tokens in DB:", err);
+    }
+  });
+
+  return auth;
+}
+
 export const interviewService = {
+  /**
+   * Fetch candidate profile details for schedule UI.
+   */
+  async getCandidateProfile(employerId: string, candidateProfileId: string) {
+    // Ensure requester is a valid employer account.
+    await getEmployerProfileId(employerId);
+
+    const candidate = await interviewRepository.findCandidateProfile(candidateProfileId);
+    if (!candidate) {
+      throw buildHttpError("Candidate profile not found", 404);
+    }
+
+    const fullName = [candidate.user.firstName, candidate.user.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Candidate";
+
+    return {
+      id: candidate.id,
+      name: fullName,
+      email: candidate.user.email,
+      headline: candidate.headline ?? "",
+      skills: candidate.skills ?? [],
+      location: candidate.location ?? null,
+      bio: candidate.bio ?? null,
+      linkedinUrl: candidate.linkedinUrl ?? null,
+      githubUrl: candidate.githubUrl ?? null,
+      portfolioUrl: candidate.portfolioUrl ?? null,
+      cvUrl: candidate.cvUrl ?? null,
+      profilePictureUrl: candidate.profilePictureUrl ?? null,
+    };
+  },
+
   /**
    * Create a draft interview.
    * For ONLINE meetings, creates a Google Calendar event with Meet link.
@@ -187,49 +270,50 @@ export const interviewService = {
     // 3. Parse scheduledAt
     const scheduledAt = new Date(input.scheduledAt);
 
-    // 4. For ONLINE: create Google Calendar event with Meet link (or use fallback)
-    let meetingLink: string | undefined;
+    // 4. Handle Google Meet and Calendar Integration
+    let meetingLink: string | undefined = input.meetingLink;
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
 
-    if (input.meetingType === "ONLINE") {
-      if (googleCalendarService.isConfigured()) {
-        // Try to create Google Calendar event with Meet link
+    const auth = await getEmployerGoogleAuth(employerProfileId);
+
+    if (input.meetingType === "ONLINE" && !meetingLink) {
+      if (auth) {
         try {
-          const calEvent = await googleCalendarService.createEvent({
+          const calEvent = await googleCalendarService.createEvent(auth, {
             title: `Interview – ${candidateName} | ${jobPost.title}`,
             description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
             startTime: scheduledAt,
             durationMinutes: 60,
-            attendeeEmails: [candidateEmail],
+            attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
             generateMeetLink: true,
           });
 
           meetingLink = calEvent.meetLink;
           googleCalendarEventId = calEvent.eventId;
           googleCalendarLink = calEvent.calendarLink;
+
+          if (!meetingLink) {
+            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+          }
+          
+          console.log(`[Google Meet Generated] Link: ${meetingLink}, EventID: ${googleCalendarEventId}`);
         } catch (calErr) {
-          // Log but don't fail — calendar is optional enhancement
           console.error("Google Calendar event creation failed:", calErr);
-          // Fallback: generate a simple meeting link using interview ID
-          meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
+          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
         }
       } else {
-        // No Google Calendar configured — generate fallback meeting link
-        // Use Jitsi Meet (free, no setup required)
-        meetingLink = `https://meet.jitsi.org/talvio-interview-${input.jobPostId.substring(0, 8)}`;
-        console.log(`Generated fallback Jitsi Meet link: ${meetingLink}`);
+        throw buildHttpError("Google Calendar is not connected. Please connect your calendar in settings to generate Google Meet links.", 400);
       }
-    } else if (input.meetingType === "ONSITE" && googleCalendarService.isConfigured()) {
-      // Create calendar event without Meet link for ONSITE
+    } else if (input.meetingType === "ONSITE" && auth) {
       try {
-        const calEvent = await googleCalendarService.createEvent({
+        const calEvent = await googleCalendarService.createEvent(auth, {
           title: `Interview – ${jobPost.title} (On-Site)`,
           description: `On-site interview at ${input.location}`,
           startTime: scheduledAt,
           durationMinutes: 60,
           location: input.location,
-          attendeeEmails: [candidateEmail],
+          attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
           generateMeetLink: false,
         });
 
@@ -271,7 +355,7 @@ export const interviewService = {
    */
   async list(
     employerId: string,
-    options: { status?: string; page?: number; limit?: number }
+    options: { status?: string; date?: string; page?: number; limit?: number }
   ) {
     const employerProfileId = await getEmployerProfileId(employerId);
     const { total, interviews } = await interviewRepository.findAll(employerProfileId, options);
@@ -324,15 +408,83 @@ export const interviewService = {
     }
 
     const updateData: any = {};
+    let shouldSyncCalendar = false;
 
     if (input.scheduledAt) {
       updateData.scheduledAt = new Date(input.scheduledAt);
+      if (updateData.scheduledAt.getTime() !== existing.scheduledAt.getTime()) {
+        shouldSyncCalendar = true;
+      }
     }
-    if (input.meetingType !== undefined) updateData.meetingType = input.meetingType;
+    if (input.meetingType !== undefined) {
+      updateData.meetingType = input.meetingType;
+      if (updateData.meetingType !== existing.meetingType) {
+        shouldSyncCalendar = true;
+      }
+    }
     if (input.location !== undefined) updateData.location = input.location;
     if (input.additionalInfo !== undefined) updateData.additionalInfo = input.additionalInfo;
+    if (input.meetingLink !== undefined) updateData.meetingLink = input.meetingLink;
     if (input.emailBody !== undefined) updateData.emailBody = input.emailBody;
     if (input.status !== undefined) updateData.status = input.status;
+
+    const auth = await getEmployerGoogleAuth(employerProfileId);
+
+    // Handle Google Meet generation if switched to ONLINE or no link exists
+    if (
+      (input.meetingType === "ONLINE" || (existing.meetingType === "ONLINE" && !input.meetingType)) &&
+      !input.meetingLink &&
+      !existing.meetingLink
+    ) {
+      if (auth) {
+        try {
+          const candidateName = [
+            existing.candidate?.user?.firstName,
+            existing.candidate?.user?.lastName,
+          ].filter(Boolean).join(" ") || "Candidate";
+
+          const calEvent = await googleCalendarService.createEvent(auth, {
+            title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
+            description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
+            startTime: updateData.scheduledAt || existing.scheduledAt,
+            durationMinutes: 60,
+            attendeeEmails: [
+              existing.candidateEmail,
+              existing.employer.user.email
+            ].filter(Boolean) as string[],
+            generateMeetLink: true,
+          });
+
+          if (!calEvent.meetLink) {
+            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+          }
+
+          updateData.meetingLink = calEvent.meetLink;
+          updateData.googleCalendarEventId = calEvent.eventId;
+          updateData.googleCalendarLink = calEvent.calendarLink;
+          console.log(`[Google Meet Updated/Generated] Link: ${updateData.meetingLink}`);
+          shouldSyncCalendar = false; // Already created/updated
+        } catch (calErr) {
+          console.error("Google Calendar update failed:", calErr);
+          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+        }
+      } else {
+        throw buildHttpError("Google Calendar is not connected. Cannot generate Google Meet link.", 400);
+      }
+    }
+
+    // Sync existing calendar event if time/type changed but we didn't re-create it above
+    if (shouldSyncCalendar && existing.googleCalendarEventId && auth) {
+      try {
+        await googleCalendarService.updateEventTime(
+          auth,
+          existing.googleCalendarEventId,
+          updateData.scheduledAt || existing.scheduledAt
+        );
+      } catch (err) {
+        console.error("Failed to sync calendar event time:", err);
+      }
+    }
 
     const updated = await interviewRepository.update(id, employerProfileId, updateData);
     return mapToDTO(updated);
@@ -407,15 +559,25 @@ export const interviewService = {
 
     const emailData = buildEmailData(existing as any);
 
-    // Send the email — throws if SMTP fails
+    // Send the email — if delivery fails, still schedule the interview but log the failure.
     console.log(`[ScheduleAndSend] Interview ID: ${id}, Email recipient: ${emailData.candidateEmail}, MeetingType: ${emailData.meetingType}, MeetingLink: ${emailData.meetingLink}`);
-    await sendInterviewEmail(emailData);
+    let emailSent = false;
+    try {
+      await sendInterviewEmail(emailData);
+      emailSent = true;
+    } catch (emailErr) {
+      console.error("[ScheduleAndSend] Email delivery failed:", emailErr);
+    }
 
-    // Update status to SCHEDULED and record send time
+    // Update status to SCHEDULED. If email delivery failed, keep emailSentAt null.
     const updated = await interviewRepository.update(id, employerProfileId, {
       status: "SCHEDULED",
-      emailSentAt: new Date(),
+      emailSentAt: emailSent ? new Date() : null,
     });
+
+    if (!emailSent) {
+      console.warn(`[ScheduleAndSend] Interview scheduled but email was not delivered: ${id}`);
+    }
 
     return mapToDTO(updated);
   },
@@ -434,7 +596,10 @@ export const interviewService = {
     const googleEventId = (existing as any).googleCalendarEventId;
     if (googleEventId && googleCalendarService.isConfigured()) {
       try {
-        await googleCalendarService.deleteEvent(googleEventId);
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          await googleCalendarService.deleteEvent(auth, googleEventId);
+        }
       } catch (err) {
         console.error("Failed to delete Google Calendar event:", err);
       }
@@ -464,6 +629,161 @@ export const interviewService = {
       emailBody,
     });
 
+    return mapToDTO(updated);
+  },
+
+  /**
+   * Generate a cancellation email preview.
+   * Returns subject and body for the cancellation email.
+   */
+  async generateCancelEmailPreview(
+    id: string,
+    employerId: string,
+    reason: string
+  ): Promise<{ subject: string; body: string }> {
+    const employerProfileId = await getEmployerProfileId(employerId);
+    const interview = await interviewRepository.findById(id, employerProfileId);
+    if (!interview) {
+      throw buildHttpError("Interview not found", 404);
+    }
+
+    const candidateName = [
+      (interview as any).candidate?.user?.firstName,
+      (interview as any).candidate?.user?.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ") || "Candidate";
+
+    const companyName =
+      (interview as any).employer?.companyName || "Hiring Team";
+
+    const scheduledDate = new Date((interview as any).scheduledAt);
+    const formattedDate = scheduledDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const formattedTime = scheduledDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const subject = `Interview Cancellation – ${(interview as any).jobPost?.title || "Position"}`;
+
+    const body = `Dear ${candidateName},
+
+We regret to inform you that we need to cancel the interview that was scheduled for ${formattedDate} at ${formattedTime}.
+
+Cancellation Reason:
+${reason}
+
+We sincerely apologize for any inconvenience this may cause. We remain interested in your profile and may reach out in the future with other opportunities that align with your background and experience.
+
+If you have any questions or concerns, please don't hesitate to contact us.
+
+Best regards,
+${companyName}`;
+
+    return { subject, body };
+  },
+
+  /**
+   * Cancel an interview and send cancellation email to the candidate.
+   * Changes status SCHEDULED → CANCELLED.
+   * Removes Google Calendar event.
+   * Sends email with cancellation reason.
+   */
+  async cancelAndSendEmail(
+    id: string,
+    employerId: string,
+    reason: string,
+    emailBody: string
+  ): Promise<InterviewDTO> {
+    const employerProfileId = await getEmployerProfileId(employerId);
+    const existing = await interviewRepository.findById(id, employerProfileId);
+    if (!existing) {
+      throw buildHttpError("Interview not found", 404);
+    }
+
+    // Only cancel SCHEDULED interviews (not DRAFT)
+    if ((existing as any).status !== "SCHEDULED") {
+      throw buildHttpError(
+        "Only scheduled interviews can be cancelled this way",
+        400
+      );
+    }
+
+    // Send cancellation email
+    try {
+      console.log(
+        `[CancelAndSendEmail] Sending cancellation email to ${(existing as any).candidateEmail}`
+      );
+
+      // Create and send email
+      const candidateName = [
+        (existing as any).candidate?.user?.firstName,
+        (existing as any).candidate?.user?.lastName,
+      ]
+        .filter(Boolean)
+        .join(" ") || "Candidate";
+
+      await sendInterviewEmail({
+        candidateName,
+        candidateEmail: (existing as any).candidateEmail,
+        jobTitle: (existing as any).jobPost?.title || "",
+        companyName: (existing as any).employer?.companyName || "",
+        senderName: [
+          (existing as any).employer?.user?.firstName,
+          (existing as any).employer?.user?.lastName,
+        ]
+          .filter(Boolean)
+          .join(" ") || (existing as any).employer?.companyName,
+        senderEmail: (existing as any).employer?.user?.email || "",
+        scheduledAt: new Date((existing as any).scheduledAt),
+        meetingType: (existing as any).meetingType,
+        location: (existing as any).location,
+        meetingLink: (existing as any).meetingLink,
+        additionalInfo: (existing as any).additionalInfo,
+        customBody: emailBody,
+        isCancellation: true,
+        cancellationReason: reason,
+      } as any);
+    } catch (err) {
+      console.error("Failed to send cancellation email:", err);
+      throw buildHttpError(
+        `Failed to send cancellation email: ${(err as Error).message}`,
+        500
+      );
+    }
+
+    // Remove Google Calendar event
+    const googleEventId = (existing as any).googleCalendarEventId;
+    if (googleEventId) {
+      const auth = await getEmployerGoogleAuth(employerProfileId);
+      if (auth) {
+        try {
+          await googleCalendarService.deleteEvent(auth, googleEventId);
+          console.log(`[CancelAndSendEmail] Google Calendar event deleted: ${googleEventId}`);
+        } catch (err) {
+          console.error(
+            "Failed to delete Google Calendar event:",
+            err
+          );
+          // Don't fail the operation if calendar delete fails
+        }
+      }
+    }
+
+    // Update status to CANCELLED
+    const updated = await interviewRepository.update(id, employerProfileId, {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+      cancellationReason: reason,
+    });
+
+    console.log(`[CancelAndSendEmail] Interview cancelled: ${id}`);
     return mapToDTO(updated);
   },
 };

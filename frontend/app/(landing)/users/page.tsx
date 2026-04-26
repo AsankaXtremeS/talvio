@@ -1,7 +1,9 @@
 import React from 'react'
 import Image from 'next/image'
+import Link from "next/link";
 import { redirect } from 'next/navigation'
 import { FaCircleCheck } from 'react-icons/fa6'
+import { Star } from 'lucide-react'
 
 const employeeBg = '/images/landing/employee_background.png'
 
@@ -25,7 +27,13 @@ const StarRating = ({ value }: { value: number }) => {
 
         return (
           <span key={index} style={{ color, fontSize: 14, lineHeight: 1 }}>
-            ★
+            <Star
+              key={index}
+              size={13}
+              color={color}
+              fill={color} 
+              style={{ lineHeight: 1 }}
+            />
           </span>
         )
       })}
@@ -107,8 +115,9 @@ export const UsersSection = () => {
                 </li>
               ))}
             </ul>
-
-            <button
+            
+            <Link href="/register">
+            <button 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -131,6 +140,7 @@ export const UsersSection = () => {
                 <path fillRule='evenodd' d='M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z' clipRule='evenodd' />
               </svg>
             </button>
+            </Link>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 0 }}>
@@ -286,7 +296,8 @@ export const UsersSection = () => {
                 </li>
               ))}
             </ul>
-
+            
+            <Link href="/register/employer">
             <button
               style={{
                 display: 'flex',
@@ -310,6 +321,7 @@ export const UsersSection = () => {
                 <path fillRule='evenodd' d='M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z' clipRule='evenodd' />
               </svg>
             </button>
+            </Link>
           </div>
         </section>
       </div>

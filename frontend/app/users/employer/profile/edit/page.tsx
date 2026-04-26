@@ -47,24 +47,24 @@ const EMPTY: FormData = {
   linkedIn: "", facebook: "", twitter: "",
 };
 
-const COMPANY_SIZES  = ["1-10","11-50","51-200","200-1000","1001-5000","5000+"];
-const COMPANY_TYPES  = ["Private","Public","Non-profit","Government"];
-const INDUSTRIES     = [
-  "Software Development","Information Technology","Finance","Healthcare",
-  "Education","Manufacturing","Retail","Consulting","Marketing","Other",
+const COMPANY_SIZES = ["1-10", "11-50", "51-200", "200-1000", "1001-5000", "5000+"];
+const COMPANY_TYPES = ["Private", "Public", "Non-profit", "Government"];
+const INDUSTRIES = [
+  "Software Development", "Information Technology", "Finance", "Healthcare",
+  "Education", "Manufacturing", "Retail", "Consulting", "Marketing", "Other",
 ];
 
 export default function EditEmployerProfilePage() {
   const router = useRouter();
   const { user, setUser } = useAuth();
 
-  const [form, setForm]               = useState<FormData>(EMPTY);
-  const [isLoading, setIsLoading]     = useState(true);
-  const [isSaving, setIsSaving]       = useState(false);
-  const [isUploadingLogo, setIsUploadingLogo]   = useState(false);
+  const [form, setForm] = useState<FormData>(EMPTY);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [popup, setPopup]             = useState<{ open: boolean; message: string; success?: boolean }>({
+  const [error, setError] = useState<string | null>(null);
+  const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
     open: false,
     message: "",
     success: false,
@@ -82,20 +82,20 @@ export default function EditEmployerProfilePage() {
       .then((p) => {
         if (cancelled) return;
         setForm({
-          name:          p.companyName ?? "",
-          description:   p.companyDescription ?? "",
-          website:       p.companyWebsite ?? "",
-          location:      p.companyLocation ?? "",
-          logoUrl:       p.companyLogoUrl ?? "",
+          name: p.companyName ?? "",
+          description: p.companyDescription ?? "",
+          website: p.companyWebsite ?? "",
+          location: p.companyLocation ?? "",
+          logoUrl: p.companyLogoUrl ?? "",
           coverImageUrl: p.coverImageUrl ?? "",
-          industry:      p.industry ?? "",
-          companyType:   p.companyType ?? "",
-          companySize:   p.companySize ?? "",
-          foundedYear:   p.foundedYear != null ? String(p.foundedYear) : "",
-          specialties:   p.specialties ?? "",
-          linkedIn:      p.linkedInUrl ?? "",
-          facebook:      p.facebookUrl ?? "",
-          twitter:       p.twitterUrl ?? "",
+          industry: p.industry ?? "",
+          companyType: p.companyType ?? "",
+          companySize: p.companySize ?? "",
+          foundedYear: p.foundedYear != null ? String(p.foundedYear) : "",
+          specialties: p.specialties ?? "",
+          linkedIn: p.linkedInUrl ?? "",
+          facebook: p.facebookUrl ?? "",
+          twitter: p.twitterUrl ?? "",
         });
       })
       .catch((err: unknown) => {
@@ -159,20 +159,20 @@ export default function EditEmployerProfilePage() {
     setIsSaving(true); setError(null); setPopup({ open: false, message: "", success: false });
 
     const payload: UpdateProfilePayload = {
-      companyName:        form.name.trim() || undefined,
+      companyName: form.name.trim() || undefined,
       companyDescription: form.description,
-      companyWebsite:     form.website,
-      companyLocation:    form.location,
-      companyLogoUrl:     form.logoUrl,
-      coverImageUrl:      form.coverImageUrl,
-      industry:           form.industry,
-      companyType:        form.companyType,
-      companySize:        form.companySize,
-      foundedYear:        form.foundedYear ? parseInt(form.foundedYear, 10) : null,
-      specialties:        form.specialties,
-      linkedInUrl:        form.linkedIn,
-      facebookUrl:        form.facebook,
-      twitterUrl:         form.twitter,
+      companyWebsite: form.website,
+      companyLocation: form.location,
+      companyLogoUrl: form.logoUrl,
+      coverImageUrl: form.coverImageUrl,
+      industry: form.industry,
+      companyType: form.companyType,
+      companySize: form.companySize,
+      foundedYear: form.foundedYear ? parseInt(form.foundedYear, 10) : null,
+      specialties: form.specialties,
+      linkedInUrl: form.linkedIn,
+      facebookUrl: form.facebook,
+      twitterUrl: form.twitter,
     };
 
     try {
@@ -455,7 +455,7 @@ export default function EditEmployerProfilePage() {
                   <div className="flex gap-3">
                     {form.linkedIn && <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A66C2] text-white"><FaLinkedinIn size={20} /></div>}
                     {form.facebook && <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1877F2] text-white"><FaFacebookF size={20} /></div>}
-                    {form.twitter  && <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white"><FaXTwitter size={18} /></div>}
+                    {form.twitter && <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#111827] text-white"><FaXTwitter size={18} /></div>}
                     {!form.linkedIn && !form.facebook && !form.twitter && <p className="text-sm text-[#9ca3af]">Add social links to see preview</p>}
                   </div>
                 </div>

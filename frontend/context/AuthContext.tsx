@@ -21,6 +21,9 @@ interface AuthUser {
     rejectionReason?: string | null;
     companyLogoUrl?: string | null;
   } | null;
+  candidateProfile?: {
+    profilePictureUrl?: string | null;
+  } | null;
 }
 
 interface AuthContextType {

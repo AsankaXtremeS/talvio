@@ -91,6 +91,35 @@ export default function AdminDetailModal(props: AdminDetailModalProps) {
 
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-2">Company Logo</p>
+            {data.companyLogoUrl ? (
+              <div className="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img
+                  src={data.companyLogoUrl}
+                  alt={`${data.name || 'Company'} logo`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="hidden h-full w-full items-center justify-center bg-indigo-600 text-xs font-bold text-white"
+                  aria-hidden="true"
+                >
+                  {(data.name || 'CO').slice(0, 2).toUpperCase()}
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200 bg-indigo-600 text-xs font-bold text-white">
+                {(data.name || 'CO').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
           <DetailField icon={<Building2 size={18} />} label="Company Name" value={data.name} />
           <DetailField icon={<Mail size={18} />} label="Admin Email" value={data.email} />
           <DetailField icon={<FileText size={18} />} label="Active Posts" value={data.postCount} />

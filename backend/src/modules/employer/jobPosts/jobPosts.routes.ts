@@ -19,6 +19,8 @@ import {
   updateJobPost,
   deleteJobPost,
   getJobPostApplications,
+  markReviewed,
+  markShortlisted,
 } from "./jobPosts.controller";
 
 const router = Router();
@@ -59,6 +61,14 @@ router.post("/", createJobPost);
 // IMPORTANT: Must be registered BEFORE /:id route to avoid matching "applications" as an :id
 // Optional query param: ?status=PENDING|SHORTLISTED|REJECTED
 router.get("/:id/applications", getJobPostApplications);
+
+// POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/reviewed
+// Employer marks the candidate's application as reviewed (isReviewed = true).
+router.post("/:jobPostId/applications/:candidateProfileId/reviewed", markReviewed);
+
+// POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
+// Employer shortlists the candidate (isShortlisted = true, applicationStatus = SHORTLISTED).
+router.post("/:jobPostId/applications/:candidateProfileId/shortlisted", markShortlisted);
 
 // GET    /api/employer/job-posts/:id      — Get a single post by ID
 // PATCH  /api/employer/job-posts/:id      — Partially update a post (including status changes)

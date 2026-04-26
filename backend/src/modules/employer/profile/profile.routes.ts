@@ -12,7 +12,7 @@
 import { Router } from "express";
 import { authenticate } from "../../../middlewares/auth.middleware";
 import { requireRole } from "../../../middlewares/role.middleware";
-import { getProfile, updateProfile } from "./profile.controller";
+import { getProfile, updateProfile, getCalendarAuthUrl, connectCalendar, disconnectCalendar } from "./profile.controller";
 
 const router = Router();
 
@@ -25,5 +25,10 @@ router.get("/", getProfile);
 
 // PATCH /api/employer/profile — update the authenticated employer's own profile
 router.patch("/", updateProfile);
+
+// Google Calendar OAuth routes
+router.get("/calendar/auth-url", getCalendarAuthUrl);
+router.post("/calendar/connect", connectCalendar);
+router.post("/calendar/disconnect", disconnectCalendar);
 
 export default router;

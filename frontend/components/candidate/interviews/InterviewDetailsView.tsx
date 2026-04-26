@@ -2,15 +2,27 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CircleCheck, Clock3, Globe2, Link2, MapPin, X } from "lucide-react";
-import { INTERVIEWS_BY_ID } from "@/components/candidate/interviews/types";
+import { mapInterviewToItem } from "@/components/candidate/interviews/types";
+import { candidateInterviewsService } from "@/lib/candidate/interviews.service";
 
 type InterviewDetailsViewProps = {
   interviewId: string;
 };
 
 export default function InterviewDetailsView({ interviewId }: InterviewDetailsViewProps) {
-  const interview = INTERVIEWS_BY_ID[interviewId];
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["candidate-interview", interviewId],
+    queryFn: () => candidateInterviewsService.getInterviewById(interviewId),
+    enabled: Boolean(interviewId),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
+  });
+
+  const interview = data ? mapInterviewToItem(data) : null;
 
   const formattedTime = useMemo(() => {
     if (!interview) return "";
@@ -25,6 +37,34 @@ export default function InterviewDetailsView({ interviewId }: InterviewDetailsVi
       timeZoneName: "short",
     }).format(date);
   }, [interview]);
+
+  if (isLoading) {
+    return (
+      <section className="p-6">
+        <div className="rounded-2xl border border-[#DEE3EE] bg-white p-6">
+          <p className="text-base font-semibold text-[#0F172A]">Loading interview details...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="p-6">
+        <div className="rounded-2xl border border-[#DEE3EE] bg-white p-6">
+          <p className="text-base font-semibold text-[#0F172A]">
+            {(error as Error)?.message || "Failed to load interview details."}
+          </p>
+          <Link
+            href="/users/candidate/interviews"
+            className="mt-3 inline-flex rounded-lg bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white"
+          >
+            Back to Interview List
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   if (!interview) {
     return (
@@ -112,29 +152,35 @@ export default function InterviewDetailsView({ interviewId }: InterviewDetailsVi
               </p>
             </div>
 
-            <a
-              href={interview.meetingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#4338CA]"
-            >
-              <Link2 size={14} />
-              Join interview meeting
-            </a>
+            {interview.meetingUrl ? (
+              <a
+                href={interview.meetingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#4338CA]"
+              >
+                <Link2 size={14} />
+                Join interview meeting
+              </a>
+            ) : (
+              <p className="mt-4 text-xs font-medium text-slate-500">Meeting link will be shared by the company.</p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-[#E3EAF3] bg-[#F8FAFD] p-4">
             <h2 className="mb-3 text-xl font-bold text-gray-800">Company</h2>
             <h3 className="text-3xl font-bold text-indigo-500">{interview.company}</h3>
             <p className="mt-2.5 text-sm leading-relaxed text-gray-700">{interview.companyDescription}</p>
-            <a
-              href={interview.companyProfileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex text-sm font-semibold text-indigo-500 hover:underline"
-            >
-              Visit company profile
-            </a>
+            {interview.companyProfileUrl && (
+              <a
+                href={interview.companyProfileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex text-sm font-semibold text-indigo-500 hover:underline"
+              >
+                Visit company profile
+              </a>
+            )}
           </section>
         </div>
 

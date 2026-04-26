@@ -3,11 +3,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Briefcase, CheckCircle2, AlertCircle } from "lucide-react";
-import { JobPost, JobPostStats } from "@/types/employer/jobPost.types";
 import FilterBar from "@/components/employer/job-posts/FilterBar";
 import StatsRow from "@/components/employer/job-posts/StatsRow";
 import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
 import { deleteJobPost, getJobPosts, getJobPostStats, setJobPostStatus } from "@/lib/employer/jobPosts.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Popup from "@/components/admin/layout/Popup";
 
 type ToastState = {
@@ -28,11 +28,34 @@ type PendingDeleteState = {
 export default function JobPostsPage() {
   const router = useRouter();
 
-  // ── State ──
-  const [posts, setPosts] = useState<JobPost[]>([]);
-  const [stats, setStats] = useState<JobPostStats>({ total: 0, active: 0, closed: 0, draft: 0 });
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // ── Data Fetching (React Query) ──
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["employer-job-posts"],
+    queryFn: async () => {
+      console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
+      const [postsData, statsData] = await Promise.all([
+        getJobPosts(),
+        getJobPostStats(),
+      ]);
+      return { posts: postsData, stats: statsData };
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: true,
+  });
+
+  const posts = useMemo(() => data?.posts || [], [data?.posts]);
+  const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0, applications: 0 };
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (queryError) {
+      setError("Failed to load job posts. Please try again.");
+    }
+  }, [queryError]);
+
+  // ── UI State ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -55,29 +78,6 @@ export default function JobPostsPage() {
   const [sort, setSort] = useState("Newest");
   const [period, setPeriod] = useState("This Week");
 
-  // ── Fetch posts + stats from backend ──
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
-        const [postsData, statsData] = await Promise.all([
-          getJobPosts(),
-          getJobPostStats(),
-        ]);
-        setPosts(postsData);
-        setStats(statsData);
-      } catch (err: unknown) {
-        console.error("Failed to load job posts:", err);
-        setError("Failed to load job posts. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -141,9 +141,7 @@ export default function JobPostsPage() {
 
     try {
       await deleteJobPost(id);
-      setPosts((prev) => prev.filter((post) => post.id !== id));
-      const latestStats = await getJobPostStats();
-      setStats(latestStats);
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
       setToast({
         type: "success",
         message: "Job post deleted successfully.",
@@ -166,14 +164,8 @@ export default function JobPostsPage() {
     setClosingId(id);
 
     try {
-      const updatedPost = await setJobPostStatus(id, nextStatus);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === id ? updatedPost : post
-        )
-      );
-      const latestStats = await getJobPostStats();
-      setStats(latestStats);
+      await setJobPostStatus(id, nextStatus);
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
       setToast({
         type: "success",
         message: `Job post updated to ${nextStatus}.`,
@@ -219,11 +211,10 @@ export default function JobPostsPage() {
       {toast && (
         <div className="fixed right-6 top-6 z-50">
           <div
-            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${
-              toast.type === "success"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${toast.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-red-200 bg-red-50 text-red-700"
-            }`}
+              }`}
           >
             {toast.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
             <span>{toast.message}</span>
@@ -294,11 +285,11 @@ export default function JobPostsPage() {
       {/* ── Fixed header section ── */}
       <div className="shrink-0">
         <FilterBar
-          search={search}   onSearchChange={setSearch}
-          status={status}   onStatusChange={setStatus}
+          search={search} onSearchChange={setSearch}
+          status={status} onStatusChange={setStatus}
           jobRole={jobRole} onJobRoleChange={setJobRole}
-          sort={sort}       onSortChange={setSort}
-          period={period}   onPeriodChange={setPeriod}
+          sort={sort} onSortChange={setSort}
+          period={period} onPeriodChange={setPeriod}
         />
 
         <div className="flex items-center justify-between mt-6 mb-5">
@@ -320,7 +311,7 @@ export default function JobPostsPage() {
         <StatsRow
           totalPosts={stats.total}
           active={stats.active}
-          applications={0}      // Applications module add later
+          applications={stats.applications ?? 0}
           closed={stats.closed}
         />
       </div>

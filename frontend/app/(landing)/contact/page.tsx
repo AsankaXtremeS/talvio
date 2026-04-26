@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import ContactForm from '@/components/landing/ContactForm'
+import ContactForm from './contactForm'
 
 const contactBg = '/images/landing/contact_background.png'
 
@@ -12,14 +12,14 @@ const supportCategories = [
       'Our support team is available around the clock to address any concerns or queries you may have.',
   },
   {
-    title: 'Feedback and Suggestions',
-    description:
-      'Our support team is available around the clock to address any concerns or queries you may have.',
+    title: 'Media Inquiries',
+    description: 
+      'For press releases, interviews, or media coverage, reach out to our communications team.',
   },
   {
-    title: 'Media Inquiries',
-    description:
-      'Our support team is available around the clock to address any concerns or queries you may have.',
+    title: 'Feedback and Suggestions',
+    description: 
+      'We value your input — share your ideas and help us improve our products and services.',
   },
 ]
 
@@ -73,16 +73,16 @@ export const ContactSection = () => {
               }}
             >
               {`Email, call, or complete the form to learn how
-NexHire can solve your carrier problem.
-info@NexHire.io
-+94 123 456`}
+                Talvio can solve your carrier problem.
+                info@Talvio.io
+                +94 123 456`}
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginTop: 20 }}>
-              {supportCategories.map((cat, i) => (
+              {supportCategories.map((cat, catIndex) => (
                 <div
-                  key={i}
-                  style={i > 0 ? { borderLeft: '1px solid #d1d5db', paddingLeft: 8 } : undefined}
+                  key={catIndex}
+                  style={catIndex > 0 ? { borderLeft: '1px solid #d1d5db', paddingLeft: 8 } : undefined}
                 >
                   <div>
                     <h3

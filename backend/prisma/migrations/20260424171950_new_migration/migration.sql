@@ -28,6 +28,12 @@ CREATE TYPE "ApplicationStatus" AS ENUM ('PENDING', 'REVIEWED', 'SHORTLISTED', '
 -- CreateEnum
 CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'ACTIVE', 'CLOSED');
 
+-- CreateEnum
+CREATE TYPE "InterviewMeetingType" AS ENUM ('ONLINE', 'ONSITE', 'PHONE');
+
+-- CreateEnum
+CREATE TYPE "InterviewStatus" AS ENUM ('DRAFT', 'SCHEDULED', 'CANCELLED', 'COMPLETED');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -113,6 +119,10 @@ CREATE TABLE "EmployerProfile" (
     "linkedInUrl" TEXT,
     "facebookUrl" TEXT,
     "twitterUrl" TEXT,
+    "googleAccessToken" TEXT,
+    "googleRefreshToken" TEXT,
+    "googleTokenExpiry" BIGINT,
+    "googleCalendarConnected" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -157,11 +167,13 @@ CREATE TABLE "CandidateProfile" (
     "portfolioUrl" TEXT,
     "cvUrl" TEXT,
     "cvFileName" TEXT,
+    "profilePictureUrl" TEXT,
     "extractedSkills" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "recommendationCache" JSONB,
     "lastRecommendedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "jobAnalysisCache" JSONB DEFAULT '{}',
 
     CONSTRAINT "CandidateProfile_pkey" PRIMARY KEY ("id")
 );
@@ -181,6 +193,44 @@ CREATE TABLE "Application" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Application_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ApplicationStatusHistory" (
+    "id" TEXT NOT NULL,
+    "applicationId" TEXT NOT NULL,
+    "status" "ApplicationStatus" NOT NULL,
+    "changedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "note" TEXT,
+
+    CONSTRAINT "ApplicationStatusHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Interview" (
+    "id" TEXT NOT NULL,
+    "employerId" TEXT NOT NULL,
+    "candidateProfileId" TEXT NOT NULL,
+    "jobPostId" TEXT NOT NULL,
+    "scheduledAt" TIMESTAMP(3) NOT NULL,
+    "meetingType" "InterviewMeetingType" NOT NULL,
+    "status" "InterviewStatus" NOT NULL DEFAULT 'DRAFT',
+    "location" TEXT,
+    "meetingLink" TEXT,
+    "additionalInfo" TEXT,
+    "emailBody" TEXT,
+    "googleCalendarEventId" TEXT,
+    "googleCalendarLink" TEXT,
+    "candidateEmail" TEXT NOT NULL,
+    "emailSentAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "cancelledAt" TIMESTAMP(3),
+    "cancellationReason" TEXT,
+    "rescheduledFromId" TEXT,
+    "rescheduledToId" TEXT,
+
+    CONSTRAINT "Interview_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -231,6 +281,24 @@ CREATE INDEX "Application_applicationStatus_idx" ON "Application"("applicationSt
 -- CreateIndex
 CREATE UNIQUE INDEX "Application_candidateProfileId_jobPostId_key" ON "Application"("candidateProfileId", "jobPostId");
 
+-- CreateIndex
+CREATE INDEX "ApplicationStatusHistory_applicationId_idx" ON "ApplicationStatusHistory"("applicationId");
+
+-- CreateIndex
+CREATE INDEX "Interview_employerId_idx" ON "Interview"("employerId");
+
+-- CreateIndex
+CREATE INDEX "Interview_employerId_status_idx" ON "Interview"("employerId", "status");
+
+-- CreateIndex
+CREATE INDEX "Interview_employerId_scheduledAt_idx" ON "Interview"("employerId", "scheduledAt");
+
+-- CreateIndex
+CREATE INDEX "Interview_candidateProfileId_idx" ON "Interview"("candidateProfileId");
+
+-- CreateIndex
+CREATE INDEX "Interview_jobPostId_idx" ON "Interview"("jobPostId");
+
 -- AddForeignKey
 ALTER TABLE "AuthAccount" ADD CONSTRAINT "AuthAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -257,3 +325,21 @@ ALTER TABLE "Application" ADD CONSTRAINT "Application_candidateProfileId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "Application" ADD CONSTRAINT "Application_jobPostId_fkey" FOREIGN KEY ("jobPostId") REFERENCES "JobPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApplicationStatusHistory" ADD CONSTRAINT "ApplicationStatusHistory_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "Application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Interview" ADD CONSTRAINT "Interview_candidateProfileId_fkey" FOREIGN KEY ("candidateProfileId") REFERENCES "CandidateProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Interview" ADD CONSTRAINT "Interview_employerId_fkey" FOREIGN KEY ("employerId") REFERENCES "EmployerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Interview" ADD CONSTRAINT "Interview_jobPostId_fkey" FOREIGN KEY ("jobPostId") REFERENCES "JobPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Interview" ADD CONSTRAINT "Interview_rescheduledFromId_fkey" FOREIGN KEY ("rescheduledFromId") REFERENCES "Interview"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Interview" ADD CONSTRAINT "Interview_rescheduledToId_fkey" FOREIGN KEY ("rescheduledToId") REFERENCES "Interview"("id") ON DELETE SET NULL ON UPDATE CASCADE;

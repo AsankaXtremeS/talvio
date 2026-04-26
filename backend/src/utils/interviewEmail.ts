@@ -1,10 +1,12 @@
 // Interview email template builder.
-// Generates HTML email content for interview scheduling confirmation.
+// Generates HTML email content for interview scheduling confirmation and cancellation.
 // Returns both the HTML body and the plain text subject line.
 //
 // Used by:
 //   - interviewService.generateEmailPreview() — for frontend preview before sending
 //   - interviewService.scheduleAndSendEmail()  — for actual sending via nodemailer
+//   - interviewService.generateCancelEmailPreview() — for cancellation preview
+//   - interviewService.cancelAndSendEmail() — for cancellation sending via nodemailer
 
 import nodemailer from "nodemailer";
 
@@ -23,6 +25,8 @@ export interface InterviewEmailData {
   meetingLink?: string | null; // For ONLINE (Google Meet)
   additionalInfo?: string | null;
   isReschedule?: boolean;      // Flag for reschedule email
+  isCancellation?: boolean;    // Flag for cancellation email
+  cancellationReason?: string; // Reason for cancellation
   // Optional override — employer can edit before sending
   customBody?: string | null;
 }
@@ -70,6 +74,25 @@ function getMeetingTypeLabel(type: string): string {
   return type;
 }
 
+/**
+ * Convert plain text line breaks (\n) into HTML line breaks (<br />).
+ * This ensures paragraphs and point-wise formatting are preserved in HTML emails.
+ */
+function formatLineBreaks(text: string | null | undefined): string {
+  if (!text) return "";
+  // First, escape any existing HTML to prevent XSS if the input is untrusted
+  // (though in this app, only employers can reach this point)
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  
+  // Then convert newlines to <br />
+  return escaped.replace(/\n/g, "<br />");
+}
+
 // ─── Email Template Builder ───────────────────────────────────────────────────
 
 /**
@@ -78,11 +101,22 @@ function getMeetingTypeLabel(type: string): string {
  */
 export function buildInterviewEmailHtml(data: InterviewEmailData): string {
   // If employer provided a custom body, wrap it in the branded template
+  // Note: if the custom body already contains HTML from the frontend, formatLineBreaks might escape it.
+  // However, it's safer to treat it as plain text if it comes from a textarea.
   const bodyContent = data.customBody
-    ? `<div style="font-size:14px;color:#374151;line-height:1.7;">${data.customBody}</div>`
+    ? `<div style="font-size:14px;color:#374151;line-height:1.7;">${formatLineBreaks(data.customBody)}</div>`
     : buildDefaultBody(data);
 
-  const bannerContent = data.isReschedule
+  const bannerContent = data.isCancellation
+    ? `
+      <p style="margin:0;font-size:20px;font-weight:700;color:#991B1B;">
+        Interview Cancelled ❌
+      </p>
+      <p style="margin:8px 0 0;font-size:14px;color:#B91C1C;">
+        Your interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong> has been cancelled.
+      </p>
+    `
+    : data.isReschedule
     ? `
       <p style="margin:0;font-size:20px;font-weight:700;color:#7C2D12;">
         Interview Rescheduled ⏰
@@ -100,8 +134,8 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
       </p>
     `;
 
-  const bannerBg = data.isReschedule ? "#FFEDD5" : "#EEF2FF";
-  const bannerBorder = data.isReschedule ? "#FED7AA" : "#E0E7FF";
+  const bannerBg = data.isCancellation ? "#FEE2E2" : data.isReschedule ? "#FFEDD5" : "#EEF2FF";
+  const bannerBorder = data.isCancellation ? "#FECACA" : data.isReschedule ? "#FED7AA" : "#E0E7FF";
 
   return `
 <!DOCTYPE html>
@@ -127,7 +161,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                   </td>
                   <td align="right">
                     <div style="background:rgba(255,255,255,0.15);border-radius:50%;width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;">
-                      <span style="font-size:24px;">${data.isReschedule ? "⏰" : "🎉"}</span>
+                      <span style="font-size:24px;">${data.isCancellation ? "❌" : data.isReschedule ? "⏰" : "🎉"}</span>
                     </div>
                   </td>
                 </tr>
@@ -147,6 +181,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
             <td style="padding:32px 40px;">
               ${bodyContent}
 
+              ${!data.isCancellation ? `
               <!-- ── INTERVIEW DETAILS CARD ── -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFF;border:1px solid #E0E7FF;border-radius:12px;margin:24px 0;overflow:hidden;">
                 <tr>
@@ -217,16 +252,17 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                   </td>
                 </tr>
               </table>
+              ` : ""}
 
               ${
-                data.additionalInfo
+                data.additionalInfo && !data.isCancellation
                   ? `
               <!-- ── ADDITIONAL INFORMATION ── -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;margin:0 0 24px;overflow:hidden;">
                 <tr>
                   <td style="padding:16px 24px;">
                     <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.4px;">📝 Additional Information</p>
-                    <p style="margin:0;font-size:14px;color:#78350F;line-height:1.6;">${data.additionalInfo}</p>
+                    <p style="margin:0;font-size:14px;color:#78350F;line-height:1.6;">${formatLineBreaks(data.additionalInfo)}</p>
                   </td>
                 </tr>
               </table>`
@@ -235,7 +271,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
 
               <!-- ── ONLINE JOIN BUTTON ── -->
               ${
-                data.meetingType === "ONLINE" && data.meetingLink
+                !data.isCancellation && data.meetingType === "ONLINE" && data.meetingLink
                   ? `
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
@@ -283,7 +319,23 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
  * Build the default body paragraphs when no custom body is provided.
  */
 function buildDefaultBody(data: InterviewEmailData): string {
-  const rescheduleMessage = data.isReschedule ? `
+  const cancelMessage = data.isCancellation ? `
+    <div style="background:#FEE2E2;border-left:4px solid #DC2626;padding:16px;border-radius:8px;margin:0 0 16px;">
+      <p style="margin:0;font-size:14px;color:#7F1D1D;font-weight:600;">
+        ❌ Interview Cancelled
+      </p>
+      <p style="margin:8px 0 0;font-size:13px;color:#991B1B;line-height:1.6;">
+        We regret to inform you that your scheduled interview has been cancelled. We apologize for any inconvenience this may cause.
+      </p>
+      ${data.cancellationReason ? `
+      <p style="margin:8px 0 0;font-size:13px;color:#991B1B;line-height:1.6;">
+        <strong>Reason:</strong> ${formatLineBreaks(data.cancellationReason)}
+      </p>
+      ` : ""}
+    </div>
+  ` : "";
+
+  const rescheduleMessage = data.isReschedule && !data.isCancellation ? `
     <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:16px;border-radius:8px;margin:0 0 16px;">
       <p style="margin:0;font-size:14px;color:#92400E;font-weight:600;">
         ⏰ Interview Rescheduled
@@ -295,26 +347,35 @@ function buildDefaultBody(data: InterviewEmailData): string {
     </div>
   ` : "";
 
-  const greeting = data.isReschedule 
+  const greeting = data.isCancellation 
+    ? `<p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Dear ${data.candidateName},</p>`
+    : data.isReschedule 
     ? `<p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Hi ${data.candidateName},</p>`
     : `<p style="margin:0 0 16px;font-size:15px;color:#111827;font-weight:600;">Dear ${data.candidateName},</p>`;
 
-  const introMessage = data.isReschedule
+  const introMessage = data.isCancellation
+    ? `We regret to inform you that we need to cancel the interview that was scheduled for <strong>${formatDateTime(data.scheduledAt)}</strong>.`
+    : data.isReschedule
     ? `Your interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong> has been rescheduled.`
     : `We are pleased to inform you that you have been shortlisted for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>. We were impressed with your application and would like to invite you for an interview.`;
 
+  const nextSteps = data.isCancellation
+    ? `We remain interested in your profile and may reach out in the future with other opportunities that align with your background and experience.`
+    : `Please review the updated interview details below and confirm your availability.
+      ${data.meetingType === "ONLINE" ? "A Google Meet link has been provided for your convenience." : ""}
+      ${data.meetingType === "ONSITE" ? "Please arrive 10 minutes early at the location provided." : ""}
+      ${data.meetingType === "PHONE" ? "We will call you at your registered phone number." : ""}`;
+
   return `
     ${greeting}
+    ${cancelMessage}
     ${rescheduleMessage}
     <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
       ${introMessage}
-      ${!data.isReschedule ? `We would like to invite you for an interview.` : ``}
+      ${!data.isReschedule && !data.isCancellation ? `We would like to invite you for an interview.` : ``}
     </p>
     <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-      Please review the updated interview details below and confirm your availability.
-      ${data.meetingType === "ONLINE" ? "A Google Meet link has been provided for your convenience." : ""}
-      ${data.meetingType === "ONSITE" ? "Please arrive 10 minutes early at the location provided." : ""}
-      ${data.meetingType === "PHONE" ? "We will call you at your registered phone number." : ""}
+      ${nextSteps}
     </p>
   `;
 }
@@ -323,6 +384,9 @@ function buildDefaultBody(data: InterviewEmailData): string {
  * Build the email subject line.
  */
 export function buildInterviewEmailSubject(data: InterviewEmailData): string {
+  if (data.isCancellation) {
+    return `Interview Cancellation – ${data.jobTitle} at ${data.companyName}`;
+  }
   const prefix = data.isReschedule ? "[Rescheduled] " : "";
   return `${prefix}Interview Invitation – ${data.jobTitle} at ${data.companyName} | ${formatDateOnly(data.scheduledAt)}`;
 }

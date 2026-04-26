@@ -1,13 +1,24 @@
-// All database operations for AI module.
-// This layer is the ONLY place where Prisma is used.
-
 import { prisma } from "../../config/db";
-import { ApplicationStatus } from "@prisma/client";
 
+/**
+ * Interfaces for cached AI data structures
+ */
+export interface CachedAnalysis {
+  overallScore: number;
+  suggestions: string[];
+  coverLetter: string;
+  cachedAt?: Date;
+}
+
+/**
+ * Repository layer for AI-related database operations.
+ * Handles persistence for recommendations and analysis results.
+ */
 export const aiRepository = {
 
-  // ── Candidate Profile ──────────────────────────────────────────────────────
-
+  /**
+   * Retrieves a candidate profile by their user ID.
+   */
   async findCandidateProfileByUserId(userId: string) {
     return prisma.candidateProfile.findUnique({
       where: { userId },
@@ -15,40 +26,9 @@ export const aiRepository = {
   },
 
   /**
-   * Create or update candidate profile (CV data + extracted skills)
+   * Updates the recommendation cache for a specific candidate.
    */
-  async upsertCandidateProfile(
-    userId: string,
-    data: {
-      cvUrl: string;
-      cvFileName: string;
-      extractedSkills?: string[];
-    }
-  ) {
-    return prisma.candidateProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        ...data,
-      },
-      update: data,
-    });
-  },
-
-  async clearCandidateProfileResume(userId: string) {
-    return prisma.candidateProfile.update({
-      where: { userId },
-      data: {
-        cvUrl: null,
-        cvFileName: null,
-        extractedSkills: [],
-        recommendationCache: null,
-        lastRecommendedAt: null,
-      },
-    });
-  },
-
-  async updateRecommendationCache(userId: string, recommendations: any) {
+  async updateRecommendationCache(userId: string, recommendations: any[]) {
     return prisma.candidateProfile.update({
       where: { userId },
       data: {
@@ -58,83 +38,39 @@ export const aiRepository = {
     });
   },
 
-  // ── Job Post ───────────────────────────────────────────────────────────────
-
-  async findJobPostById(id: string) {
-    return prisma.jobPost.findUnique({
-      where: { id },
-      include: {
-        employer: {
-          select: {
-            companyName: true,
-            companyLogoUrl: true,
-            companyDescription: true,
-            companyWebsite: true,
-            companyLocation: true,
-          },
-        },
-      },
-    });
-  },
-
   /**
-   * Find active jobs matching the user's career path
+   * Updates the job analysis cache with a new entry.
+   * Merges with existing cache entries for other jobs.
    */
-  async findActiveJobsByRole(type: "JOB" | "INTERNSHIP") {
-    return prisma.jobPost.findMany({
-      where: {
-        status: "ACTIVE",
-        type: type,
-      },
-      include: {
-        employer: {
-          select: {
-            companyName: true,
-            companyLogoUrl: true,
+  async updateAnalysisCache(userId: string, jobId: string, analysis: CachedAnalysis) {
+    const profile = await this.findCandidateProfileByUserId(userId);
+    const existingCache = (profile?.jobAnalysisCache as unknown as Record<string, CachedAnalysis>) || {};
+    
+    return prisma.candidateProfile.update({
+      where: { userId },
+      data: {
+        jobAnalysisCache: {
+          ...existingCache,
+          [jobId]: {
+            ...analysis,
+            cachedAt: new Date(),
           },
-        },
+        } as any,
       },
-    });
-  },
-
-  // ── Application ────────────────────────────────────────────────────────────
-
-  async findApplicationById(id: string) {
-    return prisma.application.findUnique({
-      where: { id },
-      include: {
-        jobPost: true,
-      },
-    });
-  },
-
-  async findApplicationByCandidateAndJob(
-    candidateProfileId: string,
-    jobPostId: string
-  ) {
-    return prisma.application.findUnique({
-      where: {
-        candidateProfileId_jobPostId: {
-          candidateProfileId,
-          jobPostId,
-        },
-      },
-    });
-  },
-
-  async createApplication(data: {
-    candidateProfileId: string;
-    jobPostId: string;
-    cvUrl: string;
-    cvFileName: string;
-  }) {
-    return prisma.application.create({
-      data,
     });
   },
 
   /**
-   * Save consolidated AI analysis result
+   * Retrieves a cached analysis result for a specific user and job.
+   */
+  async findAnalysisInCache(userId: string, jobId: string): Promise<CachedAnalysis | null> {
+    const profile = await this.findCandidateProfileByUserId(userId);
+    const cache = (profile?.jobAnalysisCache as unknown as Record<string, CachedAnalysis>) || {};
+    return cache[jobId] || null;
+  },
+
+  /**
+   * Persists the final AI analysis result to an application record.
    */
   async saveAnalysisResult(
     applicationId: string,
@@ -150,27 +86,20 @@ export const aiRepository = {
     });
   },
 
-  // ── Company Actions ────────────────────────────────────────────────────────
-
   /**
-   * Get applicants sorted by AI score (descending)
+   * Retrieves active job posts filtered by type (JOB/INTERNSHIP).
    */
-  async findRankedApplicants(jobPostId: string) {
-    return prisma.application.findMany({
-      where: { jobPostId },
-      orderBy: { aiScore: "desc" },
+  async findActiveJobsByRole(jobType: "JOB" | "INTERNSHIP") {
+    return prisma.jobPost.findMany({
+      where: {
+        status: "ACTIVE",
+        type: jobType,
+      },
       include: {
-        candidateProfile: {
+        employer: {
           select: {
-            headline: true,
-            skills: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
+            companyName: true,
+            companyLogoUrl: true,
           },
         },
       },
@@ -178,15 +107,20 @@ export const aiRepository = {
   },
 
   /**
-   * Update application status (HR actions)
+   * Fetches a detailed job post by its ID, including employer context.
    */
-  async updateApplicationStatus(
-    id: string,
-    applicationStatus: ApplicationStatus
-  ) {
-    return prisma.application.update({
-      where: { id },
-      data: { applicationStatus },
+  async findJobPostById(postId: string) {
+    return prisma.jobPost.findUnique({
+      where: { id: postId },
+      include: {
+        employer: {
+          select: {
+            companyName: true,
+            companyLogoUrl: true,
+          },
+        },
+      },
     });
   },
 };
+

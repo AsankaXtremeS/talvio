@@ -2,6 +2,7 @@ export interface Company {
 	id: string;
 	name: string;
 	email: string;
+	companyLogoUrl?: string | null;
 	postCount: number;
 	joinedAt: string;
 	category?: string;

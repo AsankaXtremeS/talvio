@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation"; 
-import { ArrowLeft } from "lucide-react"; 
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getCandidates } from "@/lib/employer/candidates.service";
@@ -14,7 +14,7 @@ interface Props {
 
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
-  const router = useRouter(); 
+  const router = useRouter();
 
   const [status, setStatus] = useState<CandidateStatus>("Applied");
   const [query, setQuery] = useState("");
@@ -23,7 +23,7 @@ export default function PostCandidatesPage({ params }: Props) {
   useEffect(() => {
     let mounted = true;
 
-    getCandidates(status)
+    getCandidates(status, postId)
       .then((data) => {
         if (mounted) {
           setCandidates(data);
@@ -38,7 +38,7 @@ export default function PostCandidatesPage({ params }: Props) {
     return () => {
       mounted = false;
     };
-  }, [status]);
+  }, [status, postId]);
 
   const filteredCandidates = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -57,7 +57,7 @@ export default function PostCandidatesPage({ params }: Props) {
 
   return (
     <div className="p-6 space-y-6">
-      
+
       {/* ─── BACK BUTTON ────────────────────────────────────────────── */}
       <button
         onClick={() => router.push("/users/employer/job-posts")}
@@ -71,24 +71,24 @@ export default function PostCandidatesPage({ params }: Props) {
       <h1 className="text-2xl font-bold text-gray-900">
         Candidates for Post — {postId}
       </h1>
-      
+
       <CandidateFilterBar
         status={status}
         onStatusChange={setStatus}
         query={query}
         onQueryChange={setQuery}
       />
-      
+
       {/* ─── UPDATED GRID ROUTING ───────────────────────────────────── */}
       <CandidatesGrid
         candidates={filteredCandidates}
         onViewProfile={(id) => {
-          // Navigates to the Candidate's Profile page
-          router.push(`/users/employer/candidates/${id}`);
+          // Pass postId so the profile page can update application status in context
+          router.push(`/users/employer/candidates/${id}?postId=${postId}`);
         }}
         onSchedule={(id) => {
-          // Use the candidate schedule route and preserve postId context in query params.
-          router.push(`/users/employer/candidates/${id}/schedule?postId=${encodeURIComponent(postId)}`);
+          // Route includes both postId and candidateProfileId.
+          router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
       />
     </div>

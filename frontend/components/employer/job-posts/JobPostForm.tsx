@@ -8,6 +8,7 @@ import { FileText, LogOut } from "lucide-react";
 import { JobPostFormData } from "@/types/employer/jobPost.types";
 import { createJobPost, updateJobPost } from "@/lib/employer/jobPosts.service";
 import Popup from "@/components/admin/layout/Popup";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface JobPostFormProps {
   initialData?: Partial<JobPostFormData>;
@@ -45,6 +46,7 @@ export default function JobPostForm({
   onSuccess,
 }: JobPostFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState<JobPostFormData>({
     ...EMPTY,
@@ -156,6 +158,9 @@ export default function JobPostForm({
         await createJobPost(payload);
       }
 
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
+
       setPopup({
         open: true,
         message: isEdit
@@ -194,6 +199,10 @@ export default function JobPostForm({
       };
 
       await createJobPost(payload);
+
+      // Invalidate React Query cache to ensure automatic update on dashboard
+      queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
+
       sessionStorage.removeItem(PREVIEW_STORAGE_KEY);
       router.push("/users/employer/job-posts");
     } catch (err) {

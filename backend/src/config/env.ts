@@ -19,6 +19,8 @@ if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) 
   throw new Error("SMTP_HOST, SMTP_USER, and SMTP_PASS are required for email delivery")
 }
 
+if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing")
+
 export const env = {
   PORT: process.env.PORT || 8000,
   DATABASE_URL: process.env.DATABASE_URL,
@@ -38,6 +40,16 @@ export const env = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
+
+
+  // API keys for LLM providers
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  GROQ_API_KEY: process.env.GROQ_API_KEY,
+  CEREBRAS_API_KEY: process.env.CEREBRAS_API_KEY,
+  MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+
+
 
   // Google Calendar integration (Service Account — for interview scheduling)
   // Leave blank to disable calendar integration (app still works without it)

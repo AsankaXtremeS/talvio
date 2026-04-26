@@ -33,8 +33,8 @@ function getStoredRefreshToken(): string | null {
   return localStorage.getItem("refreshToken");
 }
 
-const getHeaders = () => ({
-  "Content-Type": "application/json",
+const getHeaders = (hasBody = false) => ({
+  ...(hasBody ? { "Content-Type": "application/json" } : {}),
   ...(getStoredAccessToken() ? { Authorization: `Bearer ${getStoredAccessToken()}` } : {}),
 });
 
@@ -96,10 +96,11 @@ async function refreshAccessToken(): Promise<boolean> {
 // ─── Fetch with Auth + Retry ──────────────────────────────────────────────────
 
 async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const hasBody = Boolean(init.body);
   const firstResponse = await fetch(url, {
     ...init,
     headers: {
-      ...getHeaders(),
+      ...getHeaders(hasBody),
       ...(init.headers ?? {}),
     },
     credentials: "include",
@@ -120,7 +121,7 @@ async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Respo
   return fetch(url, {
     ...init,
     headers: {
-      ...getHeaders(),
+      ...getHeaders(hasBody),
       ...(init.headers ?? {}),
     },
     credentials: "include",
@@ -174,6 +175,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
       }
     } catch (parseErr) {
       console.error("[interviews.service] Failed to parse error response:", parseErr);
+      const text = await res.text().catch(() => null);
+      if (text) {
+        message = text;
+      } else if (res.statusText) {
+        message = res.statusText;
+      }
     }
     throw new Error(message);
   }
@@ -189,6 +196,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
  */
 export async function getInterviews(options?: {
   status?: string;
+  date?: string;
   page?: number;
   limit?: number;
 }): Promise<{
@@ -197,6 +205,7 @@ export async function getInterviews(options?: {
 }> {
   const params = new URLSearchParams();
   if (options?.status) params.set("status", options.status);
+  if (options?.date)   params.set("date",   options.date);
   if (options?.page)   params.set("page",   String(options.page));
   if (options?.limit)  params.set("limit",  String(options.limit));
 
@@ -310,4 +319,39 @@ export async function cancelInterview(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) {
     await handleResponse(res);
   }
+}
+
+/**
+ * POST /api/employer/interviews/:id/generate-cancel-email
+ * Generate cancellation email preview.
+ * Returns EmailPreviewDTO { subject, body } with cancellation message.
+ */
+export async function generateCancelEmailPreview(
+  id: string,
+  reason: string
+): Promise<EmailPreviewDTO> {
+  const res = await fetchWithAuth(`${BASE}/${id}/generate-cancel-email`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+  return handleResponse<EmailPreviewDTO>(res);
+}
+
+/**
+ * POST /api/employer/interviews/:id/cancel-and-send
+ * Cancel interview and send cancellation email.
+ * Changes status SCHEDULED → CANCELLED.
+ * Removes Google Calendar event.
+ * Sends email to candidate.
+ * Returns updated InterviewDTO with status="CANCELLED".
+ */
+export async function cancelAndSendEmail(
+  id: string,
+  payload: { reason: string; emailBody: string }
+): Promise<InterviewDTO> {
+  const res = await fetchWithAuth(`${BASE}/${id}/cancel-and-send`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<InterviewDTO>(res);
 }

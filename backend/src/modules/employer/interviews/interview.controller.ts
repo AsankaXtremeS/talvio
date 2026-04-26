@@ -28,6 +28,10 @@ const getParamAsString = (value: unknown): string | null => {
   return null;
 };
 
+const isUuid = (value: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+};
+
 /**
  * Format Zod validation errors into a clean error response
  */
@@ -254,6 +258,88 @@ export const cancelInterview = async (req: Request, res: Response) => {
     return res.status(204).send();
   } catch (err) {
     console.error("cancelInterview error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};
+
+/**
+ * POST /api/employer/interviews/:id/generate-cancel-email
+ * Generate a cancellation email preview.
+ * Returns EmailPreviewDTO { subject, body }.
+ */
+export const generateCancelEmailPreview = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const id = getParamAsString(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid interview id" });
+
+    const { reason } = req.body;
+    if (typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ message: "reason is required" });
+    }
+
+    const preview = await interviewService.generateCancelEmailPreview(id, employerId, reason);
+    return res.json(preview);
+  } catch (err) {
+    console.error("generateCancelEmailPreview error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};
+
+/**
+ * POST /api/employer/interviews/:id/cancel-and-send
+ * Cancel interview and send cancellation email to candidate.
+ * Changes status SCHEDULED → CANCELLED.
+ * Removes Google Calendar event.
+ * Returns updated InterviewDTO.
+ */
+export const cancelAndSendEmail = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const id = getParamAsString(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid interview id" });
+
+    const { reason, emailBody } = req.body;
+    if (typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ message: "reason is required" });
+    }
+    if (typeof emailBody !== "string") {
+      return res.status(400).json({ message: "emailBody must be a string" });
+    }
+
+    const interview = await interviewService.cancelAndSendEmail(id, employerId, reason, emailBody);
+    return res.json(interview);
+  } catch (err) {
+    console.error("cancelAndSendEmail error:", err);
+    return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
+  }
+};
+
+/**
+ * GET /api/employer/interviews/candidates/:candidateProfileId
+ * Fetch candidate profile details for schedule UI.
+ */
+export const getCandidateProfile = async (req: Request, res: Response) => {
+  try {
+    const employerId = getEmployerId(req);
+    if (!employerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const candidateProfileId = getParamAsString(req.params.candidateProfileId);
+    if (!candidateProfileId) {
+      return res.status(400).json({ message: "Invalid candidate profile id" });
+    }
+    if (!isUuid(candidateProfileId)) {
+      return res.status(400).json({ message: "Candidate profile id must be a valid UUID" });
+    }
+
+    const candidate = await interviewService.getCandidateProfile(employerId, candidateProfileId);
+    return res.json(candidate);
+  } catch (err) {
+    console.error("getCandidateProfile error:", err);
     return res.status(resolveStatusCode(err)).json({ message: (err as Error).message });
   }
 };

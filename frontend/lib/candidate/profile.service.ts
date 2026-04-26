@@ -9,6 +9,10 @@ export interface CandidateProfile {
   bio?: string;
   cvUrl?: string;
   cvFileName?: string;
+  profilePictureUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
   extractedSkills: string[];
   updatedAt: string;
 }
@@ -26,6 +30,33 @@ export const profileService = {
       return null;
     }
   },
+
+  /**
+   * Update the current candidate's profile
+   */
+
+  async updateProfile(data: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  headline?: string;
+  location?: string;
+  bio?: string;
+  skills?: string[];
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+  profilePictureUrl?: string;
+}): Promise<CandidateProfile> {
+  const res = await fetch("/api/candidate/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to update profile");
+  return json.profile;
+},
 
   /**
    * Update the candidate's default resume

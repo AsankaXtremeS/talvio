@@ -17,12 +17,15 @@ import {
   listInterviews,
   getScheduledDates,
   getInterview,
+  getCandidateProfile,
   createInterview,
   updateInterview,
   generateEmailPreview,
   scheduleAndSend,
   saveEmailBody,
   cancelInterview,
+  generateCancelEmailPreview,
+  cancelAndSendEmail,
 } from "./interview.controller";
 
 const router = Router();
@@ -40,6 +43,10 @@ router.get("/scheduled-dates", getScheduledDates);
 // POST /api/employer/interviews/generate-email
 // Generate an email preview based on form data (no DB write).
 router.post("/generate-email", generateEmailPreview);
+
+// GET /api/employer/interviews/candidates/:candidateProfileId
+// Returns minimal candidate profile details for schedule UI.
+router.get("/candidates/:candidateProfileId", getCandidateProfile);
 
 // ─── Collection routes ────────────────────────────────────────────────────────
 
@@ -62,5 +69,11 @@ router.post("/:id/schedule", scheduleAndSend);
 
 // PATCH /api/employer/interviews/:id/email-body    — Save custom email body
 router.patch("/:id/email-body", saveEmailBody);
+
+// POST  /api/employer/interviews/:id/generate-cancel-email  — Generate cancellation email preview
+router.post("/:id/generate-cancel-email", generateCancelEmailPreview);
+
+// POST  /api/employer/interviews/:id/cancel-and-send        — Cancel interview + send email
+router.post("/:id/cancel-and-send", cancelAndSendEmail);
 
 export default router;

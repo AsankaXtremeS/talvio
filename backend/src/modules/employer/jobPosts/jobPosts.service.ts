@@ -24,6 +24,7 @@ interface JobPostDTO {
   title: string;
   type: "Job" | "Internship";
   status: "Draft" | "Active" | "Closed";
+  applicantsCount: number;
   description: string;
   responsibilities: string;
   requirements: string;
@@ -35,6 +36,7 @@ interface JobPostDTO {
   location: string;
   company: {
     name: string;
+    logoUrl?: string | null;
   };
   createdAt?: string;
   updatedAt?: string;
@@ -60,6 +62,12 @@ const mapToDTO = (post: any): JobPostDTO => ({
       : post.status === "CLOSED"
       ? "Closed"
       : "Draft",
+  applicantsCount:
+    typeof post?._count?.applications === "number"
+      ? post._count.applications
+      : Array.isArray(post?.applications)
+      ? post.applications.length
+      : 0,
   description: post.description ?? "",
   responsibilities:
     typeof post.responsibilities === "string"
@@ -105,6 +113,7 @@ const mapToDTO = (post: any): JobPostDTO => ({
   location: post.location ?? "",
   company: {
     name: post.employer?.companyName ?? "",
+    logoUrl: post.employer?.companyLogoUrl ?? null,
   },
   createdAt: post.createdAt ? post.createdAt.toISOString() : undefined,
   updatedAt: post.updatedAt ? post.updatedAt.toISOString() : undefined,
@@ -149,6 +158,7 @@ export const jobsService = {
       active: stats.ACTIVE,
       draft: stats.DRAFT,
       closed: stats.CLOSED,
+      applications: stats.APPLICATIONS,
     };
   },
 
@@ -295,6 +305,46 @@ export const jobsService = {
       appliedAt: app.appliedAt.toISOString(),
       cvUrl: app.cvUrl,
       aiScore: app.aiScore || 0,
+      profilePictureUrl: app.candidateProfile.profilePictureUrl || null,
     }));
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MARK REVIEWED — Employer marks they have reviewed the candidate's profile/CV.
+  // Independent from shortlisting — both flags can be true simultaneously.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async markReviewed(
+    userId: string,
+    jobPostId: string,
+    candidateProfileId: string
+  ) {
+    const employerId = await resolveApprovedEmployerId(userId);
+    const jobPost = await jobsRepository.findById(jobPostId, employerId);
+    if (!jobPost) throw buildHttpError("Job post not found", 404);
+
+    const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
+    if (!app) throw buildHttpError("Application not found", 404);
+
+    return jobsRepository.markReviewed(app.id);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MARK SHORTLISTED — Employer shortlists the candidate for the job post.
+  // Sets isShortlisted = true AND updates applicationStatus to SHORTLISTED.
+  // Can co-exist with isReviewed = true.
+  // ═══════════════════════════════════════════════════════════════════════════
+  async markShortlisted(
+    userId: string,
+    jobPostId: string,
+    candidateProfileId: string
+  ) {
+    const employerId = await resolveApprovedEmployerId(userId);
+    const jobPost = await jobsRepository.findById(jobPostId, employerId);
+    if (!jobPost) throw buildHttpError("Job post not found", 404);
+
+    const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
+    if (!app) throw buildHttpError("Application not found", 404);
+
+    return jobsRepository.markShortlisted(app.id);
   },
 };

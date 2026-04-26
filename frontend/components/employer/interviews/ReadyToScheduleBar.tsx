@@ -5,7 +5,7 @@
 
 "use client";
 
-import { Mail, Save, Trash2, Video, Building2, Phone, CalendarCheck } from "lucide-react";
+import { Mail, Trash2, Video, Building2, Phone, CalendarCheck } from "lucide-react";
 import { MeetingType } from "@/types/employer/interview.types";
 
 interface Props {
@@ -15,10 +15,8 @@ interface Props {
   location?: string;
   meetingLink?: string | null;
   candidateEmail?: string;
-  onSaveDraft: () => void;
   onRemove: () => void;
   onSchedule: () => void;
-  isSavingDraft?: boolean;
   isScheduling?: boolean;
   hasEmailPreview?: boolean;  // disable Schedule until email is generated
   isDisabled?: boolean;       // disable while loading data
@@ -61,10 +59,8 @@ export default function ReadyToScheduleBar({
   location,
   meetingLink,
   candidateEmail,
-  onSaveDraft,
   onRemove,
   onSchedule,
-  isSavingDraft = false,
   isScheduling = false,
   hasEmailPreview = false,
   isDisabled = false,
@@ -118,34 +114,15 @@ export default function ReadyToScheduleBar({
         <button
           type="button"
           onClick={onRemove}
-          disabled={isScheduling || isSavingDraft}
+          disabled={isScheduling}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Trash2 size={14} />
           Remove
         </button>
 
-        {/* Right: save draft + primary CTA */}
+        {/* Right: primary CTA */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            disabled={isSavingDraft || isScheduling || !isReady}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSavingDraft ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save size={14} />
-                Save as Draft
-              </>
-            )}
-          </button>
-
           <button
             type="button"
             onClick={onSchedule}

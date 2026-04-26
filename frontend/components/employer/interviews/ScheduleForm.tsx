@@ -31,6 +31,10 @@ interface Props {
   setLocation: (v: string) => void;
   additionalInfo: string;
   setAdditionalInfo: (v: string) => void;
+  onlineOption: "GENERATE" | "CUSTOM";
+  setOnlineOption: (v: "GENERATE" | "CUSTOM") => void;
+  customLink: string;
+  setCustomLink: (v: string) => void;
   meetingLink?: string | null;   // returned from backend for ONLINE
   onGenerateEmail: () => void;   // trigger email preview
   isGeneratingEmail?: boolean;
@@ -49,6 +53,10 @@ export default function ScheduleForm({
   setTime,
   meetingType,
   setMeetingType,
+  onlineOption,
+  setOnlineOption,
+  customLink,
+  setCustomLink,
   location,
   setLocation,
   additionalInfo,
@@ -166,38 +174,82 @@ export default function ScheduleForm({
           </div>
         )}
 
-        {/* ── Google Meet link (ONLINE — shown after draft created) ── */}
-        {meetingType === "ONLINE" && meetingLink && (
-          <div className="md:col-span-2">
-            <label className="block mb-1.5 text-sm font-medium text-gray-700">
-              Google Meet Link
-            </label>
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg">
-              <Video size={16} className="text-green-600 shrink-0" />
-              <a
-                href={meetingLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-green-700 font-medium underline truncate hover:text-green-900"
-              >
-                {meetingLink}
-              </a>
+        {/* ── ONLINE Options ── */}
+        {meetingType === "ONLINE" && (
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex flex-col gap-3 p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+              <label className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                <Video size={16} /> Online Meeting Option
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setOnlineOption("GENERATE")}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    onlineOption === "GENERATE"
+                      ? "bg-white text-indigo-600 border-2 border-indigo-500 shadow-sm"
+                      : "bg-indigo-50 text-indigo-400 border-2 border-transparent hover:bg-indigo-100"
+                  }`}
+                >
+                  Generate Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOnlineOption("CUSTOM")}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    onlineOption === "CUSTOM"
+                      ? "bg-white text-indigo-600 border-2 border-indigo-500 shadow-sm"
+                      : "bg-indigo-50 text-indigo-400 border-2 border-transparent hover:bg-indigo-100"
+                  }`}
+                >
+                  Custom Link
+                </button>
+              </div>
+              
+              {onlineOption === "GENERATE" ? (
+                <div className="flex items-start gap-2 text-xs text-indigo-600">
+                  <Info size={14} className="shrink-0 mt-0.5" />
+                  <p>A unique Google Meet link will be created automatically via Google Calendar.</p>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 text-xs text-indigo-600">
+                  <Info size={14} className="shrink-0 mt-0.5" />
+                  <p>Provide your own meeting link (Zoom, Microsoft Teams, etc.)</p>
+                </div>
+              )}
             </div>
-            <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
-              <Info size={11} /> Generated automatically via Google Calendar
-            </p>
-          </div>
-        )}
 
-        {/* ── ONLINE — note before draft created ── */}
-        {meetingType === "ONLINE" && !meetingLink && (
-          <div className="md:col-span-2">
-            <div className="flex items-start gap-2.5 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-lg">
-              <Link2 size={15} className="text-indigo-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-indigo-700">
-                A Google Meet link will be generated automatically when you save this interview.
-              </p>
-            </div>
+            {onlineOption === "CUSTOM" && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <label className="block text-sm font-medium text-gray-700">
+                  Custom Meeting Link <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={customLink}
+                    onChange={(e) => setCustomLink(e.target.value)}
+                    placeholder="https://zoom.us/j/123456789"
+                    className="w-full py-2.5 pl-4 pr-10 text-sm text-gray-700 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  />
+                  <Link2 className="absolute right-3 top-2.5 text-gray-400" size={17} />
+                </div>
+              </div>
+            )}
+
+            {onlineOption === "GENERATE" && meetingLink && (
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg animate-in fade-in duration-300">
+                <Video size={16} className="text-green-600 shrink-0" />
+                <a
+                  href={meetingLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-700 font-medium underline truncate hover:text-green-900"
+                >
+                  {meetingLink}
+                </a>
+              </div>
+            )}
           </div>
         )}
 
@@ -219,7 +271,7 @@ export default function ScheduleForm({
             Additional Information
           </label>
           <textarea
-            rows={3}
+            rows={6}
             value={additionalInfo}
             onChange={(e) => setAdditionalInfo(e.target.value)}
             placeholder="E.g. Please bring your portfolio, dress code is business casual, parking is available..."
