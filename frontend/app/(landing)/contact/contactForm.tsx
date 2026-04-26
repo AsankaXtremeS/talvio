@@ -1,19 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'
-
-interface CountryData {
-  name: { common: string };
-  idd?: { root?: string; suffixes?: string[] };
-}
-
-interface CountryCode {
-  name: string;
-  code: string;
-}
+import React, { useState } from 'react';
+import { COUNTRY_CODES, CountryCode } from "@/constant/countryCodes";
 
 const ContactForm = () => {
-  const [countryCodes, setCountryCodes] = useState<CountryCode[]>([]);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -25,38 +15,6 @@ const ContactForm = () => {
   const [focused, setFocused] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  // ✅ Moved fetch inside useEffect (top-level await not allowed in client components)
-  useEffect(() => {
-    const fetchCountryCodes = async () => {
-      try {
-        const res = await fetch("https://restcountries.com/v3.1/all");
-        if (!res.ok) throw new Error("Failed to fetch country codes");
-        const data = await res.json();
-        
-        if (!Array.isArray(data)) {
-          console.warn("Expected array from restcountries API, got:", typeof data);
-          return;
-        }
-
-        const codes = (data as CountryData[])
-          .map((c) => ({
-            name: c.name?.common || "Unknown",
-            code: c.idd?.root
-              ? c.idd.root + (c.idd?.suffixes?.[0] || "")
-              : "",
-          }))
-          .filter((c) => c.code) 
-          .sort((a, b) => a.name.localeCompare(b.name)); 
-        setCountryCodes(codes);
-      } catch (err) {
-        console.error("Error fetching country codes:", err);
-        // Provide a default fallback so the UI still works
-        setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
-      }
-    };
-    fetchCountryCodes();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -135,17 +93,17 @@ const ContactForm = () => {
             </button>
             {showDropdown && (
               <div style={{ position: "absolute", top: "110%", left: 0, background: "#fff", border: "1.5px solid #e2e5f0", borderRadius: 12, zIndex: 50, minWidth: 160, boxShadow: "0 4px 16px rgba(0,0,0,0.10)", overflow: "auto", maxHeight: 200 }}>
-                {countryCodes.map((c) => (
+                {COUNTRY_CODES.map((c: CountryCode) => (
                   <button
-                    key={`${c.name}-${c.code}`}  
+                    key={`${c.name}-${c.code}`}
                     type="button"
                     onClick={() => {
-                      setForm((f) => ({ ...f, countryCode: c.code })); 
+                      setForm((f) => ({ ...f, countryCode: c.code }));
                       setShowDropdown(false);
                     }}
                     style={{ display: "block", width: "100%", padding: "9px 16px", textAlign: "left", background: form.countryCode === c.code ? "#f0f4ff" : "#fff", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500, color: "#1a1f36", fontFamily: "'DM Sans', sans-serif" }}
                   >
-                    {c.name} ({c.code}) 
+                    {c.name} ({c.code})
                   </button>
                 ))}
               </div>
@@ -160,7 +118,7 @@ const ContactForm = () => {
         <div style={{ position: "relative", marginBottom: 18 }}>
           <textarea name="message" value={form.message} onChange={handleChange}
             onFocus={() => setFocused("message")} onBlur={() => setFocused(null)}
-            placeholder="How can we help ?" maxLength={120} rows={4}
+            placeholder="How can we help?" maxLength={120} rows={4}
             style={{ ...inputStyle("message"), borderRadius: 16, paddingBottom: 28 }} />
           <span style={{ position: "absolute", right: 16, bottom: 12, fontSize: 12, color: "#b0b7c9" }}>
             {form.message.length}/120
@@ -169,7 +127,7 @@ const ContactForm = () => {
 
         <button type="submit" className="submit-btn"
           style={{ width: "100%", padding: "15px", borderRadius: 30, background: "linear-gradient(135deg,#4f6ef7 0%,#5b7cf7 100%)", color: "#fff", fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 16, transition: "opacity 0.2s, transform 0.15s", boxShadow: "0 4px 18px rgba(79,110,247,0.35)", letterSpacing: "0.2px" }}>
-          {submitted ? " Message Sent!" : "Submit"}
+          {submitted ? "✓ Message Sent!" : "Submit"}
         </button>
 
         <p style={{ fontSize: 12.5, color: "#9ca3af", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
