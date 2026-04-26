@@ -168,7 +168,6 @@ describe("interviewService", () => {
       candidateProfileId: "e5f6a7b8-c9d0-1234-efab-345678901234",
       scheduledAt: "2099-06-01T10:00:00Z",
       meetingType: "ONLINE" as const,
-      meetingLink: "https://meet.google.com/abc",
       isReschedule: false,
     } satisfies import("../interview.validation").CreateInterviewInput;
 
@@ -255,7 +254,7 @@ describe("interviewService", () => {
         meetingLink: "https://meet.google.com/generated",
       });
 
-      const inputWithoutLink = { ...baseInput, meetingLink: undefined };
+      const inputWithoutLink = { ...baseInput };
       const result = await interviewService.createDraft(EMPLOYER_USER_ID, inputWithoutLink as any);
 
       expect(googleCalendarService.createEvent).toHaveBeenCalled();
