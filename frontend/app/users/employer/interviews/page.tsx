@@ -10,7 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   Video,
@@ -178,8 +178,20 @@ export default function InterviewsDashboardPage() {
 
   // ── UI state ──
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
   const [selectedInterview, setSelectedInterview] = useState<InterviewDTO | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const interviewId = searchParams?.get("interviewId");
+    if (!interviewId || !interviews.length) return;
+
+    const found = interviews.find((iv) => iv.id === interviewId);
+    if (found) {
+      setSelectedInterview(found);
+      setIsModalOpen(true);
+    }
+  }, [searchParams, interviews]);
 
   // ── Calendar navigation ────────────────────────────────────────────────────
   const prevMonth = () => {

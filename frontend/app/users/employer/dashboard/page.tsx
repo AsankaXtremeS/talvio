@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Plus, CalendarDays, LayoutDashboard } from "lucide-react";
+import { Plus, CalendarDays, LayoutDashboard, FileText, X } from "lucide-react";
 import { getJobPosts, getJobPostStats } from "@/lib/employer/jobPosts.service";
 import { getCandidates } from "@/lib/employer/candidates.service";
 import { getInterviews } from "@/lib/employer/interviews.service";
@@ -11,14 +11,14 @@ import StatsRow from "@/components/employer/dashboard/StatsRow";
 import AIMatchedWidget from "@/components/employer/dashboard/AIMatchedWidget";
 import UpcomingInterviewsWidget from "@/components/employer/dashboard/UpcomingInterviewsWidget";
 import JobsPreviewWidget from "@/components/employer/dashboard/JobsPreviewWidget";
-import RecentActivityFeed from "@/components/employer/dashboard/RecentActivityFeed";
+import RecentActivityFeed, {
+  type RecentActivityFeedActivityItem,
+} from "@/components/employer/dashboard/RecentActivityFeed";
+import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import type { InterviewDTO } from "@/types/employer/interview.types";
 import type { JobPost } from "@/types/employer/jobPost.types";
 
-interface ActivityItem {
-  id: string;
-  text: string;
-  time: string;
+interface DashboardActivityItem extends RecentActivityFeedActivityItem {
   sortValue: number;
 }
 
@@ -44,7 +44,7 @@ function formatRelativeTime(iso: string) {
 const createActivityItems = (
   interviews: InterviewDTO[],
   jobs: JobPost[]
-): ActivityItem[] => {
+): DashboardActivityItem[] => {
   const interviewItems = interviews.map((interview) => {
     const eventTime = interview.updatedAt || interview.createdAt || interview.scheduledAt;
     return {
@@ -112,23 +112,40 @@ export default function DashboardPage() {
     enabled: Boolean(activeJob?.id),
   });
 
-  const activityFeed = useMemo(
+  const activityFeed = useMemo<DashboardActivityItem[]>(
     () => createActivityItems(upcomingInterviews, jobPosts),
     [upcomingInterviews, jobPosts]
   );
 
+  const [selectedInterview, setSelectedInterview] = useState<InterviewDTO | null>(null);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+  const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
   const upcomingInterviewList = upcomingInterviews.slice(0, 2);
   const recentActivityList = activityFeed.slice(0, 3);
+  const recentActivityModalList = activityFeed.slice(0, 10);
+
+  const handleRecentActivityView = (activity: RecentActivityFeedActivityItem) => {
+    if (activity.id.startsWith("job-")) {
+      router.push(`/users/employer/job-posts/${activity.id.replace("job-", "")}`);
+      return;
+    }
+    if (activity.id.startsWith("interview-")) {
+      router.push("/users/employer/interviews");
+      return;
+    }
+    router.push("/users/employer/job-posts");
+  };
+
+  const closeRecentActivityModal = () => setIsRecentActivityModalOpen(false);
 
   return (
-    <div className="flex-1 min-h-screen overflow-auto p-7 [&_button:not(:disabled)]:cursor-pointer">
-      <div className="sticky top-0 z-30 bg-[#f4f6fb] pt-0 -mt-7 pb-2">
+    <div className="flex-1 min-h-screen bg-[#f4f6fb] [&_button:not(:disabled)]:cursor-pointer">
+      {/* Sticky header — single block, no nesting */}
+      <div className="sticky top-0 z-30 bg-[#f4f6fb] px-7 pt-7 pb-3 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)]">
         <div className="bg-white rounded-2xl px-7 py-5 mb-3 flex items-center justify-between shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-indigo-700 flex items-center gap-2">
-              <span className="text-2xl">
-                <LayoutDashboard />
-              </span>{" "}
+              <LayoutDashboard />
               Dashboard
             </h1>
             <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
@@ -150,21 +167,25 @@ export default function DashboardPage() {
             Post New Job
           </button>
         </div>
-        <div className="sticky top-24 z-20 bg-[#f4f6fb] pb-2">
-          <StatsRow
-            stats={{
-              activePosts: stats?.active ?? 0,
-              interviews: upcomingInterviews.length,
-              applications: stats?.applications ?? 0,
-              aiMatches: aiCandidates.length,
-            }}
-          />
-        </div>
+
+        <StatsRow
+          stats={{
+            activePosts: stats?.active ?? 0,
+            interviews: upcomingInterviews.length,
+            applications: stats?.applications ?? 0,
+            aiMatches: aiCandidates.length,
+          }}
+        />
       </div>
 
-      <div className="grid gap-6 mt-6 px-2 pb-4 lg:grid-cols-[1.6fr_1fr]">
+      {/* Scrollable content */}
+      <div className="grid gap-6 mt-6 px-9 pb-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
-          <AIMatchedWidget candidates={aiCandidates} isLoading={aiCandidatesLoading} />
+          <AIMatchedWidget
+            candidates={aiCandidates}
+            isLoading={aiCandidatesLoading}
+            onViewProfile={(candidateId) => router.push(`/users/employer/candidates/${candidateId}`)}
+          />
           <JobsPreviewWidget
             jobs={jobPosts}
             isLoading={jobsLoading}
@@ -177,10 +198,82 @@ export default function DashboardPage() {
             interviews={upcomingInterviewList}
             isLoading={interviewsLoading}
             onViewAll={() => router.push("/users/employer/interviews")}
+            onViewInterview={(interview) => {
+              setSelectedInterview(interview);
+              setIsInterviewModalOpen(true);
+            }}
           />
-          <RecentActivityFeed activities={recentActivityList} onViewAll={() => router.push("/users/employer/interviews")} />
+          <RecentActivityFeed
+            activities={recentActivityList}
+            onViewAll={() => setIsRecentActivityModalOpen(true)}
+            onViewItem={handleRecentActivityView}
+          />
         </div>
       </div>
+
+      {/* Recent Activity Modal */}
+      {isRecentActivityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Recent Activities</h2>
+                <p className="text-sm text-slate-500">Showing the latest 10 updates from your roles and applicants.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeRecentActivityModal}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto bg-slate-50 px-6 py-4">
+              {recentActivityModalList.length > 0 ? (
+                <div className="space-y-3">
+                  {recentActivityModalList.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-white p-3.5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-900 leading-snug">{activity.text}</p>
+                        <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRecentActivityView(activity)}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-white p-6 text-sm text-slate-500">No recent activity to display.</div>
+              )}
+            </div>
+
+            <div className="flex justify-end border-t border-slate-200 bg-white px-6 py-4">
+              <button
+                type="button"
+                onClick={closeRecentActivityModal}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InterviewDetailsModal
+        interview={selectedInterview}
+        isOpen={isInterviewModalOpen}
+        onClose={() => setIsInterviewModalOpen(false)}
+      />
     </div>
   );
 }

@@ -559,8 +559,18 @@ export const interviewService = {
 
     const emailData = buildEmailData(existing as any);
 
-    // Send the email — if delivery fails, still schedule the interview but log the failure.
-    console.log(`[ScheduleAndSend] Interview ID: ${id}, Email recipient: ${emailData.candidateEmail}, MeetingType: ${emailData.meetingType}, MeetingLink: ${emailData.meetingLink}`);
+    // Update status to SCHEDULED before sending email.
+    // This prevents a successful email from becoming lost if the
+    // transporter or DB update fails after the email is already sent.
+    const scheduled = await interviewRepository.update(id, employerProfileId, {
+      status: "SCHEDULED",
+      emailSentAt: null,
+    });
+
+    console.log(
+      `[ScheduleAndSend] Interview ID: ${id}, Email recipient: ${emailData.candidateEmail}, MeetingType: ${emailData.meetingType}, MeetingLink: ${emailData.meetingLink}`
+    );
+
     let emailSent = false;
     try {
       await sendInterviewEmail(emailData);
@@ -569,11 +579,19 @@ export const interviewService = {
       console.error("[ScheduleAndSend] Email delivery failed:", emailErr);
     }
 
-    // Update status to SCHEDULED. If email delivery failed, keep emailSentAt null.
-    const updated = await interviewRepository.update(id, employerProfileId, {
-      status: "SCHEDULED",
-      emailSentAt: emailSent ? new Date() : null,
-    });
+    let updated = scheduled;
+    if (emailSent) {
+      try {
+        updated = await interviewRepository.update(id, employerProfileId, {
+          emailSentAt: new Date(),
+        });
+      } catch (updateErr) {
+        console.error(
+          `[ScheduleAndSend] Failed to update emailSentAt for interview ${id}:`,
+          updateErr
+        );
+      }
+    }
 
     if (!emailSent) {
       console.warn(`[ScheduleAndSend] Interview scheduled but email was not delivered: ${id}`);

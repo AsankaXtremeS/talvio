@@ -131,60 +131,72 @@ async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Respo
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
-    try {
-      const json = await res.json();
-      console.log("[interviews.service] Error response:", json);
-      
-      // Handle Zod flattened error format: { message, errors: { formErrors: [], fieldErrors: { field: [msgs] } } }
-      if (json?.errors?.fieldErrors || json?.errors?.formErrors) {
-        const errorParts: string[] = [];
-        
-        // Add form-level errors
-        if (json.errors.formErrors && Array.isArray(json.errors.formErrors)) {
-          errorParts.push(...json.errors.formErrors);
-        }
-        
-        // Add field-level errors
-        if (json.errors.fieldErrors && typeof json.errors.fieldErrors === 'object') {
-          Object.entries(json.errors.fieldErrors).forEach(([field, msgs]: [string, unknown]) => {
-            if (Array.isArray(msgs)) {
-              errorParts.push(`${field}: ${msgs.join(", ")}`);
-            } else if (msgs) {
-              errorParts.push(`${field}: ${msgs}`);
+    const text = await res.text().catch(() => null);
+
+    if (text) {
+      if (isJson) {
+        try {
+          const json = JSON.parse(text);
+          console.log("[interviews.service] Error response:", json);
+
+          if (json?.errors?.fieldErrors || json?.errors?.formErrors) {
+            const errorParts: string[] = [];
+            if (json.errors.formErrors && Array.isArray(json.errors.formErrors)) {
+              errorParts.push(...json.errors.formErrors);
             }
-          });
-        }
-        
-        const errorDetails = errorParts.join(" | ");
-        message = `${json.message || "Validation failed"}${errorDetails ? " - " + errorDetails : ""}`;
-      } else if (json?.errors) {
-        // Fallback for other error object formats
-        const errorDetails = Object.entries(json.errors)
-          .map(([field, details]: [string, unknown]) => {
-            if (Array.isArray(details)) {
-              return `${field}: ${details.join(", ")}`;
+            if (json.errors.fieldErrors && typeof json.errors.fieldErrors === "object") {
+              Object.entries(json.errors.fieldErrors).forEach(([field, msgs]: [string, unknown]) => {
+                if (Array.isArray(msgs)) {
+                  errorParts.push(`${field}: ${msgs.join(", ")}`);
+                } else if (msgs) {
+                  errorParts.push(`${field}: ${msgs}`);
+                }
+              });
             }
-            return `${field}: ${details}`;
-          })
-          .join(" | ");
-        message = `${json.message || "Validation failed"} - ${errorDetails}`;
-      } else if (json?.message) {
-        message = json.message;
-      }
-    } catch (parseErr) {
-      console.error("[interviews.service] Failed to parse error response:", parseErr);
-      const text = await res.text().catch(() => null);
-      if (text) {
+            const errorDetails = errorParts.join(" | ");
+            message = `${json.message || "Validation failed"}${errorDetails ? " - " + errorDetails : ""}`;
+          } else if (json?.errors) {
+            const errorDetails = Object.entries(json.errors)
+              .map(([field, details]: [string, unknown]) => {
+                if (Array.isArray(details)) {
+                  return `${field}: ${details.join(", ")}`;
+                }
+                return `${field}: ${details}`;
+              })
+              .join(" | ");
+            message = `${json.message || "Validation failed"} - ${errorDetails}`;
+          } else if (json?.message) {
+            message = json.message;
+          }
+        } catch (parseErr) {
+          console.error("[interviews.service] Failed to parse JSON error response:", parseErr);
+          message = text;
+        }
+      } else {
         message = text;
-      } else if (res.statusText) {
-        message = res.statusText;
       }
+    } else if (res.statusText) {
+      message = res.statusText;
     }
+
     throw new Error(message);
   }
-  return res.json() as Promise<T>;
+
+  const bodyText = await res.text().catch(() => "");
+  if (!bodyText) {
+    return {} as T;
+  }
+
+  if (!isJson) {
+    throw new Error(`Expected JSON response but received: ${bodyText}`);
+  }
+
+  return JSON.parse(bodyText) as T;
 }
 
 // ─── API Functions ────────────────────────────────────────────────────────────

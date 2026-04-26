@@ -28,7 +28,18 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
   const [imgError, setImgError] = useState(!hasRealImage);
 
   return (
-    <div className="group flex flex-col gap-4 rounded-2xl border border-[#E8EBF4] bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C7C4F4] hover:shadow-[0_8px_30px_rgba(79,70,229,0.10)]">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onViewProfile(candidate.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onViewProfile(candidate.id);
+        }
+      }}
+      className="group flex flex-col gap-4 rounded-2xl border border-[#E8EBF4] bg-white p-5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:border-[#C7C4F4] hover:shadow-[0_8px_30px_rgba(79,70,229,0.10)]"
+    >
 
       {/* ══ TOP: avatar · name · match badge ══ */}
       <div className="flex items-start justify-between gap-3">
@@ -115,7 +126,10 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
 
         {/* Primary CTA — with shadow for visual importance */}
         <button
-          onClick={() => onSchedule(candidate.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSchedule(candidate.id);
+          }}
           className="flex-1 flex items-center justify-center gap-1.75 rounded-xl bg-[#4F46E5] py-2.25 text-[12px] font-semibold text-white shadow-[0_2px_8px_rgba(79,70,229,0.30)] transition-all duration-150 hover:bg-[#4338CA] hover:shadow-[0_4px_14px_rgba(79,70,229,0.40)] active:bg-[#3730A3]"
         >
           <CalendarPlus size={13} strokeWidth={2} />
