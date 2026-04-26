@@ -292,9 +292,9 @@ export async function getCandidates(
     }
   }
 
-  // Fallback: return mock data filtered by status
+  // Fallback: return mock data filtered by status, including AI Matches based on score.
   console.log(`[getCandidates] Using mock data for status ${status}`);
-  return Promise.resolve(MOCK_CANDIDATES.filter((c) => c.status === status));
+  return Promise.resolve(filterCandidatesByStatus(MOCK_CANDIDATES, status));
 }
 
 /**
@@ -407,4 +407,4 @@ export async function markShortlisted(
     console.error("[markShortlisted] Error:", err);
     return null;
   }
-}
+}
