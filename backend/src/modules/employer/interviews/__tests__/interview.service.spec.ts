@@ -638,16 +638,26 @@ describe("interviewService", () => {
       ).rejects.toMatchObject({ statusCode: 404 });
     });
 
-    it("should throw 500 if email delivery fails during cancellation", async () => {
+    it("should still cancel even if email delivery fails during cancellation", async () => {
       (interviewRepository.findById as jest.Mock).mockResolvedValue({
         ...mockRawInterview,
         status: "SCHEDULED",
       });
       (sendInterviewEmail as jest.Mock).mockRejectedValue(new Error("SMTP timeout"));
+      (interviewRepository.update as jest.Mock).mockResolvedValue({
+        ...mockRawInterview,
+        status: "CANCELLED",
+      });
 
-      await expect(
-        interviewService.cancelAndSendEmail(INTERVIEW_ID, EMPLOYER_USER_ID, "reason", "body")
-      ).rejects.toMatchObject({ statusCode: 500 });
+      const result = await interviewService.cancelAndSendEmail(
+        INTERVIEW_ID,
+        EMPLOYER_USER_ID,
+        "reason",
+        "body"
+      );
+
+      expect(sendInterviewEmail).toHaveBeenCalled();
+      expect(result.status).toBe("CANCELLED");
     });
 
     it("should still cancel even if Google Calendar event deletion fails", async () => {

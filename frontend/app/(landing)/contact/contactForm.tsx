@@ -31,11 +31,17 @@ const ContactForm = () => {
     const fetchCountryCodes = async () => {
       try {
         const res = await fetch("https://restcountries.com/v3.1/all");
-        if (!res.ok) throw new Error("Failed to fetch country codes");
+        if (!res.ok) {
+          console.warn("Failed to fetch country codes", res.status, res.statusText);
+          setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
+          return;
+        }
+
         const data = await res.json();
         
         if (!Array.isArray(data)) {
           console.warn("Expected array from restcountries API, got:", typeof data);
+          setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
           return;
         }
 
@@ -46,12 +52,16 @@ const ContactForm = () => {
               ? c.idd.root + (c.idd?.suffixes?.[0] || "")
               : "",
           }))
-          .filter((c) => c.code) 
-          .sort((a, b) => a.name.localeCompare(b.name)); 
-        setCountryCodes(codes);
+          .filter((c) => c.code)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        if (codes.length === 0) {
+          setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
+        } else {
+          setCountryCodes(codes);
+        }
       } catch (err) {
         console.error("Error fetching country codes:", err);
-        // Provide a default fallback so the UI still works
         setCountryCodes([{ name: "Sri Lanka", code: "+94" }, { name: "United States", code: "+1" }]);
       }
     };
