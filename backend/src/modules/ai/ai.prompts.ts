@@ -42,6 +42,9 @@ Compare the Candidate's CV with the Job Description and provide a holistic evalu
 Job Description:
 {jobDescription}
 
+Candidate Name:
+{candidateName}
+
 Candidate CV:
 {cvText}
 
@@ -52,7 +55,10 @@ YOUR TASK:
 2. **Improvement Suggestions**: Provide 3-5 specific, actionable points on how the candidate can improve their profile or CV specifically for THIS role. 
    Keep suggestions professional and constructive.
 3. **Cover Letter**: Write a high-impact, professional cover letter (approx. 150-200 words, 3 short paragraphs) that effectively sells this candidate's existing strengths to the hiring manager. 
+   - **MANDATORY**: Begin the letter with the exact greeting "Dear HR Manager,".
    - **MANDATORY**: Mention the specific Company Name and Job Title from the Job Description in the first paragraph.
+   - **MANDATORY**: End the letter with the closing phrase "Best regards," followed by the candidate full name exactly as shown in the Candidate Name field.
+   - **MANDATORY**: Do NOT use the word "Candidate" as the closing signature.
    - Do NOT hallucinate skills the candidate does not have.
 
 Return ONLY a valid JSON object with this structure:
@@ -120,4 +126,4 @@ Example Output:
 STRICT RULES:
 - Return ONLY the JSON array. No markdown, no explanations.
 - Be realistic—only give >80% if it's a very strong match.
-`;
+`;

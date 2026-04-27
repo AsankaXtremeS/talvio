@@ -192,13 +192,25 @@ export const generateCoverLetter = async (req: Request, res: Response) => {
 
     // 3. Generate New Analysis and Cover Letter
     const cvContent = await aiService.extractCvText(activeCvUrl);
+    const candidateName = [
+      candidate?.user?.firstName,
+      candidate?.user?.lastName,
+      req.user?.firstName,
+      req.user?.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Candidate";
+
+    const companyName = jobPost.employer?.companyName || "the company";
     const jobDescription = [
-      jobPost.title,
+      `Job Title: ${jobPost.title}`,
+      `Company: ${companyName}`,
       jobPost.description,
       `Skills: ${jobPost.skillsRequired.join(", ")}`
     ].join("\n");
 
-    const analysis = await aiService.analyzeCv(cvContent, jobDescription);
+    const analysis = await aiService.analyzeCv(cvContent, jobDescription, candidateName);
 
     // 4. Persistence and Response
     await aiRepository.updateAnalysisCache(userId, jobPostId, analysis);
