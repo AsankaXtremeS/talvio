@@ -1,6 +1,3 @@
-// TypeScript types for the interview scheduling module.
-// These are shared across controller, service, and repository layers.
-
 export type MeetingType = "ONLINE" | "ONSITE" | "PHONE";
 export type InterviewStatus = "DRAFT" | "SCHEDULED" | "CANCELLED" | "COMPLETED";
 

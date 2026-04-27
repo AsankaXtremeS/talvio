@@ -1,10 +1,3 @@
-// Service layer for interview scheduling.
-// Owns all business logic: ownership checks, Google Calendar integration,
-// email generation, draft management, and confirmation.
-//
-// Controllers call service methods — never the repository directly.
-// Repository calls are always scoped to the authenticated employerId for security.
-
 import { prisma } from "../../../config/db";
 import { interviewRepository } from "./interview.repository";
 import { CreateInterviewInput, UpdateInterviewInput, GenerateEmailInput } from "./interview.validation";
@@ -29,7 +22,7 @@ const buildHttpError = (message: string, statusCode: number): ServiceError => {
   return err;
 };
 
-// ─── DTO mapper ───────────────────────────────────────────────────────────────
+// ─── DTO mapper
 
 /**
  * Map a raw Prisma interview record to the clean DTO sent to the frontend.
@@ -86,7 +79,7 @@ function mapToDTO(raw: any): InterviewDTO {
   };
 }
 
-// ─── Helper to build email data from raw record ───────────────────────────────
+// ───  to build email data from raw record
 
 function buildEmailData(raw: any, customBody?: string | null): InterviewEmailData {
   const candidateName = [
@@ -125,7 +118,7 @@ function buildEmailData(raw: any, customBody?: string | null): InterviewEmailDat
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-// Helper to convert User ID to Employer Profile ID
+// to convert User ID to Employer Profile ID
 async function getEmployerProfileId(userId: string): Promise<string> {
   const employerProfile = await prisma.employerProfile.findUnique({
     where: { userId },
@@ -138,7 +131,7 @@ async function getEmployerProfileId(userId: string): Promise<string> {
 }
 
 /**
- * Helper to get a Google Auth client for a specific employer.
+ *  to get a Google Auth client for a specific employer.
  * Returns null if the employer hasn't connected their calendar.
  */
 async function getEmployerGoogleAuth(employerProfileId: string) {
@@ -188,9 +181,9 @@ async function getEmployerGoogleAuth(employerProfileId: string) {
 }
 
 export const interviewService = {
-  /**
-   * Fetch candidate profile details for schedule UI.
-   */
+  
+   //Fetch candidate profile details for schedule UI.
+   
   async getCandidateProfile(employerId: string, candidateProfileId: string) {
     // Ensure requester is a valid employer account.
     await getEmployerProfileId(employerId);
@@ -221,23 +214,19 @@ export const interviewService = {
     };
   },
 
-  /**
-   * Create a draft interview.
-   * For ONLINE meetings, creates a Google Calendar event with Meet link.
-   * For ONSITE, creates a calendar event with location.
-   * Does NOT send email yet — that happens in scheduleAndSend.
-   */
+  
+   //Create a draft interview.
+   
   async createDraft(employerId: string, input: CreateInterviewInput): Promise<InterviewDTO> {
-    // 0. Convert User ID to Employer Profile ID
     const employerProfileId = await getEmployerProfileId(employerId);
 
-    // 1. Verify the job post belongs to this employer
+    // to verify the job post belongs to this employer
     const jobPost = await interviewRepository.findJobPostForEmployer(input.jobPostId, employerProfileId);
     if (!jobPost) {
       throw buildHttpError("Job post not found or you do not have access", 404);
     }
 
-    // 2. Try to find application; if not found, fetch candidate profile directly
+    //  Try to find application; if not found, fetch candidate profile directly
     let candidateEmail: string;
     let candidateName: string;
 
@@ -267,10 +256,10 @@ export const interviewService = {
         .join(" ") || "Candidate";
     }
 
-    // 3. Parse scheduledAt
+    //  Parse scheduledAt
     const scheduledAt = new Date(input.scheduledAt);
 
-    // 4. Handle Google Meet and Calendar Integration
+    //  Handle Google Meet and Calendar Integration
     let meetingLink: string | undefined = input.meetingLink;
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
@@ -324,7 +313,7 @@ export const interviewService = {
       }
     }
 
-    // 5. Persist draft interview to database
+    //  Persist draft interview to database
     const created = await interviewRepository.create(
       employerProfileId,
       input,
@@ -339,7 +328,6 @@ export const interviewService = {
 
   /**
    * Get a single interview by ID.
-   * SECURITY: scoped to authenticated employerId.
    */
   async getById(id: string, employerId: string): Promise<InterviewDTO> {
     const employerProfileId = await getEmployerProfileId(employerId);
@@ -351,7 +339,7 @@ export const interviewService = {
   },
 
   /**
-   * List all interviews for this employer.
+   * List all interviews for  employer.
    */
   async list(
     employerId: string,
@@ -385,7 +373,7 @@ export const interviewService = {
   },
 
   /**
-   * Update draft interview data (date, time, type, etc.).
+   * Update draft interview data (date, time, type).
    * Regenerates Google Calendar event if time changed.
    */
   async updateDraft(
@@ -399,7 +387,7 @@ export const interviewService = {
       throw buildHttpError("Interview not found", 404);
     }
 
-    // Cannot update a sent interview (SCHEDULED) — only DRAFT allowed
+    // Cannot update a scheduled interview — only DRAFT allowed
     if ((existing as any).status === "SCHEDULED") {
       throw buildHttpError(
         "Cannot edit a scheduled interview. Cancel it first.",

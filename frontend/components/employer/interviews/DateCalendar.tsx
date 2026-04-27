@@ -16,7 +16,7 @@ export default function DateCalendar({
   scheduledDates = [],
   onMonthChange,
 }: DateCalendarProps) {
-  // Set default selected date to today if not set
+  // Set default selected date to today 
   useEffect(() => {
     if (!selectedDate) {
       const today = new Date();

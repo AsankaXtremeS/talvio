@@ -43,7 +43,7 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
 
   const loading = Boolean(id) && !error && (!candidate || candidate.id !== id);
 
-  // ── Skeleton ──
+  
   if (loading) {
     return (
       <div className="flex flex-col min-h-0 p-4 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
