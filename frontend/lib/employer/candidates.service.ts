@@ -305,9 +305,13 @@ export async function getCandidates(
 
 /**
  * Fetch a single candidate's profile by their candidateProfile ID.
+ * When jobPostId is provided, also fetches the AI match score from the application.
  * Used in the schedule interview page to display applicant info.
  */
-export async function getCandidateById(candidateProfileId: string): Promise<FullCandidateProfile | null> {
+export async function getCandidateById(
+  candidateProfileId: string,
+  jobPostId?: string
+): Promise<FullCandidateProfile | null> {
   if (!candidateProfileId || !isUuid(candidateProfileId)) {
     console.warn(
       `[getCandidateById] Skipping API fetch for invalid candidate profile id: ${candidateProfileId}`
@@ -316,6 +320,37 @@ export async function getCandidateById(candidateProfileId: string): Promise<Full
   }
 
   try {
+    // If jobPostId is provided, fetch from applications endpoint to get AI score
+    if (jobPostId && isUuid(jobPostId)) {
+      try {
+        const applicationsRes = await fetchWithAuth(
+          apiUrl(`/api/employer/job-posts/${jobPostId}/applications`)
+        );
+
+        if (applicationsRes.ok) {
+          const applications = (await applicationsRes.json()) as BackendApplicant[];
+          const match = applications.find((app) => app.id === candidateProfileId);
+
+          if (match) {
+            const candidateFromApp = toCandidateInfo(match);
+            if (candidateFromApp) {
+              console.log(
+                `[getCandidateById] Found candidate ${candidateProfileId} in job post ${jobPostId} applications with AI score ${candidateFromApp.matchScore}`
+              );
+              return candidateFromApp;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(
+          `[getCandidateById] Error fetching from applications endpoint:`,
+          err
+        );
+        // Fall through to fetch candidate profile separately
+      }
+    }
+
+    // Fetch candidate profile info
     const res = await fetch(`/api/employer/interviews/candidates/${candidateProfileId}`, {
       credentials: "include",
       cache: "no-store",

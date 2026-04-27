@@ -36,6 +36,15 @@ export default function DateCalendar({
     return new Date(today.getFullYear(), today.getMonth());
   });
 
+  // Update currentMonth when selectedDate changes (e.g., when reschedule loads interview)
+  useEffect(() => {
+    if (selectedDate) {
+      const [yyyy, mm] = selectedDate.split("-");
+      const newMonth = new Date(Number(yyyy), Number(mm) - 1);
+      setCurrentMonth(newMonth);
+    }
+  }, [selectedDate]);
+
   // Notify parent when month changes
   useEffect(() => {
     onMonthChange?.(currentMonth.getFullYear(), currentMonth.getMonth() + 1);

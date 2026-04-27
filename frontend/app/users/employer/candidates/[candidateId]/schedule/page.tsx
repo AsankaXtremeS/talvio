@@ -343,7 +343,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
             </div>
             <JobPostPanel jobPostId={realJobPostId} />
-            <ApplicantPanel candidateId={realCandidateId} />
+            <ApplicantPanel candidateId={realCandidateId} jobPostId={realJobPostId} />
           </div>
 
           <div className="flex flex-col h-full min-h-full justify-stretch">

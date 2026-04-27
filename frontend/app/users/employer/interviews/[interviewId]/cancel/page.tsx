@@ -235,7 +235,7 @@ export default function CancelInterviewPage({ params }: Props) {
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Applicant & Job Post</h2>
             </div>
             <JobPostPanel jobPostId={jobPostId} />
-            <ApplicantPanel candidateId={candidateId} />
+            <ApplicantPanel candidateId={candidateId} jobPostId={jobPostId} />
           </div>
 
           <div className="flex flex-col h-full min-h-full">
@@ -250,7 +250,7 @@ export default function CancelInterviewPage({ params }: Props) {
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
                 placeholder="Please explain why this interview is being cancelled. This will be included in the email sent to the candidate."
-                className="w-full h-32 p-3 border border-gray-200 rounded-lg text-sm font-sans text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                className="w-full h-62 p-3 border border-gray-200 rounded-lg text-sm font-sans text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
               />
               <p className="text-xs text-gray-700 mt-2">
                 {cancellationReason.length} characters

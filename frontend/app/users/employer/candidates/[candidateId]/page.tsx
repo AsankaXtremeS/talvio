@@ -313,7 +313,7 @@ export default function CandidateProfilePage({ params }: Props) {
             <AlertTriangle size={14} className="shrink-0 mt-0.5" />
             <span>
               Review &amp; Shortlist buttons require a job post context. Open this profile from a
-              specific job post's candidates list to enable those actions.
+              specific job post has candidates list to enable those actions.
             </span>
           </div>
         )}

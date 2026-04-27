@@ -97,19 +97,29 @@ export default function ScheduleInterviewPage({ params }: Props) {
   }, [candidateId]);
 
   // ── Load existing interview for reschedule ──
+  const [isLoadingRescheduleData, setIsLoadingRescheduleData] = useState(false);
+
   useEffect(() => {
     if (!isReschedule || !interviewId) return;
 
     const loadInterview = async () => {
       try {
+        setIsLoadingRescheduleData(true);
         const { getInterview } = await import("@/lib/employer/interviews.service");
         const interview = await getInterview(interviewId);
 
         // Pre-fill form fields only — don't set as draft
         // (the loaded interview is SCHEDULED, we'll create a new DRAFT for reschedule)
         const scheduledDate = new Date(interview.scheduledAt);
-        const dateStr = scheduledDate.toISOString().split("T")[0];
-        const timeStr = scheduledDate.toISOString().split("T")[1].substring(0, 5);
+        
+        // Convert UTC ISO string to local date in YYYY-MM-DD format
+        // Using toLocaleDateString('en-CA') which returns YYYY-MM-DD in local timezone
+        const dateStr = scheduledDate.toLocaleDateString('en-CA');
+        
+        // Get local time in HH:MM format
+        const hours = String(scheduledDate.getHours()).padStart(2, '0');
+        const minutes = String(scheduledDate.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
 
         setDate(dateStr);
         setTime(timeStr);
@@ -122,6 +132,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
         setAdditionalInfo(interview.additionalInfo || "");
       } catch (err) {
         setError((err as Error).message ?? "Failed to load interview details.");
+      } finally {
+        setIsLoadingRescheduleData(false);
       }
     };
 
@@ -344,7 +356,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
             </div>
             <JobPostPanel postId={postId} />
-            <ApplicantPanel candidateProfileId={candidateId} />
+            <ApplicantPanel candidateProfileId={candidateId} jobPostId={postId} />
           </div>
 
           <div className="flex flex-col h-full min-h-full justify-stretch">
@@ -375,6 +387,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               meetingLink={draft?.meetingLink}
               onGenerateEmail={handleGenerateEmail}
               isGeneratingEmail={isGeneratingEmail}
+              isReschedule={isReschedule}
             />
 
             {/* ── Email Preview Panel — shown after Generate Email clicked ── */}

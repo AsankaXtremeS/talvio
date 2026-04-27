@@ -38,6 +38,7 @@ interface Props {
   meetingLink?: string | null;   // returned from backend for ONLINE
   onGenerateEmail: () => void;   // trigger email preview
   isGeneratingEmail?: boolean;
+  isReschedule?: boolean;        // if true, allows more flexible date constraints
 }
 
 const MEETING_TYPES: { value: MeetingType; label: string; icon: React.ReactNode }[] = [
@@ -64,12 +65,20 @@ export default function ScheduleForm({
   meetingLink,
   onGenerateEmail,
   isGeneratingEmail = false,
+  isReschedule = false,
 }: Props) {
   const dateRef = useRef<HTMLInputElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
 
-  // Minimum date = today (no past scheduling)
-  const today = new Date().toISOString().split("T")[0];
+  // For reschedule, allow selecting dates from the currently loaded date
+  // For new schedule, only allow future dates from today
+  let minDate = new Date().toISOString().split("T")[0];
+  if (isReschedule && date) {
+    // In reschedule mode, allow the current selected date or later
+    minDate = date < new Date().toISOString().split("T")[0] 
+      ? date 
+      : new Date().toISOString().split("T")[0];
+  }
 
   return (
     <div className="p-6 mt-6 bg-white border border-gray-100 shadow-sm rounded-xl">
@@ -87,7 +96,7 @@ export default function ScheduleForm({
               ref={dateRef}
               type="date"
               value={date}
-              min={today}
+              min={minDate}
               onChange={(e) => setDate(e.target.value)}
               className="w-full py-2.5 pl-4 pr-10 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
             />
