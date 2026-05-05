@@ -1,11 +1,5 @@
-// Service layer for admin company management.
-// This layer contains business logic — it talks to the repository and shapes
-// the data the controller will send to the client.
-//
-// Why a separate service layer?
-//   Controllers handle HTTP (req/res). Repositories handle DB queries.
-//   Services sit in between and own the "rules" — validation, data shaping,
-//   business decisions. This makes the logic easy to unit-test independently.
+// Admin company service.
+// Applies business rules, validates input, and shapes repository data for the controller.
 
 import { companiesRepository, GetCompaniesOptions } from "./companies.repository";
 
@@ -14,8 +8,7 @@ import { companiesRepository, GetCompaniesOptions } from "./companies.repository
 const MAX_PAGE_LIMIT = 100;
 const DEFAULT_PAGE_LIMIT = 20;
 
-// ─── Response shape types ─────────────────────────────────────────────────────
-// Define what the API will actually return so the controller stays clean.
+// Response shape types
 
 export interface CompanyDTO {
   id: string;           // user ID (primary key we use for delete/view)
@@ -36,18 +29,12 @@ export interface CompanyListResponse {
   };
 }
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service implementation
 
 export const companiesService = {
 
   /**
-   * Get a paginated, searchable list of all approved companies.
-   *
-   * Business rules applied here:
-   *  - page must be >= 1
-   *  - limit is capped at MAX_PAGE_LIMIT (prevents abuse)
-   *  - search string is trimmed
-   *  - raw DB records are mapped to CompanyDTO (never expose raw DB shape)
+   * Get a paginated, searchable list of approved companies.
    */
   async getCompanies(options: GetCompaniesOptions): Promise<CompanyListResponse> {
     const page = Math.max(1, options.page ?? 1);
@@ -77,8 +64,7 @@ export const companiesService = {
   },
 
   /**
-   * Get a single company's profile by their user ID.
-   * Throws a typed error the controller can map to the right HTTP status.
+   * Get an approved company by user ID.
    */
   async getCompanyById(userId: string): Promise<CompanyDTO> {
     const user = await companiesRepository.findById(userId);
@@ -100,12 +86,7 @@ export const companiesService = {
   },
 
   /**
-   * Delete a company (their user record + all related data via cascade).
-   *
-   * Business rules:
-   *  - Only approved employers can be deleted through this endpoint
-   *  - If the user doesn't exist or isn't an approved employer → 404
-   *  - We do NOT allow deleting ADMIN accounts here (different endpoint)
+   * Delete an approved employer and related records.
    */
   async deleteCompany(userId: string): Promise<void> {
     const exists = await companiesRepository.isApprovedEmployer(userId);
