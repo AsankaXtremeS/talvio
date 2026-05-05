@@ -1,23 +1,15 @@
-// Zod validation schemas for interview scheduling endpoints.
-// Each schema validates exactly what each endpoint accepts — nothing more.
-// This prevents unexpected fields from reaching the service/database.
-
 import { z } from "zod";
-
-// ─── Shared Base ──────────────────────────────────────────────────────────────
 
 const meetingTypeEnum = z.enum(["ONLINE", "ONSITE", "PHONE"], {
   message: "Meeting type must be ONLINE, ONSITE, or PHONE",
 });
-
-// ─── Create Interview ─────────────────────────────────────────────────────────
 
 export const createInterviewSchema = z
   .object({
     jobPostId: z.string().uuid("Job post ID must be a valid UUID"),
     candidateProfileId: z.string().uuid("Candidate profile ID must be a valid UUID"),
 
-    // scheduledAt must be a valid ISO 8601 datetime string
+    // scheduledAt must be a valid datetime string
     scheduledAt: z
       .string()
       .min(1, "Scheduled date/time is required")
@@ -51,7 +43,7 @@ export const createInterviewSchema = z
     }
   });
 
-// ─── Update Interview ─────────────────────────────────────────────────────────
+//  Update Interview 
 
 export const updateInterviewSchema = z
   .object({
@@ -83,7 +75,7 @@ export const updateInterviewSchema = z
     }
   });
 
-// ─── Generate Email Preview ───────────────────────────────────────────────────
+//  Generate Email Preview 
 
 export const generateEmailSchema = z.object({
   jobPostId: z.string().uuid("Job post ID must be a valid UUID"),
@@ -120,7 +112,7 @@ export const interviewQuerySchema = z.object({
     .refine((v) => v > 0 && v <= 100, { message: "limit must be between 1 and 100" }),
 });
 
-// ─── Exported Input Types ─────────────────────────────────────────────────────
+// ─── Exported Input Types 
 
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;
 export type UpdateInterviewInput = z.infer<typeof updateInterviewSchema>;

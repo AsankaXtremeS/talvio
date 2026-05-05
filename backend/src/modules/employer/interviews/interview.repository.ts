@@ -1,7 +1,3 @@
-// Repository layer for interview scheduling.
-// ONLY database queries live here — no business logic.
-// All queries are typed explicitly. Service layer calls these methods.
-
 import { prisma } from "../../../config/db";
 import { InterviewMeetingType, InterviewStatus } from "@prisma/client";
 import { CreateInterviewInput, UpdateInterviewInput } from "./interview.validation";
@@ -115,7 +111,7 @@ export const interviewRepository = {
 
   /**
    * Find a single interview by ID.
-   * SECURITY: always pass employerId to prevent cross-employer data access.
+   * always pass employerId to prevent cross-employer data access.
    */
   async findById(id: string, employerId: string) {
     return prisma.interview.findFirst({
@@ -198,7 +194,6 @@ export const interviewRepository = {
 
   /**
    * Get all distinct dates that have scheduled interviews for calendar dots.
-   * Returns array of ISO date strings e.g. ["2026-04-15", "2026-04-22"]
    */
   async getScheduledDates(employerId: string, year: number, month: number) {
     // month is 1-based (1=January, 12=December)

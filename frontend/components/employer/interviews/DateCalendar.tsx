@@ -16,7 +16,7 @@ export default function DateCalendar({
   scheduledDates = [],
   onMonthChange,
 }: DateCalendarProps) {
-  // Set default selected date to today if not set
+  // Set default selected date to today 
   useEffect(() => {
     if (!selectedDate) {
       const today = new Date();
@@ -35,6 +35,15 @@ export default function DateCalendar({
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth());
   });
+
+  // Update currentMonth when selectedDate changes (e.g., when reschedule loads interview)
+  useEffect(() => {
+    if (selectedDate) {
+      const [yyyy, mm] = selectedDate.split("-");
+      const newMonth = new Date(Number(yyyy), Number(mm) - 1);
+      setCurrentMonth(newMonth);
+    }
+  }, [selectedDate]);
 
   // Notify parent when month changes
   useEffect(() => {

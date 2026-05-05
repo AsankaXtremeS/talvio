@@ -31,7 +31,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const postId = searchParams.get("postId");
 
   const [profile, setProfile] = useState<EmployerProfileDTO | null>(null);
-  // Initialize with today's local date
+  // need today as default date
   const [date, setDate] = useState(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -53,7 +53,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [emailRefreshKey, setEmailRefreshKey] = useState(0);
 
-  // Reset email confirmation if form fields change
+  // if form fields change require re email generation
   useEffect(() => {
     setIsEmailConfirmed(false);
   }, [date, time, meetingType, onlineOption, customLink, location, additionalInfo]);
@@ -323,7 +323,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <h1 className="text-3xl font-bold text-indigo-500">Schedule Interview</h1>
             </div>
             <p className="ml-12 text-base text-gray-600">
-              Scheduling for Candidate ID: {candidateId}
+              Scheduling for the Candidate
             </p>
           </div>
 
@@ -343,7 +343,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
             </div>
             <JobPostPanel jobPostId={realJobPostId} />
-            <ApplicantPanel candidateId={realCandidateId} />
+            <ApplicantPanel candidateId={realCandidateId} jobPostId={realJobPostId} />
           </div>
 
           <div className="flex flex-col h-full min-h-full justify-stretch">
@@ -365,7 +365,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                 <div className="flex-1">
                   <p className="font-bold">Google Calendar Not Connected</p>
                   <p className="mt-1 leading-relaxed text-yellow-700">
-                    You haven't connected your Google Calendar yet. To automatically generate real Google Meet links, please connect your account in your profile settings.
+                    You have not connected your Google Calendar yet. To automatically generate real Google Meet links, please connect your account in your profile settings.
                   </p>
                   <button 
                     onClick={() => router.push("/users/employer/profile")}

@@ -1,7 +1,3 @@
-// Controller layer for interview scheduling.
-// ONLY handles HTTP: reads request, calls service, sends response.
-// No business logic or DB queries here.
-
 import { Request, Response } from "express";
 import { interviewService } from "./interview.service";
 import {
@@ -11,8 +7,7 @@ import {
   interviewQuerySchema,
 } from "./interview.validation";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
+//helping functions
 const resolveStatusCode = (err: any): number => {
   if (typeof err?.statusCode === "number") return err.statusCode;
   return 500;
@@ -32,9 +27,9 @@ const isUuid = (value: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 };
 
-/**
- * Format Zod validation errors into a clean error response
- */
+
+ //format Zod validation errors into a clean error response
+
 const formatValidationError = (zodError: any) => {
   const flattened = zodError.flatten();
   return {
@@ -46,12 +41,11 @@ const formatValidationError = (zodError: any) => {
   };
 };
 
-// ─── Controllers ──────────────────────────────────────────────────────────────
+// ─── Controllers 
 
-/**
- * GET /api/employer/interviews
- * List all interviews for the authenticated employer.
- */
+
+ //list all interviews for the authenticated employer.
+ 
 export const listInterviews = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -71,12 +65,7 @@ export const listInterviews = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * GET /api/employer/interviews/scheduled-dates
- * Returns array of date strings ("YYYY-MM-DD") that have interviews.
- * Used to render dots on the calendar.
- * Query params: year, month (both required, 1-based month)
- */
+
 export const getScheduledDates = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -97,10 +86,7 @@ export const getScheduledDates = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * GET /api/employer/interviews/:id
- * Get a single interview by ID.
- */
+ //get a single interview by ID.
 export const getInterview = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -118,11 +104,9 @@ export const getInterview = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /api/employer/interviews
- * Create a draft interview.
- * For ONLINE meetings, creates a Google Calendar event and returns a Meet link.
- */
+
+ //for ONLINE meetings, creates a Google Calendar event and returns a Meet link.
+
 export const createInterview = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -147,7 +131,6 @@ export const createInterview = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/employer/interviews/:id
  * Update a draft interview (date, time, type, notes, etc.).
  */
 export const updateInterview = async (req: Request, res: Response) => {
@@ -172,7 +155,6 @@ export const updateInterview = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/employer/interviews/generate-email
  * Generate and return an email preview (HTML body + subject).
  * Does NOT save or send — purely for preview display.
  */
@@ -194,11 +176,9 @@ export const generateEmailPreview = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /api/employer/interviews/:id/schedule
- * Confirm the interview and send the invitation email.
- * Changes status DRAFT → SCHEDULED.
- */
+
+ //confirm the interview and send the invitation email,Changes status DRAFT → SCHEDULED.
+ 
 export const scheduleAndSend = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -241,11 +221,9 @@ export const saveEmailBody = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * DELETE /api/employer/interviews/:id
- * Cancel and delete an interview.
- * Also removes the associated Google Calendar event.
- */
+
+ //Cancel and delete an interview,Also removes the associated Google Calendar event.
+ 
 export const cancelInterview = async (req: Request, res: Response) => {
   try {
     const employerId = getEmployerId(req);
@@ -293,7 +271,6 @@ export const generateCancelEmailPreview = async (req: Request, res: Response) =>
  * Cancel interview and send cancellation email to candidate.
  * Changes status SCHEDULED → CANCELLED.
  * Removes Google Calendar event.
- * Returns updated InterviewDTO.
  */
 export const cancelAndSendEmail = async (req: Request, res: Response) => {
   try {

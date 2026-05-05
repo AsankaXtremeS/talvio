@@ -5,16 +5,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Mail, UserRound } from "lucide-react";
 import { CandidateInfo } from "@/types/candidate/candidate.types";
 import { getCandidateById } from "@/lib/employer/candidates.service";
 
 interface Props {
   candidateId?: string;
   candidateProfileId?: string;
+  jobPostId?: string;
 }
 
-export default function ApplicantPanel({ candidateId, candidateProfileId }: Props) {
+export default function ApplicantPanel({ candidateId, candidateProfileId, jobPostId }: Props) {
+  const router = useRouter();
   const id = candidateProfileId ?? candidateId;
 
   const [candidate, setCandidate] = useState<CandidateInfo | null>(null);
@@ -24,7 +27,7 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
     if (!id) return;
     let mounted = true;
 
-    getCandidateById(id)
+    getCandidateById(id, jobPostId)
       .then((data) => {
         if (mounted) {
           setCandidate(data);
@@ -39,11 +42,11 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
       });
 
     return () => { mounted = false; };
-  }, [id]);
+  }, [id, jobPostId]);
 
   const loading = Boolean(id) && !error && (!candidate || candidate.id !== id);
 
-  // ── Skeleton ──
+  
   if (loading) {
     return (
       <div className="flex flex-col min-h-0 p-4 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
@@ -136,11 +139,22 @@ export default function ApplicantPanel({ candidateId, candidateProfileId }: Prop
         <Mail size={16} className="inline mr-1" /> {candidate.email}
       </p>
 
-      {/* ── CTA — Note: candidate profile not implemented yet ── */}
+      {/* ── CTA — Navigate to candidate profile ── */}
       <div className="flex justify-end mt-auto">
-        <span className="px-4 py-2 text-xs font-medium text-gray-400 border border-dashed border-gray-200 rounded-lg cursor-not-allowed select-none">
-          Profile view coming soon
-        </span>
+        <button
+          onClick={() => {
+            if (id) {
+              const url = jobPostId 
+                ? `/users/employer/candidates/${id}?postId=${jobPostId}`
+                : `/users/employer/candidates/${id}`;
+              router.push(url);
+            }
+          }}
+          className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-700 hover:border-indigo-700 transition-colors duration-150 flex items-center gap-1.5"
+        >
+          <UserRound size={14} strokeWidth={2} />
+          View Profile
+        </button>
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ export default function JobPostPanel({ jobPostId, postId }: Props) {
 
   const loading = Boolean(id) && !error && (!post || post.id !== id);
 
-  // ── Skeleton ──
+  
   if (loading) {
     return (
       <div className="flex flex-col min-h-0 p-1 bg-white border border-gray-100 shadow-sm rounded-xl animate-pulse">
