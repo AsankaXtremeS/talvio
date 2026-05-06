@@ -33,7 +33,7 @@ export default function ExistingInterviewsModal({
             <div>
               <h3 className="text-lg font-bold text-gray-900">Existing Schedules</h3>
               <p className="text-xs text-gray-500 font-medium">
-                {new Date(date).toLocaleDateString('en-US', { 
+                {new Date(date + "T00:00:00").toLocaleDateString('en-US', { 
                   weekday: 'long',
                   month: 'long', 
                   day: 'numeric', 

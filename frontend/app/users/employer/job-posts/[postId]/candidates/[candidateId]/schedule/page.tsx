@@ -25,7 +25,9 @@ import GeneratedEmailPreview from "@/components/employer/interviews/GeneratedEma
 import ReadyToScheduleBar from "@/components/employer/interviews/ReadyToScheduleBar";
 import ConfirmationModal from "@/components/employer/interviews/ConfirmationModel";
 import SuccessModal from "@/components/employer/interviews/SuccessModal";
+import ExistingInterviewsModal from "@/components/employer/interviews/ExistingInterviewsModal";
 import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 import {
   createInterview,
@@ -34,6 +36,8 @@ import {
   cancelInterview,
   updateInterview,
   generateEmailPreview,
+  getInterviews,
+  getScheduledDates,
 } from "@/lib/employer/interviews.service";
 import { getCandidateById } from "@/lib/employer/candidates.service";
 
@@ -85,6 +89,12 @@ export default function ScheduleInterviewPage({ params }: Props) {
   const [showSuccess, setShowSuccess]             = useState(false);
   const [error, setError]                         = useState<string | null>(null);
   const [emailRefreshKey, setEmailRefreshKey]     = useState(0);
+
+  // -- Existing interviews state --
+  const [scheduledDates, setScheduledDates] = useState<string[]>([]);
+  const [existingInterviews, setExistingInterviews] = useState<InterviewDTO[]>([]);
+  const [isExistingInterviewsModalOpen, setIsExistingInterviewsModalOpen] = useState(false);
+  const [loadingInterviews, setLoadingInterviews] = useState(false);
 
   // Reset email confirmation if form fields change
   useEffect(() => {
@@ -139,6 +149,38 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
     loadInterview();
   }, [isReschedule, interviewId]);
+
+  // Fetch scheduled dates for the month (for calendar underlines)
+  const handleMonthChange = useCallback(async (year: number, month: number) => {
+    try {
+      const dates = await getScheduledDates(year, month);
+      setScheduledDates(dates);
+    } catch (err) {
+      console.error("[ScheduleInterview] Failed to fetch scheduled dates:", err);
+    }
+  }, []);
+
+  // Handle date change: fetch existing interviews for that date
+  const handleDateChange = useCallback(async (newDate: string) => {
+    setDate(newDate);
+    if (!newDate) return;
+
+    try {
+      setLoadingInterviews(true);
+      // Fetch interviews for the newly selected date
+      const response = await getInterviews({ date: newDate, status: "SCHEDULED" });
+      setExistingInterviews(response.data);
+
+      // If interviews exist, show the modal
+      if (response.data.length > 0) {
+        setIsExistingInterviewsModalOpen(true);
+      }
+    } catch (err) {
+      console.error("[ScheduleInterview] Failed to fetch existing interviews:", err);
+    } finally {
+      setLoadingInterviews(false);
+    }
+  }, []);
 
   // ── Build ISO scheduledAt from separate date + time fields ──
   function buildScheduledAt(d: string, t: string): string {
@@ -363,7 +405,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
             <DateCalendar
               selectedDate={date}
-              onDateChange={setDate}
+              onDateChange={handleDateChange}
+              scheduledDates={scheduledDates}
+              onMonthChange={handleMonthChange}
             />
           </div>
 
@@ -457,6 +501,23 @@ export default function ScheduleInterviewPage({ params }: Props) {
         location={draft?.location}
         emailSentAt={draft?.emailSentAt}
       />
+
+      <ExistingInterviewsModal
+        isOpen={isExistingInterviewsModalOpen}
+        onClose={() => setIsExistingInterviewsModalOpen(false)}
+        date={date}
+        interviews={existingInterviews}
+      />
+
+      {/* Loading Overlay for fetching interviews */}
+      {loadingInterviews && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+            <p className="text-sm font-semibold text-gray-700">Checking schedule...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
