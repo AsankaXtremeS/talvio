@@ -135,11 +135,8 @@ export default function DateCalendar({
               `}
             >
               {day}
-              {hasInterviews && !isSelected && !isPast && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-400" />
-              )}
-              {hasInterviews && isSelected && !isPast && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
+              {hasInterviews && !isPast && (
+                <div className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full ${isSelected ? "bg-white" : "bg-blue-500"}`} />
               )}
             </button>
           );

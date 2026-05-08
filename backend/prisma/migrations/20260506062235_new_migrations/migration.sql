@@ -191,6 +191,8 @@ CREATE TABLE "Application" (
     "applicationStatus" "ApplicationStatus" NOT NULL DEFAULT 'PENDING',
     "appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "isReviewed" BOOLEAN NOT NULL DEFAULT false,
+    "isShortlisted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Application_pkey" PRIMARY KEY ("id")
 );
