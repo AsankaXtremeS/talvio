@@ -5,6 +5,14 @@ export const candidateRepository = {
   async findProfileByUserId(userId: string) {
     return prisma.candidateProfile.findUnique({
       where: { userId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
   },
 
