@@ -121,13 +121,18 @@ export const updateProfile = async (req: Request, res: Response) => {
 
 // ─── GET /api/employer/profile/calendar/auth-url ─────────────────────────────
 //
-// Generates the Google OAuth2 consent URL for the employer.
-// Response: { url: string }
+// Generates the OAuth2 consent URL (Google or Microsoft) for the employer.
+// Query: ?email=...
+// Response: { url: string, provider: string }
 
 export const getCalendarAuthUrl = async (req: Request, res: Response) => {
   try {
-    const url = await profileService.getCalendarAuthUrl();
-    res.json({ url });
+    const email = req.query.email as string;
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter is required" });
+    }
+    const result = await profileService.getCalendarAuthUrl(email);
+    res.json(result);
   } catch (err: any) {
     logControllerError("getCalendarAuthUrl", err);
     res.status(resolveStatusCode(err)).json({
@@ -139,8 +144,8 @@ export const getCalendarAuthUrl = async (req: Request, res: Response) => {
 
 // ─── POST /api/employer/profile/calendar/connect ─────────────────────────────
 //
-// Exchanges the Google OAuth code for tokens and saves them.
-// Request body: { code: string }
+// Exchanges the OAuth code for tokens and saves them.
+// Request body: { code: string, provider: string }
 // Response: EmployerProfileDTO
 
 export const connectCalendar = async (req: Request, res: Response) => {
@@ -148,10 +153,11 @@ export const connectCalendar = async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { code } = req.body;
+    const { code, provider } = req.body;
     if (!code) return res.status(400).json({ message: "Auth code is required" });
+    if (!provider) return res.status(400).json({ message: "Provider is required" });
 
-    const profile = await profileService.connectCalendar(userId, code);
+    const profile = await profileService.connectCalendar(userId, code, provider);
     res.json(profile);
   } catch (err: any) {
     logControllerError("connectCalendar", err);
@@ -180,4 +186,34 @@ export const disconnectCalendar = async (req: Request, res: Response) => {
       message: getPublicErrorMessage(err, "Failed to disconnect calendar."),
     });
   }
+};
+
+
+// ─── GET /api/v1/calendar/microsoft/callback ──────────────────────────────────
+//
+// PUBLIC route — no auth middleware.
+// Microsoft redirects the browser here after the user consents.
+// We simply forward the ?code and ?error to the frontend profile page
+// so the frontend JS can call POST /calendar/connect with the code.
+//
+// Query params from Microsoft: code, state, session_state, error, error_description
+
+export const microsoftCalendarCallback = (req: Request, res: Response) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const callbackPage = `${frontendUrl}/users/employer/profile`;
+
+  const { code, error, error_description } = req.query;
+
+  if (error) {
+    const msg = encodeURIComponent((error_description as string) || (error as string) || "Microsoft auth failed");
+    return res.redirect(`${callbackPage}?calendar_error=${msg}`);
+  }
+
+  if (!code) {
+    return res.redirect(`${callbackPage}?calendar_error=${encodeURIComponent("No authorization code received from Microsoft.")}`);
+  }
+
+  // Forward the code and provider to the frontend; the frontend will call
+  // POST /api/employer/profile/calendar/connect with { code, provider: "microsoft" }
+  return res.redirect(`${callbackPage}?code=${encodeURIComponent(code as string)}&provider=microsoft`);
 };

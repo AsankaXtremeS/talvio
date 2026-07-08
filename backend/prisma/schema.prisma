@@ -69,35 +69,40 @@ model PasswordResetToken {
 }
 
 model EmployerProfile {
-  id                      String             @id @default(uuid())
-  userId                  String             @unique
-  companyName             String
-  registrationFileUrl     String
-  registrationFileName    String
-  verificationStatus      VerificationStatus @default(PENDING)
-  rejectionReason         String?
-  companyDescription      String?
-  companyLogoUrl          String?
-  companyWebsite          String?
-  companyLocation         String?
-  coverImageUrl           String?
-  industry                String?
-  companyType             String?
-  companySize             String?
-  foundedYear             Int?
-  specialties             String?
-  linkedInUrl             String?
-  facebookUrl             String?
-  twitterUrl              String?
-  googleAccessToken       String?
-  googleRefreshToken      String?
-  googleTokenExpiry       BigInt?
-  googleCalendarConnected Boolean            @default(false)
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
-  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interviews              Interview[]
-  jobPosts                JobPost[]
+  id                         String             @id @default(uuid())
+  userId                     String             @unique
+  companyName                String
+  registrationFileUrl        String
+  registrationFileName       String
+  verificationStatus         VerificationStatus @default(PENDING)
+  rejectionReason            String?
+  companyDescription         String?
+  companyLogoUrl             String?
+  companyWebsite             String?
+  companyLocation            String?
+  coverImageUrl              String?
+  industry                   String?
+  companyType                String?
+  companySize                String?
+  foundedYear                Int?
+  specialties                String?
+  linkedInUrl                String?
+  facebookUrl                String?
+  twitterUrl                 String?
+  googleAccessToken          String?
+  googleRefreshToken         String?
+  googleTokenExpiry          BigInt?
+  googleCalendarConnected    Boolean            @default(false)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+  calendarProvider           String?
+  microsoftAccessToken       String?
+  microsoftCalendarConnected Boolean            @default(false)
+  microsoftRefreshToken      String?
+  microsoftTokenExpiry       BigInt?
+  user                       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviews                 Interview[]
+  jobPosts                   JobPost[]
 }
 
 model JobPost {
@@ -191,34 +196,36 @@ model ApplicationStatusHistory {
 }
 
 model Interview {
-  id                      String               @id @default(uuid())
-  employerId              String
-  candidateProfileId      String
-  jobPostId               String
-  scheduledAt             DateTime
-  meetingType             InterviewMeetingType
-  status                  InterviewStatus      @default(DRAFT)
-  location                String?
-  meetingLink             String?
-  additionalInfo          String?
-  emailBody               String?
-  googleCalendarEventId   String?
-  googleCalendarLink      String?
-  candidateEmail          String
-  emailSentAt             DateTime?
-  createdAt               DateTime             @default(now())
-  updatedAt               DateTime             @updatedAt
-  cancelledAt             DateTime?
-  cancellationReason      String?
-  rescheduledFromId       String?
-  rescheduledToId         String?
-  candidate               CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
-  employer                EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  jobPost                 JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-  rescheduledFrom         Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id])
-  rescheduledInterviews   Interview[]          @relation("RescheduleFrom")
-  rescheduledTo           Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id])
-  reschedulesToInterviews Interview[]          @relation("RescheduleTo")
+  id                       String               @id @default(uuid())
+  employerId               String
+  candidateProfileId       String
+  jobPostId                String
+  scheduledAt              DateTime
+  meetingType              InterviewMeetingType
+  status                   InterviewStatus      @default(DRAFT)
+  location                 String?
+  meetingLink              String?
+  additionalInfo           String?
+  emailBody                String?
+  googleCalendarEventId    String?
+  googleCalendarLink       String?
+  candidateEmail           String
+  emailSentAt              DateTime?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  cancelledAt              DateTime?
+  cancellationReason       String?
+  rescheduledFromId        String?
+  rescheduledToId          String?
+  microsoftCalendarEventId String?
+  microsoftCalendarLink    String?
+  candidate                CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  employer                 EmployerProfile      @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  jobPost                  JobPost              @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  rescheduledFrom          Interview?           @relation("RescheduleFrom", fields: [rescheduledFromId], references: [id])
+  rescheduledInterviews    Interview[]          @relation("RescheduleFrom")
+  rescheduledTo            Interview?           @relation("RescheduleTo", fields: [rescheduledToId], references: [id])
+  reschedulesToInterviews  Interview[]          @relation("RescheduleTo")
 
   @@index([employerId])
   @@index([employerId, status])

@@ -15,13 +15,29 @@ interface Props {
   jobTitle: string;
   scheduledAt: string;   // ISO string
   meetingType: MeetingType;
+  meetingLink?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
 const MEETING_LABEL: Record<MeetingType, string> = {
-  ONLINE: "Online · Google Meet",
+  ONLINE: "Online",
   ONSITE: "On-Site",
   PHONE:  "Phone Call",
 };
@@ -51,6 +67,7 @@ export default function ConfirmationModal({
   jobTitle,
   scheduledAt,
   meetingType,
+  meetingLink,
   onConfirm,
   onCancel,
   isLoading = false,
@@ -95,7 +112,12 @@ export default function ConfirmationModal({
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Interview Details</p>
               <p className="text-sm font-semibold text-gray-900">{jobTitle}</p>
               <p className="text-xs text-gray-600 mt-0.5">{formatDateTime(scheduledAt)}</p>
-              <p className="text-xs text-gray-400">{MEETING_LABEL[meetingType]}</p>
+              <p className="text-xs text-gray-400">
+                {meetingType === "ONLINE" && meetingLink
+                  ? `Online · ${detectMeetingProvider(meetingLink)}`
+                  : MEETING_LABEL[meetingType]
+                }
+              </p>
             </div>
           </div>
 

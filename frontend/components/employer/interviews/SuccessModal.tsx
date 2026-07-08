@@ -23,8 +23,23 @@ interface Props {
   emailSentAt?: string | null;
 }
 
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
 const MEETING_LABEL: Record<string, string> = {
-  ONLINE: "Online · Google Meet",
+  ONLINE: "Online",
   ONSITE: "On-Site",
   PHONE:  "Phone Call",
 };
@@ -143,7 +158,12 @@ export default function SuccessModal({
               <Mail size={15} className="text-gray-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-400 font-medium">Format</p>
-                <p className="text-sm font-semibold text-gray-800">{MEETING_LABEL[meetingType] ?? meetingType}</p>
+                <p className="text-sm font-semibold text-gray-800">
+                  {meetingType === "ONLINE" && meetingLink
+                    ? `Online · ${detectMeetingProvider(meetingLink)}`
+                    : MEETING_LABEL[meetingType] ?? meetingType
+                  }
+                </p>
                 {meetingType === "ONLINE" && meetingLink && (
                   <a
                     href={meetingLink}

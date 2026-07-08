@@ -477,6 +477,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         jobTitle={draft?.jobPost?.title ?? ""}
         scheduledAt={scheduledAtISO}
         meetingType={meetingType}
+        meetingLink={draft?.meetingLink || undefined}
         onConfirm={handleConfirm}
         onCancel={() => setShowConfirm(false)}
         isLoading={isScheduling}

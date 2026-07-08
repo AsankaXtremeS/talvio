@@ -11,7 +11,7 @@ interface RescheduleInterviewNotificationProps {
   formatDate: (iso: string) => string;
   formatTime: (iso: string) => string;
   getInitials: (name: string) => string;
-  getTypeLabel: (type: string) => string;
+  getTypeLabel: (type: string, meetingLink?: string | null) => string;
   onBack?: () => void;
 }
 
@@ -134,10 +134,10 @@ export default function RescheduleInterviewNotification({
                           </div>
                           <div className="flex items-center gap-2 text-[9px]">
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
-                              {getTypeLabel(oldIv.meetingType)}
+                              {getTypeLabel(oldIv.meetingType, oldIv.meetingLink)}
                             </span>
                             <span className="px-2 py-0.5 ml-9.5 bg-indigo-100 text-indigo-600 rounded font-medium">
-                              {getTypeLabel(iv.meetingType)}
+                              {getTypeLabel(iv.meetingType, iv.meetingLink)}
                             </span>
                           </div>
                         </>
@@ -183,7 +183,7 @@ export default function RescheduleInterviewNotification({
                     </div>
                     <div className="flex items-center gap-2 text-[9px]">
                       <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded font-medium line-through opacity-75">
-                        {getTypeLabel(iv.meetingType)}
+                        {getTypeLabel(iv.meetingType, iv.meetingLink)}
                       </span>
                     </div>
                   </div>

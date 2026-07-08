@@ -64,11 +64,27 @@ function formatDateOnly(date: Date): string {
   });
 }
 
+function detectMeetingProvider(meetingLink?: string | null): "Google Meet" | "Microsoft Teams" | "Skype" | "Video Call" {
+  if (!meetingLink) return "Video Call";
+  const url = meetingLink.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+}
+
 /**
  * Get a human label for meeting type.
+ * For ONLINE meetings, detects the provider from the meeting link URL.
  */
-function getMeetingTypeLabel(type: string): string {
-  if (type === "ONLINE") return "Online (Google Meet)";
+function getMeetingTypeLabel(type: string, meetingLink?: string | null): string {
+  if (type === "ONLINE") return `Online (${detectMeetingProvider(meetingLink)})`;
   if (type === "ONSITE") return "On-Site";
   if (type === "PHONE") return "Phone Call";
   return type;
@@ -216,7 +232,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                           <p style="margin:0;font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.4px;">🖥️ Format</p>
                         </td>
                         <td style="padding:6px 0;vertical-align:top;">
-                          <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${getMeetingTypeLabel(data.meetingType)}</p>
+                          <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${getMeetingTypeLabel(data.meetingType, data.meetingLink)}</p>
                         </td>
                       </tr>
 
@@ -278,7 +294,7 @@ export function buildInterviewEmailHtml(data: InterviewEmailData): string {
                   <td align="center">
                     <a href="${data.meetingLink}"
                        style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;text-decoration:none;border-radius:50px;font-size:15px;font-weight:700;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(79,70,229,0.4);">
-                      Join Google Meet →
+                      Join ${detectMeetingProvider(data.meetingLink)} →
                     </a>
                   </td>
                 </tr>
@@ -359,10 +375,11 @@ function buildDefaultBody(data: InterviewEmailData): string {
     ? `Your interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong> has been rescheduled.`
     : `We are pleased to inform you that you have been shortlisted for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>. We were impressed with your application and would like to invite you for an interview.`;
 
+  const meetingProviderName = detectMeetingProvider(data.meetingLink);
   const nextSteps = data.isCancellation
     ? `We remain interested in your profile and may reach out in the future with other opportunities that align with your background and experience.`
     : `Please review the updated interview details below and confirm your availability.
-      ${data.meetingType === "ONLINE" ? "A Google Meet link has been provided for your convenience." : ""}
+      ${data.meetingType === "ONLINE" ? `A ${meetingProviderName} link has been provided for your convenience.` : ""}
       ${data.meetingType === "ONSITE" ? "Please arrive 10 minutes early at the location provided." : ""}
       ${data.meetingType === "PHONE" ? "We will call you at your registered phone number." : ""}`;
 

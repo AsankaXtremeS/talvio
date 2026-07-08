@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Unlink,
 } from "lucide-react";
-import { FaLinkedinIn, FaFacebookF, FaXTwitter, FaGoogle } from "react-icons/fa6";
+import { FaLinkedinIn, FaFacebookF, FaXTwitter, FaGoogle, FaMicrosoft } from "react-icons/fa6";
 import { profileService, EmployerProfileDTO } from "@/lib/employer/profile.service";
 import { getJobPosts } from "@/lib/employer/jobPosts.service";
 import type { JobPost } from "@/types/employer/jobPost.types";
@@ -27,6 +27,10 @@ export default function EmployerProfilePage() {
   const [isJobsLoading, setIsJobsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  
+  // Calendar states
+  const [calendarEmail, setCalendarEmail] = useState("");
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const searchParams = useSearchParams();
@@ -52,24 +56,47 @@ export default function EmployerProfilePage() {
     };
   }, []);
 
-  // Handle Google OAuth callback
+  // Handle OAuth callback (Google or Microsoft)
   useEffect(() => {
     const code = searchParams.get("code");
-    if (code && profile && !profile.googleCalendarConnected) {
-      const connect = async () => {
-        setIsConnecting(true);
-        try {
-          const updated = await profileService.connectCalendar(code);
-          setProfile(updated);
-          // Clean up URL
-          router.replace("/users/employer/profile");
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to connect Google Calendar.");
-        } finally {
-          setIsConnecting(false);
-        }
-      };
-      connect();
+    // For Microsoft: provider comes in the URL from the backend callback redirect.
+    // For Google: provider is stored in localStorage before the redirect.
+    const providerFromUrl = searchParams.get("provider") as "google" | "microsoft" | null;
+    const calendarError = searchParams.get("calendar_error");
+
+    if (calendarError) {
+      setCalendarError(decodeURIComponent(calendarError));
+      router.replace("/users/employer/profile");
+      return;
+    }
+
+    if (code && profile) {
+      const provider = providerFromUrl || (localStorage.getItem("pending_calendar_provider") as "google" | "microsoft" | null);
+      const isGoogleConnected = profile.googleCalendarConnected;
+      const isMicrosoftConnected = profile.microsoftCalendarConnected;
+
+      // Only run connect flow if we aren't already connected to the target provider
+      if (
+        provider &&
+        ((provider === "google" && !isGoogleConnected) ||
+         (provider === "microsoft" && !isMicrosoftConnected))
+      ) {
+        const connect = async () => {
+          setIsConnecting(true);
+          try {
+            const updated = await profileService.connectCalendar(code, provider);
+            setProfile(updated);
+            localStorage.removeItem("pending_calendar_provider");
+            localStorage.removeItem("pending_calendar_email");
+            router.replace("/users/employer/profile");
+          } catch (err) {
+            setCalendarError(err instanceof Error ? err.message : `Failed to connect ${provider === 'google' ? 'Google' : 'Microsoft'} Calendar.`);
+          } finally {
+            setIsConnecting(false);
+          }
+        };
+        connect();
+      }
     }
   }, [searchParams, profile, router]);
 
@@ -100,25 +127,34 @@ export default function EmployerProfilePage() {
   }, []);
 
   const handleConnectCalendar = async () => {
+    if (!calendarEmail || !calendarEmail.trim() || !calendarEmail.includes("@")) {
+      setCalendarError("Please enter a valid email address.");
+      return;
+    }
+    
+    setCalendarError(null);
     try {
       setIsConnecting(true);
-      const { url } = await profileService.getCalendarAuthUrl();
+      const { url, provider } = await profileService.getCalendarAuthUrl(calendarEmail.trim());
+      localStorage.setItem("pending_calendar_provider", provider);
+      localStorage.setItem("pending_calendar_email", calendarEmail.trim());
       window.location.href = url;
     } catch (err) {
-      setError("Failed to start Google connection flow.");
+      setCalendarError(err instanceof Error ? err.message : "Failed to detect provider or generate connection link.");
       setIsConnecting(false);
     }
   };
 
   const handleDisconnectCalendar = async () => {
-    if (!confirm("Are you sure you want to disconnect your Google Calendar? Auto-generation of Meet links will stop working.")) return;
+    if (!confirm("Are you sure you want to disconnect your Calendar? Auto-generation of meeting links (Google Meet & Teams) will stop working.")) return;
     
+    setCalendarError(null);
     try {
       setIsConnecting(true);
       const updated = await profileService.disconnectCalendar();
       setProfile(updated);
     } catch (err) {
-      setError("Failed to disconnect Google Calendar.");
+      setCalendarError("Failed to disconnect calendar.");
     } finally {
       setIsConnecting(false);
     }
@@ -277,59 +313,98 @@ export default function EmployerProfilePage() {
                 </div>
               </div>
 
-              {/* Google Calendar Connection Card */}
+              {/* Calendar Connection Card */}
               <div className="rounded-3xl border border-[#e5e7eb] p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] bg-white">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-[#2563eb]">Calendar</h2>
-                  <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${profile.googleCalendarConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                    <div className={`h-1.5 w-1.5 rounded-full ${profile.googleCalendarConnected ? 'bg-green-600' : 'bg-gray-400'}`} />
-                    {profile.googleCalendarConnected ? 'Connected' : 'Not Connected'}
+                  <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    (profile.googleCalendarConnected || profile.microsoftCalendarConnected)
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    <div className={`h-1.5 w-1.5 rounded-full ${
+                      (profile.googleCalendarConnected || profile.microsoftCalendarConnected)
+                        ? 'bg-green-600' 
+                        : 'bg-gray-400'
+                    }`} />
+                    {(profile.googleCalendarConnected || profile.microsoftCalendarConnected) ? 'Connected' : 'Not Connected'}
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-50 border border-gray-100">
-                    <FaGoogle className={profile.googleCalendarConnected ? "text-[#4285F4]" : "text-gray-300"} size={24} />
+                    {profile.microsoftCalendarConnected ? (
+                      <FaMicrosoft className="text-[#F25022]" size={22} />
+                    ) : (
+                      <FaGoogle className={profile.googleCalendarConnected ? "text-[#4285F4]" : "text-gray-300"} size={22} />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#111827]">Google Calendar & Meet</p>
+                    <p className="text-sm font-semibold text-[#111827]">
+                      {profile.googleCalendarConnected ? 'Google Calendar & Meet' : profile.microsoftCalendarConnected ? 'Microsoft Calendar & Teams' : 'Connect Calendar'}
+                    </p>
                     <p className="mt-1 text-xs leading-relaxed text-[#667085]">
-                      {profile.googleCalendarConnected 
-                        ? "Automatically generate real Google Meet links for every online interview scheduled."
-                        : "Connect your Google account to automatically generate official Google Meet links and sync interviews to your calendar."
+                      {profile.googleCalendarConnected
+                        ? "Automatically generate Google Meet links for every online interview scheduled."
+                        : profile.microsoftCalendarConnected
+                        ? "Automatically generate Microsoft Teams links for every online interview scheduled."
+                        : "Enter your work email address. We'll auto-detect your provider and route you to connect Google Calendar or Microsoft Calendar."
                       }
                     </p>
                     
-                    <button
-                      onClick={profile.googleCalendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
-                      disabled={isConnecting}
-                      className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                        profile.googleCalendarConnected
-                          ? "border-red-200 bg-white text-red-600 hover:bg-red-50"
-                          : "border-[#2563eb] bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isConnecting ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : profile.googleCalendarConnected ? (
-                        <>
-                          <Unlink className="h-4 w-4" />
-                          Disconnect Account
-                        </>
-                      ) : (
-                        <>
-                          <FaGoogle className="h-3.5 w-3.5" />
-                          Connect Google Calendar
-                        </>
-                      )}
-                    </button>
+                    {!(profile.googleCalendarConnected || profile.microsoftCalendarConnected) ? (
+                      <div className="mt-4 space-y-3">
+                        <input
+                          type="email"
+                          value={calendarEmail}
+                          onChange={(e) => setCalendarEmail(e.target.value)}
+                          placeholder="Enter your email (e.g. name@company.com)"
+                          disabled={isConnecting}
+                          className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm text-[#111827] shadow-sm focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb] disabled:opacity-50"
+                        />
+                        {calendarError && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            {calendarError}
+                          </p>
+                        )}
+                        <button
+                          onClick={handleConnectCalendar}
+                          disabled={isConnecting}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563eb] bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isConnecting ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <>Connect Calendar</>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleDisconnectCalendar}
+                        disabled={isConnecting}
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition-all duration-200 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isConnecting ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <>
+                            <Unlink className="h-4 w-4" />
+                            Disconnect Account
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
                 
-                {profile.googleCalendarConnected && (
+                {(profile.googleCalendarConnected || profile.microsoftCalendarConnected) && (
                   <div className="mt-4 flex items-center gap-2 rounded-xl bg-blue-50 p-3 text-[11px] text-blue-700">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span>Real Google Meet links will now be generated for all online interviews.</span>
+                    <span>
+                      Real {profile.googleCalendarConnected ? 'Google Meet' : 'Microsoft Teams'} links will now be generated for all online interviews.
+                    </span>
                   </div>
                 )}
               </div>

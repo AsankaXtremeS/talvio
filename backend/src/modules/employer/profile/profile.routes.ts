@@ -12,7 +12,7 @@
 import { Router } from "express";
 import { authenticate } from "../../../middlewares/auth.middleware";
 import { requireRole } from "../../../middlewares/role.middleware";
-import { getProfile, updateProfile, getCalendarAuthUrl, connectCalendar, disconnectCalendar } from "./profile.controller";
+import { getProfile, updateProfile, getCalendarAuthUrl, connectCalendar, disconnectCalendar, microsoftCalendarCallback } from "./profile.controller";
 
 const router = Router();
 

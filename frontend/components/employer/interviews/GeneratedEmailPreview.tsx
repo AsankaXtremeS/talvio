@@ -22,6 +22,21 @@ interface Props {
   onConfirm?: (emailContent: string) => void;
 }
 
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
 export default function GeneratedEmailPreview({
   candidateName,
   candidateEmail,
@@ -64,7 +79,8 @@ export default function GeneratedEmailPreview({
 
     let meetingDetails = "";
     if (meetingType === "ONLINE" && meetingLink) {
-      meetingDetails = `\nA Google Meet link has been provided for your convenience:\n🔗 ${meetingLink}`;
+      const provider = detectMeetingProvider(meetingLink);
+      meetingDetails = `\nA ${provider} link has been provided for your convenience:\n🔗 ${meetingLink}`;
     } else if (meetingType === "ONSITE" && location) {
       meetingDetails = `\nPlease arrive 10 minutes early at the location provided:\n📍 ${location}`;
     } else if (meetingType === "PHONE") {
