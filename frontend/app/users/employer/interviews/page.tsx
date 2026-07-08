@@ -77,9 +77,26 @@ function getTypeIcon(type: string) {
   return <Video size={22} className="text-[#595781] shrink-0" />;
 }
 
-function getTypeLabel(type: string): string {
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
+function getTypeLabel(type: string, meetingLink?: string | null): string {
   const t = type?.toLowerCase() ?? "";
-  if (t === "online") return "Google Meet";
+  if (t === "online") {
+    return detectMeetingProvider(meetingLink);
+  }
   if (t === "onsite") return "On-Site";
   if (t === "phone") return "Phone";
   return type;

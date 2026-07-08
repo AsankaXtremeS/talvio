@@ -14,6 +14,8 @@ const interviewSelect = {
   meetingLink: true,
   googleCalendarEventId: true,
   googleCalendarLink: true,
+  microsoftCalendarEventId: true,
+  microsoftCalendarLink: true,
   additionalInfo: true,
   emailBody: true,
   emailSentAt: true,
@@ -86,6 +88,8 @@ export const interviewRepository = {
       meetingLink?: string;
       googleCalendarEventId?: string;
       googleCalendarLink?: string;
+      microsoftCalendarEventId?: string;
+      microsoftCalendarLink?: string;
     }
   ) {
     return prisma.interview.create({
@@ -102,6 +106,8 @@ export const interviewRepository = {
         emailBody: data.emailBody ?? null,
         googleCalendarEventId: options?.googleCalendarEventId ?? null,
         googleCalendarLink: options?.googleCalendarLink ?? null,
+        microsoftCalendarEventId: options?.microsoftCalendarEventId ?? null,
+        microsoftCalendarLink: options?.microsoftCalendarLink ?? null,
         candidateEmail,
         rescheduledFromId: data.rescheduledFromId ?? null,
       },
@@ -236,6 +242,8 @@ export const interviewRepository = {
       emailBody: string | null;
       googleCalendarEventId: string | null;
       googleCalendarLink: string | null;
+      microsoftCalendarEventId: string | null;
+      microsoftCalendarLink: string | null;
       emailSentAt: Date | null;
       rescheduledFromId: string | null;
       rescheduledToId: string | null;

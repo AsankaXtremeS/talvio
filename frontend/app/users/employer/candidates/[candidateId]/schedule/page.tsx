@@ -214,8 +214,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
     setIsGeneratingEmail(true);
 
     try {
-      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !profile?.googleCalendarConnected) {
-        setScheduleError("Google Calendar is not connected. Please connect your calendar in Profile Settings to generate Google Meet links.");
+      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !(profile?.googleCalendarConnected || profile?.microsoftCalendarConnected)) {
+        setScheduleError("No calendar is connected. Please connect Google or Microsoft Calendar in Profile Settings to generate online meeting links.");
         return;
       }
 
@@ -263,8 +263,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
     setIsScheduling(true);
     setScheduleError(null);
     try {
-      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !profile?.googleCalendarConnected) {
-        setScheduleError("Google Calendar is not connected. Please connect your calendar in Profile Settings to generate Google Meet links.");
+      if (meetingType === "ONLINE" && onlineOption === "GENERATE" && !(profile?.googleCalendarConnected || profile?.microsoftCalendarConnected)) {
+        setScheduleError("No calendar is connected. Please connect Google or Microsoft Calendar in Profile Settings to generate online meeting links.");
         setIsScheduling(false);
         return;
       }
@@ -359,13 +359,13 @@ export default function ScheduleInterviewPage({ params }: Props) {
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Meeting Details</h2>
 
-            {meetingType === "ONLINE" && onlineOption === "GENERATE" && profile && !profile.googleCalendarConnected && (
+            {meetingType === "ONLINE" && onlineOption === "GENERATE" && profile && !(profile.googleCalendarConnected || profile.microsoftCalendarConnected) && (
               <div className="mb-4 flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 animate-in slide-in-from-top-2 duration-300">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
                 <div className="flex-1">
-                  <p className="font-bold">Google Calendar Not Connected</p>
+                  <p className="font-bold">Calendar Not Connected</p>
                   <p className="mt-1 leading-relaxed text-yellow-700">
-                    You have not connected your Google Calendar yet. To automatically generate real Google Meet links, please connect your account in your profile settings.
+                    You have not connected your Google or Microsoft Calendar yet. To automatically generate meeting links, please connect your account in your profile settings.
                   </p>
                   <button 
                     onClick={() => router.push("/users/employer/profile")}
@@ -404,7 +404,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                 date={date}
                 time={time}
                 meetingType={meetingType}
-                meetingLink={meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : undefined}
+                meetingLink={meetingType === "ONLINE" && onlineOption === "CUSTOM" ? customLink : (draft?.meetingLink || undefined)}
                 location={location}
                 additionalInfo={additionalInfo}
                 refreshKey={emailRefreshKey}

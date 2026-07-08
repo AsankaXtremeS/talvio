@@ -22,6 +22,8 @@ const EMPLOYER_PROFILE_SELECT = {
   verificationStatus: true,
   rejectionReason: true,
   googleCalendarConnected: true,
+  microsoftCalendarConnected: true,
+  calendarProvider: true,
   createdAt: true,
   updatedAt: true,
   user: {
@@ -42,12 +44,16 @@ export const profileRepository = {
     });
   },
 
-  async updateGoogleTokensByUserId(userId: string, data: any) {
+  async updateCalendarTokensByUserId(userId: string, data: any) {
     return prisma.employerProfile.update({
       where: { userId },
       data,
       select: EMPLOYER_PROFILE_SELECT,
     });
+  },
+
+  async updateGoogleTokensByUserId(userId: string, data: any) {
+    return this.updateCalendarTokensByUserId(userId, data);
   },
 
   async updateByUserId(userId: string, data: UpdateProfileInput) {

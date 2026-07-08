@@ -13,7 +13,7 @@ interface InterviewCardProps {
   onReschedule: (interview: InterviewDTO) => void;
   onCancel: (id: string) => void;
   getTypeIcon: (type: string) => React.ReactNode;
-  getTypeLabel: (type: string) => string;
+  getTypeLabel: (type: string, meetingLink?: string | null) => string;
   getInitials: (name: string) => string;
   formatDate: (iso: string) => string;
   formatTime: (iso: string) => string;
@@ -120,7 +120,7 @@ export default function InterviewCard({
       <div className="flex items-center gap-2 w-fit px-3 py-1.5 bg-[#F5F6F8] rounded-xl">
         <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
         <span className="text-sm font-medium text-gray-600">
-          {iv.jobPost?.title ?? "—"} · {getTypeLabel(iv.meetingType)} Interview
+          {iv.jobPost?.title ?? "—"} · {getTypeLabel(iv.meetingType, iv.meetingLink)} Interview
         </span>
       </div>
 

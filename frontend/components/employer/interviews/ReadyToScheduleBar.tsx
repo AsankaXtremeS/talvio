@@ -28,8 +28,23 @@ const MEETING_ICON: Record<MeetingType, React.ReactNode> = {
   PHONE:  <Phone size={15} className="text-indigo-500" />,
 };
 
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
 const MEETING_LABEL: Record<MeetingType, string> = {
-  ONLINE: "Online (Google Meet)",
+  ONLINE: "Online",
   ONSITE: "On-Site",
   PHONE:  "Phone Call",
 };
@@ -83,7 +98,12 @@ export default function ReadyToScheduleBar({
             </div>
             <div className="flex items-center gap-2 ml-6">
               {MEETING_ICON[meetingType]}
-              <p className="text-xs text-gray-500">{MEETING_LABEL[meetingType]}</p>
+              <p className="text-xs text-gray-500">
+                {meetingType === "ONLINE" && meetingLink
+                  ? `Online (${detectMeetingProvider(meetingLink)})`
+                  : MEETING_LABEL[meetingType]
+                }
+              </p>
               {meetingType === "ONSITE" && location && (
                 <span className="text-xs text-gray-400">· {location}</span>
               )}

@@ -11,6 +11,21 @@ interface InterviewDetailsModalProps {
   loading?: boolean;
 }
 
+const detectMeetingProvider = (link?: string | null) => {
+  if (!link) return "Video Call";
+  const url = link.toLowerCase();
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return "Microsoft Teams";
+  }
+  if (url.includes("meet.google.com")) {
+    return "Google Meet";
+  }
+  if (url.includes("skype.com") || url.startsWith("skype:")) {
+    return "Skype";
+  }
+  return "Video Call";
+};
+
 export default function InterviewDetailsModal({
   interview,
   isOpen,
@@ -73,9 +88,10 @@ export default function InterviewDetailsModal({
   const getMeetingTypeDisplay = () => {
     const type = interview.meetingType?.toLowerCase() ?? "";
     if (type === "online") {
+      const provider = detectMeetingProvider(interview.meetingLink);
       return {
         icon: <Video size={20} className="text-blue-500" />,
-        label: "Online (Google Meet)",
+        label: `Online (${provider})`,
         color: "bg-blue-50",
       };
     }

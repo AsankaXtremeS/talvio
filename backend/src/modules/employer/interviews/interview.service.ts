@@ -2,6 +2,7 @@ import { prisma } from "../../../config/db";
 import { interviewRepository } from "./interview.repository";
 import { CreateInterviewInput, UpdateInterviewInput, GenerateEmailInput } from "./interview.validation";
 import { googleCalendarService, getEmployerGoogleClient } from "../../../utils/googleCalendar";
+import { microsoftCalendarService } from "../../../utils/microsoftCalendar";
 import {
   buildInterviewEmailHtml,
   buildInterviewEmailSubject,
@@ -50,7 +51,7 @@ function mapToDTO(raw: any): InterviewDTO {
     meetingType: raw.meetingType,
     location: raw.location ?? null,
     meetingLink: raw.meetingLink ?? null,
-    googleCalendarLink: raw.googleCalendarLink ?? null,
+    googleCalendarLink: raw.googleCalendarLink ?? raw.microsoftCalendarLink ?? null,
     additionalInfo: raw.additionalInfo ?? null,
     emailBody: raw.emailBody ?? null,
     emailSentAt: raw.emailSentAt ? raw.emailSentAt.toISOString() : null,
@@ -180,6 +181,54 @@ async function getEmployerGoogleAuth(employerProfileId: string) {
   return auth;
 }
 
+/**
+ * Get a Microsoft Access Token for a specific employer.
+ * Automatically refreshes the token if expired or close to expiration.
+ * Returns null if the employer hasn't connected Microsoft Calendar.
+ */
+async function getEmployerMicrosoftAuth(employerProfileId: string): Promise<string | null> {
+  const employer = await prisma.employerProfile.findUnique({
+    where: { id: employerProfileId },
+    select: { 
+      microsoftAccessToken: true, 
+      microsoftRefreshToken: true, 
+      microsoftTokenExpiry: true,
+      microsoftCalendarConnected: true
+    }
+  });
+
+  if (!employer || !employer.microsoftCalendarConnected || !employer.microsoftAccessToken || !employer.microsoftRefreshToken) {
+    return null;
+  }
+
+  // Check if token is expired or expiring in less than 5 minutes (300000ms)
+  const isExpired = employer.microsoftTokenExpiry 
+    ? (Number(employer.microsoftTokenExpiry) - Date.now()) < 300000 
+    : true;
+
+  if (isExpired) {
+    try {
+      console.log(`[Microsoft Tokens Expired/Expiring] Refreshing tokens for Employer: ${employerProfileId}`);
+      const refreshed = await microsoftCalendarService.refreshTokens(employer.microsoftRefreshToken);
+      
+      await prisma.employerProfile.update({
+        where: { id: employerProfileId },
+        data: {
+          microsoftAccessToken: refreshed.accessToken,
+          microsoftRefreshToken: refreshed.refreshToken,
+          microsoftTokenExpiry: BigInt(refreshed.expiresAt)
+        }
+      });
+      return refreshed.accessToken;
+    } catch (err) {
+      console.error("Failed to refresh Microsoft tokens:", err);
+      return null;
+    }
+  }
+
+  return employer.microsoftAccessToken;
+}
+
 export const interviewService = {
   
    //Fetch candidate profile details for schedule UI.
@@ -259,57 +308,127 @@ export const interviewService = {
     //  Parse scheduledAt
     const scheduledAt = new Date(input.scheduledAt);
 
-    //  Handle Google Meet and Calendar Integration
+    //  Handle Calendar and Meeting Link Integration
     let meetingLink: string | undefined = input.meetingLink;
     let googleCalendarEventId: string | undefined;
     let googleCalendarLink: string | undefined;
+    let microsoftCalendarEventId: string | undefined;
+    let microsoftCalendarLink: string | undefined;
 
-    const auth = await getEmployerGoogleAuth(employerProfileId);
+    const employerProfile = await prisma.employerProfile.findUnique({
+      where: { id: employerProfileId },
+      select: { calendarProvider: true, googleCalendarConnected: true, microsoftCalendarConnected: true }
+    });
+    const provider = employerProfile?.calendarProvider || (employerProfile?.googleCalendarConnected ? "google" : employerProfile?.microsoftCalendarConnected ? "microsoft" : undefined);
 
     if (input.meetingType === "ONLINE" && !meetingLink) {
-      if (auth) {
-        try {
-          const calEvent = await googleCalendarService.createEvent(auth, {
-            title: `Interview – ${candidateName} | ${jobPost.title}`,
-            description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
-            startTime: scheduledAt,
-            durationMinutes: 60,
-            attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
-            generateMeetLink: true,
-          });
+      if (provider === "google") {
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          try {
+            const calEvent = await googleCalendarService.createEvent(auth, {
+              title: `Interview – ${candidateName} | ${jobPost.title}`,
+              description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
+              startTime: scheduledAt,
+              durationMinutes: 60,
+              attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
+              generateMeetLink: true,
+            });
 
-          meetingLink = calEvent.meetLink;
-          googleCalendarEventId = calEvent.eventId;
-          googleCalendarLink = calEvent.calendarLink;
+            meetingLink = calEvent.meetLink;
+            googleCalendarEventId = calEvent.eventId;
+            googleCalendarLink = calEvent.calendarLink;
 
-          if (!meetingLink) {
-            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+            if (!meetingLink) {
+              throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+            }
+            
+            console.log(`[Google Meet Generated] Link: ${meetingLink}, EventID: ${googleCalendarEventId}`);
+          } catch (calErr) {
+            console.error("Google Calendar event creation failed:", calErr);
+            throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
           }
-          
-          console.log(`[Google Meet Generated] Link: ${meetingLink}, EventID: ${googleCalendarEventId}`);
-        } catch (calErr) {
-          console.error("Google Calendar event creation failed:", calErr);
-          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+        } else {
+          throw buildHttpError("Google Calendar is not connected. Please connect your calendar in settings to generate Google Meet links.", 400);
+        }
+      } else if (provider === "microsoft") {
+        const token = await getEmployerMicrosoftAuth(employerProfileId);
+        if (token) {
+          try {
+            const calEvent = await microsoftCalendarService.createEvent(token, {
+              title: `Interview – ${candidateName} | ${jobPost.title}`,
+              description: `Interview for ${jobPost.title} at ${jobPost.employer.companyName}`,
+              startTime: scheduledAt,
+              durationMinutes: 60,
+              attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
+              generateMeetLink: true,
+            });
+
+            meetingLink = calEvent.meetLink;
+            microsoftCalendarEventId = calEvent.eventId;
+            microsoftCalendarLink = calEvent.calendarLink;
+
+            if (!meetingLink) {
+              // Teams link unavailable (e.g. personal account without Teams license).
+              // Throw so the employer knows to use a Microsoft 365 work/school account.
+              throw new Error(
+                "Microsoft Calendar API succeeded but did not return a Teams meeting link. " +
+                "Ensure the connected account is a Microsoft 365 work/school account with a Teams license."
+              );
+            } else {
+              console.log(`[Microsoft Teams Generated] Link: ${meetingLink}, EventID: ${microsoftCalendarEventId}`);
+            }
+          } catch (calErr) {
+            console.error("Microsoft Calendar event creation failed:", calErr);
+            throw buildHttpError(`Failed to generate Microsoft Teams link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+          }
+        } else {
+          throw buildHttpError("Microsoft Calendar is not connected. Please connect your calendar in settings to generate Microsoft Teams links.", 400);
         }
       } else {
-        throw buildHttpError("Google Calendar is not connected. Please connect your calendar in settings to generate Google Meet links.", 400);
+        throw buildHttpError("Calendar is not connected. Please connect your Google or Microsoft Calendar in settings to generate meeting links.", 400);
       }
-    } else if (input.meetingType === "ONSITE" && auth) {
-      try {
-        const calEvent = await googleCalendarService.createEvent(auth, {
-          title: `Interview – ${jobPost.title} (On-Site)`,
-          description: `On-site interview at ${input.location}`,
-          startTime: scheduledAt,
-          durationMinutes: 60,
-          location: input.location,
-          attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
-          generateMeetLink: false,
-        });
+    } else if (input.meetingType === "ONSITE") {
+      if (provider === "google") {
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          try {
+            const calEvent = await googleCalendarService.createEvent(auth, {
+              title: `Interview – ${jobPost.title} (On-Site)`,
+              description: `On-site interview at ${input.location}`,
+              startTime: scheduledAt,
+              durationMinutes: 60,
+              location: input.location,
+              attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
+              generateMeetLink: false,
+            });
 
-        googleCalendarEventId = calEvent.eventId;
-        googleCalendarLink = calEvent.calendarLink;
-      } catch (calErr) {
-        console.error("Google Calendar event creation failed:", calErr);
+            googleCalendarEventId = calEvent.eventId;
+            googleCalendarLink = calEvent.calendarLink;
+          } catch (calErr) {
+            console.error("Google Calendar event creation failed:", calErr);
+          }
+        }
+      } else if (provider === "microsoft") {
+        const token = await getEmployerMicrosoftAuth(employerProfileId);
+        if (token) {
+          try {
+            const calEvent = await microsoftCalendarService.createEvent(token, {
+              title: `Interview – ${jobPost.title} (On-Site)`,
+              description: `On-site interview at ${input.location}`,
+              startTime: scheduledAt,
+              durationMinutes: 60,
+              location: input.location,
+              attendeeEmails: [candidateEmail, jobPost.employer.user.email].filter(Boolean) as string[],
+              generateMeetLink: false,
+            });
+
+            microsoftCalendarEventId = calEvent.eventId;
+            microsoftCalendarLink = calEvent.calendarLink;
+          } catch (calErr) {
+            console.error("Microsoft Calendar event creation failed:", calErr);
+          }
+        }
       }
     }
 
@@ -319,7 +438,13 @@ export const interviewService = {
       input,
       scheduledAt,
       candidateEmail,
-      { meetingLink, googleCalendarEventId, googleCalendarLink }
+      { 
+        meetingLink, 
+        googleCalendarEventId, 
+        googleCalendarLink,
+        microsoftCalendarEventId,
+        microsoftCalendarLink
+      }
     );
 
     console.log(`[Interview Created] ID: ${created.id}, Type: ${input.meetingType}, MeetingLink: ${meetingLink}`);
@@ -416,61 +541,125 @@ export const interviewService = {
     if (input.emailBody !== undefined) updateData.emailBody = input.emailBody;
     if (input.status !== undefined) updateData.status = input.status;
 
-    const auth = await getEmployerGoogleAuth(employerProfileId);
+    const employerProfile = await prisma.employerProfile.findUnique({
+      where: { id: employerProfileId },
+      select: { calendarProvider: true, googleCalendarConnected: true, microsoftCalendarConnected: true }
+    });
+    const provider = employerProfile?.calendarProvider || (employerProfile?.googleCalendarConnected ? "google" : employerProfile?.microsoftCalendarConnected ? "microsoft" : undefined);
 
-    // Handle Google Meet generation if switched to ONLINE or no link exists
+    // Handle Meeting Link generation if switched to ONLINE or no link exists
     if (
       (input.meetingType === "ONLINE" || (existing.meetingType === "ONLINE" && !input.meetingType)) &&
       !input.meetingLink &&
       !existing.meetingLink
     ) {
-      if (auth) {
-        try {
-          const candidateName = [
-            existing.candidate?.user?.firstName,
-            existing.candidate?.user?.lastName,
-          ].filter(Boolean).join(" ") || "Candidate";
+      const candidateName = [
+        existing.candidate?.user?.firstName,
+        existing.candidate?.user?.lastName,
+      ].filter(Boolean).join(" ") || "Candidate";
 
-          const calEvent = await googleCalendarService.createEvent(auth, {
-            title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
-            description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
-            startTime: updateData.scheduledAt || existing.scheduledAt,
-            durationMinutes: 60,
-            attendeeEmails: [
-              existing.candidateEmail,
-              existing.employer.user.email
-            ].filter(Boolean) as string[],
-            generateMeetLink: true,
-          });
+      if (provider === "google") {
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          try {
+            const calEvent = await googleCalendarService.createEvent(auth, {
+              title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
+              description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
+              startTime: updateData.scheduledAt || existing.scheduledAt,
+              durationMinutes: 60,
+              attendeeEmails: [
+                existing.candidateEmail,
+                existing.employer.user.email
+              ].filter(Boolean) as string[],
+              generateMeetLink: true,
+            });
 
-          if (!calEvent.meetLink) {
-            throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+            if (!calEvent.meetLink) {
+              throw new Error("Google Calendar API succeeded but did not return a Google Meet link.");
+            }
+
+            updateData.meetingLink = calEvent.meetLink;
+            updateData.googleCalendarEventId = calEvent.eventId;
+            updateData.googleCalendarLink = calEvent.calendarLink;
+            console.log(`[Google Meet Updated/Generated] Link: ${updateData.meetingLink}`);
+            shouldSyncCalendar = false; // Already created/updated
+          } catch (calErr) {
+            console.error("Google Calendar update failed:", calErr);
+            throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
           }
+        } else {
+          throw buildHttpError("Google Calendar is not connected. Cannot generate Google Meet link.", 400);
+        }
+      } else if (provider === "microsoft") {
+        const token = await getEmployerMicrosoftAuth(employerProfileId);
+        if (token) {
+          try {
+            const calEvent = await microsoftCalendarService.createEvent(token, {
+              title: `Interview – ${candidateName} | ${existing.jobPost.title}`,
+              description: `Interview for ${existing.jobPost.title} at ${existing.employer.companyName}`,
+              startTime: updateData.scheduledAt || existing.scheduledAt,
+              durationMinutes: 60,
+              attendeeEmails: [
+                existing.candidateEmail,
+                existing.employer.user.email
+              ].filter(Boolean) as string[],
+              generateMeetLink: true,
+            });
 
-          updateData.meetingLink = calEvent.meetLink;
-          updateData.googleCalendarEventId = calEvent.eventId;
-          updateData.googleCalendarLink = calEvent.calendarLink;
-          console.log(`[Google Meet Updated/Generated] Link: ${updateData.meetingLink}`);
-          shouldSyncCalendar = false; // Already created/updated
-        } catch (calErr) {
-          console.error("Google Calendar update failed:", calErr);
-          throw buildHttpError(`Failed to generate Google Meet link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+            if (!calEvent.meetLink) {
+              throw new Error(
+                "Microsoft Calendar API succeeded but did not return a Teams meeting link. " +
+                "Ensure the connected account is a Microsoft 365 work/school account with a Teams license."
+              );
+            }
+
+            updateData.meetingLink = calEvent.meetLink;
+            updateData.microsoftCalendarEventId = calEvent.eventId;
+            updateData.microsoftCalendarLink = calEvent.calendarLink;
+            if (calEvent.meetLink) {
+              console.log(`[Microsoft Teams Updated/Generated] Link: ${updateData.meetingLink}`);
+            }
+            shouldSyncCalendar = false; // Already created/updated
+          } catch (calErr) {
+            console.error("Microsoft Calendar update failed:", calErr);
+            throw buildHttpError(`Failed to generate Microsoft Teams link: ${calErr instanceof Error ? calErr.message : "Unknown error"}`, 400);
+          }
+        } else {
+          throw buildHttpError("Microsoft Calendar is not connected. Cannot generate Microsoft Teams link.", 400);
         }
       } else {
-        throw buildHttpError("Google Calendar is not connected. Cannot generate Google Meet link.", 400);
+        throw buildHttpError("Calendar is not connected. Please connect your Google or Microsoft Calendar in settings to generate meeting links.", 400);
       }
     }
 
     // Sync existing calendar event if time/type changed but we didn't re-create it above
-    if (shouldSyncCalendar && existing.googleCalendarEventId && auth) {
-      try {
-        await googleCalendarService.updateEventTime(
-          auth,
-          existing.googleCalendarEventId,
-          updateData.scheduledAt || existing.scheduledAt
-        );
-      } catch (err) {
-        console.error("Failed to sync calendar event time:", err);
+    if (shouldSyncCalendar) {
+      if (provider === "google" && (existing as any).googleCalendarEventId) {
+        const auth = await getEmployerGoogleAuth(employerProfileId);
+        if (auth) {
+          try {
+            await googleCalendarService.updateEventTime(
+              auth,
+              (existing as any).googleCalendarEventId,
+              updateData.scheduledAt || existing.scheduledAt
+            );
+          } catch (err) {
+            console.error("Failed to sync Google calendar event time:", err);
+          }
+        }
+      } else if (provider === "microsoft" && (existing as any).microsoftCalendarEventId) {
+        const token = await getEmployerMicrosoftAuth(employerProfileId);
+        if (token) {
+          try {
+            await microsoftCalendarService.updateEventTime(
+              token,
+              (existing as any).microsoftCalendarEventId,
+              updateData.scheduledAt || existing.scheduledAt
+            );
+          } catch (err) {
+            console.error("Failed to sync Microsoft calendar event time:", err);
+          }
+        }
       }
     }
 
@@ -597,7 +786,7 @@ export const interviewService = {
         meetingType: updated.meetingType,
         location: updated.location ?? null,
         meetingLink: updated.meetingLink ?? null,
-        googleCalendarLink: updated.googleCalendarLink ?? null,
+        googleCalendarLink: updated.googleCalendarLink ?? updated.microsoftCalendarLink ?? null,
         additionalInfo: updated.additionalInfo ?? null,
         emailBody: updated.emailBody ?? null,
         emailSentAt: updated.emailSentAt instanceof Date ? updated.emailSentAt.toISOString() : null,
@@ -649,6 +838,18 @@ export const interviewService = {
         }
       } catch (err) {
         console.error("Failed to delete Google Calendar event:", err);
+      }
+    }
+
+    const microsoftEventId = (existing as any).microsoftCalendarEventId;
+    if (microsoftEventId) {
+      try {
+        const token = await getEmployerMicrosoftAuth(employerProfileId);
+        if (token) {
+          await microsoftCalendarService.deleteEvent(token, microsoftEventId);
+        }
+      } catch (err) {
+        console.error("Failed to delete Microsoft Calendar event:", err);
       }
     }
 
@@ -775,7 +976,22 @@ ${companyName}`;
             "Failed to delete Google Calendar event:",
             err
           );
-          // Don't fail the operation if calendar delete fails
+        }
+      }
+    }
+
+    const microsoftEventId = (existing as any).microsoftCalendarEventId;
+    if (microsoftEventId) {
+      const token = await getEmployerMicrosoftAuth(employerProfileId);
+      if (token) {
+        try {
+          await microsoftCalendarService.deleteEvent(token, microsoftEventId);
+          console.log(`[CancelAndSendEmail] Microsoft Calendar event deleted: ${microsoftEventId}`);
+        } catch (err) {
+          console.error(
+            "Failed to delete Microsoft Calendar event:",
+            err
+          );
         }
       }
     }
