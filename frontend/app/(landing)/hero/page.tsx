@@ -27,13 +27,13 @@ const Hero = () => {
         className='absolute bottom-0 right-30 z-10'
       />
 
-      <div className='absolute left-18 top-24 z-20 inline-flex items-center gap-2 rounded-full text-sm font-medium text-gray-700'>
+      <div className='absolute left-18 top-18 z-20 inline-flex items-center gap-2 rounded-full text-sm font-medium text-gray-700'>
         <PiMedalFill size={22} className='text-[#FF9500]' />
         <span>Game Changing Platform</span>
       </div>
 
-      <div className='absolute left-18 top-36 z-20'>
-        <h1 className='text-4xl font-black leading-tight tracking-tight text-[#333333] sm:text-5xl md:text-6xl'>
+      <div className='absolute left-18 top-23 z-20'>
+        <h1 className='text-4xl font-black leading-tight tracking-tight text-[#333333] sm:text-4xl md:text-6xl'>
           Find the Right Job
           <br />
           Faster.
@@ -42,7 +42,7 @@ const Hero = () => {
         </h1>
       </div>
 
-      <div className='absolute left-18 top-100 z-20'>
+      <div className='absolute left-18 top-80 z-20'>
         <p className='text-lg leading-relaxed text-gray-600'>
           An AI-powered platform that intelligently connects students and <br />
           companies, delivering personalized job matches and automating the <br />
@@ -50,7 +50,7 @@ const Hero = () => {
         </p>
       </div>
 
-      <div className='absolute left-18 top-125 z-20'>
+      <div className='absolute left-18 top-105 z-20'>
         <div className='flex flex-wrap items-center gap-4'>
           <Link href='/register'>
             <button className='rounded-full bg-linear-to-r from-blue-600 to-purple-600 px-8 py-3.5 font-medium text-white transition-all hover:scale-105 hover:shadow-xl'>
@@ -63,7 +63,7 @@ const Hero = () => {
         </div>
       </div>
 
-      <div className='absolute bottom-12 left-18 z-20 flex items-start gap-10'>
+      <div className='absolute bottom-8 left-18 z-20 flex items-start gap-10'>
         <div>
           <div className='text-4xl font-black leading-none text-[#333333]'>200+</div>
           <div className='mt-1 text-[13px] font-medium leading-5 text-[#666666]'>
@@ -91,7 +91,7 @@ const Hero = () => {
       </div>
 
       <div
-        className='absolute left-260 top-35 z-20 inline-flex -translate-x-5 items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
+        className='absolute left-230 top-15 z-20 inline-flex -translate-x-5 items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
         style={{
           animationName: 'float',
           animationDuration: '3s',
@@ -107,7 +107,7 @@ const Hero = () => {
       </div>
 
       <div
-        className='absolute left-210 top-[38%] z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
+        className='absolute left-180 top-[28%] z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
         style={{
           animationName: 'float',
           animationDuration: '3s',
@@ -123,7 +123,7 @@ const Hero = () => {
       </div>
 
       <div
-        className='absolute right-30 top-[34%] z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
+        className='absolute right-30 top-[23%] z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-md'
         style={{
           animationName: 'float',
           animationDuration: '3s',
