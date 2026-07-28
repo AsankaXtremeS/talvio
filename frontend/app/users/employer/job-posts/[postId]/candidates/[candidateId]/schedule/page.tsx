@@ -359,12 +359,13 @@ export default function ScheduleInterviewPage({ params }: Props) {
               </div>
               <h1 className="text-2xl font-bold text-indigo-600">
                 {isReschedule ? "Reschedule Interview" : "Schedule Interview"}
+                {candidate?.name ? ` for ${candidate.name}` : ""}
               </h1>
             </div>
             <p className="ml-12 text-sm text-gray-500">
               {isReschedule
-                ? "Update the interview details and send a reschedule notification to the candidate."
-                : "Set up an interview for this candidate and send them an invitation email."}
+                ? `Update the interview details and send a reschedule notification to ${candidate?.name || "the candidate"}.`
+                : `Set up an interview for ${candidate?.name || "this candidate"} and send them an invitation email.`}
             </p>
           </div>
           <button
@@ -379,7 +380,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         {/* ── Error banner ── */}
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center justify-between">
-            <span>⚠️ {error}</span>
+            <span> {error}</span>
             <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-4">✕</button>
           </div>
         )}
@@ -397,9 +398,11 @@ export default function ScheduleInterviewPage({ params }: Props) {
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Post & Applicant</h2>
             </div>
-            <JobPostPanel postId={postId} />
+            
             <ApplicantPanel candidateProfileId={candidateId} jobPostId={postId} />
+            <JobPostPanel postId={postId} />
           </div>
+
 
           <div className="flex flex-col h-full min-h-full justify-stretch">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">Select Interview Date</h2>
