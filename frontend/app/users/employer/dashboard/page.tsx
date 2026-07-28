@@ -271,6 +271,15 @@ export default function DashboardPage() {
         interview={selectedInterview}
         isOpen={isInterviewModalOpen}
         onClose={() => setIsInterviewModalOpen(false)}
+        onReschedule={(iv) => {
+          if (!iv.jobPost?.id || !iv.candidate?.id || !iv.id) return;
+          router.push(
+            `/users/employer/job-posts/${iv.jobPost.id}/candidates/${iv.candidate.id}/schedule?interviewId=${iv.id}`
+          );
+        }}
+        onCancel={(id) => {
+          router.push(`/users/employer/interviews/${id}/cancel`);
+        }}
       />
     </div>
   );

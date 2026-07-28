@@ -247,7 +247,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
         });
         setDraft(currentDraft);
       }
-      
+
       setShowEmailPreview(true);
       setEmailRefreshKey(prev => prev + 1);
     } catch (err) {
@@ -268,9 +268,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
         setIsScheduling(false);
         return;
       }
-      
+
       let currentDraft = draftRef.current;
-      
+
       if (!currentDraft) {
         // Fallback if they didn't generate email first (shouldn't happen with UI guards)
         const scheduledAt = buildScheduledAt(date, time);
@@ -320,10 +320,14 @@ export default function ScheduleInterviewPage({ params }: Props) {
               <div className="p-2 text-indigo-700 rounded-lg bg-indigo-50">
                 <UserSquare size={28} />
               </div>
-              <h1 className="text-3xl font-bold text-indigo-500">Schedule Interview</h1>
+              <h1 className="text-3xl font-bold text-indigo-500">
+                Schedule Interview{realCandidateData?.name ? ` for ${realCandidateData.name}` : ""}
+              </h1>
             </div>
             <p className="ml-12 text-base text-gray-600">
-              Scheduling for the Candidate
+              {realCandidateData?.name
+                ? `Setting up an interview for ${realCandidateData.name}`
+                : "Scheduling for the Candidate"}
             </p>
           </div>
 
@@ -367,7 +371,7 @@ export default function ScheduleInterviewPage({ params }: Props) {
                   <p className="mt-1 leading-relaxed text-yellow-700">
                     You have not connected your Google or Microsoft Calendar yet. To automatically generate meeting links, please connect your account in your profile settings.
                   </p>
-                  <button 
+                  <button
                     onClick={() => router.push("/users/employer/profile")}
                     className="mt-2 text-indigo-600 font-semibold hover:underline"
                   >

@@ -212,10 +212,14 @@ export default function CancelInterviewPage({ params }: Props) {
               <div className="p-2 text-red-700 rounded-lg bg-red-50">
                 <XCircle size={28} />
               </div>
-              <h1 className="text-3xl font-bold text-red-600">Cancel Interview</h1>
+              <h1 className="text-3xl font-bold text-red-600">
+                Cancel Interview{interview.candidate?.name ? ` for ${interview.candidate.name}` : ""}
+              </h1>
             </div>
             <p className="ml-12 text-base text-gray-600">
-              Candidate: {interview.candidate?.name || "Unknown"}
+              {interview.candidate?.name
+                ? `Cancelling the scheduled interview for ${interview.candidate.name}`
+                : "Cancel this scheduled interview"}
             </p>
           </div>
 
@@ -234,8 +238,10 @@ export default function CancelInterviewPage({ params }: Props) {
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-900">Applicant & Job Post</h2>
             </div>
-            <JobPostPanel jobPostId={jobPostId} />
+
             <ApplicantPanel candidateId={candidateId} jobPostId={jobPostId} />
+            <JobPostPanel jobPostId={jobPostId} />
+
           </div>
 
           <div className="flex flex-col h-full min-h-full">
