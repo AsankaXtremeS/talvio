@@ -1,3 +1,3 @@
--- AlterTable
-ALTER TABLE "Application" ADD COLUMN     "isReviewed" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "isShortlisted" BOOLEAN NOT NULL DEFAULT false;
+-- No-op migration.
+-- This migration was accidentally duplicated; the same ALTER TABLE already exists
+-- in 20260425174613_sandip_change.

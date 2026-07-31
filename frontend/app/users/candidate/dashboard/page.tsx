@@ -332,7 +332,7 @@ function useCandidateDashboard() {
         const isUpcoming = scheduledDate.getTime() >= now.getTime();
         const isRead = readNotificationIds.includes(interview.id);
         const isNew = isUpcoming && !isRead;
-
+      //new interview notifi
         return {
           id: interview.id,
           title: `New interview scheduled: ${interview.company}`,

@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BriefcaseBusiness, X } from "lucide-react";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, SessionExpiredError } from "@/lib/apiClient";
 
 interface NewJob {
   id: string;
@@ -24,10 +23,13 @@ export default function NotificationBell() {
   const [jobs, setJobs] = useState<NewJob[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const fetchNewJobs = async () => {
+
+  const fetchNewJobs = useCallback(async () => {
+    if (sessionExpired) return;
+
     try {
       setLoading(true);
       const data = await apiClient<NewJobsResponse>("/api/candidate/jobs/new");
@@ -36,18 +38,24 @@ export default function NotificationBell() {
       const unseenCount = data.jobs.filter((j) => !seenIds.has(j.id)).length;
       setCount(unseenCount);
     } catch (err) {
+      if (err instanceof SessionExpiredError) {
+        setSessionExpired(true);
+        return;
+      }
       console.error("Failed to fetch new jobs:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [seenIds, sessionExpired]);
 
   // Fetch on mount and every 30 seconds
   useEffect(() => {
+    if (sessionExpired) return;
+
     fetchNewJobs();
     const interval = setInterval(fetchNewJobs, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNewJobs, sessionExpired]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

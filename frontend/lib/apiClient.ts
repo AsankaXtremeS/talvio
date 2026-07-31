@@ -1,10 +1,42 @@
 import axios, { AxiosRequestConfig } from 'axios';
+import { setRedirectToast } from '@/lib/postRedirectToast';
 
 type ApiClientOptions = AxiosRequestConfig & {
   retryOnAuth?: boolean;
 };
 
+export class SessionExpiredError extends Error {
+  constructor(message = 'Session expired') {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
 let refreshInFlight: Promise<boolean> | null = null;
+
+function getLoginRedirectPath(pathname: string): string {
+  if (pathname.startsWith('/users/employer')) return '/login/employer';
+  if (pathname.startsWith('/users/admin')) return '/login/admin';
+  if (pathname.startsWith('/login') || pathname.startsWith('/register')) return pathname;
+  return '/login';
+}
+
+function redirectOnSessionExpired(): void {
+  if (typeof window === 'undefined') return;
+
+  const hasRedirected = window.sessionStorage.getItem('talvio:session-expired-redirected') === '1';
+  if (hasRedirected) return;
+
+  window.sessionStorage.setItem('talvio:session-expired-redirected', '1');
+  const target = getLoginRedirectPath(window.location.pathname);
+  setRedirectToast({ message: 'Session expired. Please log in again.', tone: 'error' });
+  window.location.href = target;
+}
+
+function clearSessionExpiredRedirectFlag(): void {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem('talvio:session-expired-redirected');
+}
 
 function isAuthEndpoint(endpoint: string): boolean {
   return endpoint.startsWith('/api/auth/');
@@ -41,6 +73,7 @@ export async function apiClient<T>(
       ...axiosOptions,
     });
 
+    clearSessionExpiredRedirectFlag();
     return res.data; // Axios automatically parses JSON responses
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
@@ -60,10 +93,12 @@ export async function apiClient<T>(
             },
             ...axiosOptions,
           });
+          clearSessionExpiredRedirectFlag();
           return retryRes.data;
         }
 
-        throw new Error('Session expired');
+        redirectOnSessionExpired();
+        throw new SessionExpiredError();
       }
 
       const responseData = error.response?.data as { message?: string } | undefined;
