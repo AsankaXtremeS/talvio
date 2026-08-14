@@ -13,7 +13,7 @@ import {
 /**
  * Configuration Constants
  */
-const AI_MODEL_NAME = "gemini-2.0-flash";
+const AI_MODEL_NAME = "gemini-2.5-flash";
 const CONCURRENT_AI_LIMIT = 3;
 const CV_SLICE_LENGTH = 4000;
 const JD_SLICE_LENGTH = 500;
@@ -29,13 +29,15 @@ const genAiClient = isGeminiActive
 /**
  * Generative model configured for JSON output
  */
-const flashModel = genAiClient?.getGenerativeModel({
-  model: AI_MODEL_NAME,
-  generationConfig: { 
-    responseMimeType: "application/json", 
-    temperature: LOW_TEMP 
-  },
-});
+const getGeminiFlashModel = (modelName = AI_MODEL_NAME) => {
+  return genAiClient?.getGenerativeModel({
+    model: modelName,
+    generationConfig: { 
+      responseMimeType: "application/json", 
+      temperature: LOW_TEMP 
+    },
+  });
+};
 
 /**
  * Cleans raw AI response strings for reliable JSON parsing.
@@ -203,7 +205,8 @@ export const aiService = {
     return aiRequestQueue.execute(() => 
       executeWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
         if (provider.type === "gemini") {
-          const rawResponse = await flashModel!
+          const modelInstance = getGeminiFlashModel(provider.model);
+          const rawResponse = await modelInstance!
             .generateContent(prompt)
             .then(res => res.response.text());
           return JSON.parse(sanitizeJsonResponse(rawResponse));
@@ -226,7 +229,8 @@ export const aiService = {
     return aiRequestQueue.execute(() => 
       executeWithFallback(["gemini", "mistral", "openrouter"], async (provider) => {
         if (provider.type === "gemini") {
-          const rawResponse = await flashModel!
+          const modelInstance = getGeminiFlashModel(provider.model);
+          const rawResponse = await modelInstance!
             .generateContent(prompt)
             .then(res => res.response.text());
           return JSON.parse(sanitizeJsonResponse(rawResponse));
@@ -262,7 +266,8 @@ export const aiService = {
     return aiRequestQueue.execute(() => 
       executeWithFallback(["gemini", "groq", "openrouter"], async (provider) => {
         if (provider.type === "gemini") {
-          const rawResponse = await flashModel!
+          const modelInstance = getGeminiFlashModel(provider.model);
+          const rawResponse = await modelInstance!
             .generateContent(prompt)
             .then(res => res.response.text());
           return JSON.parse(sanitizeJsonResponse(rawResponse));
@@ -293,7 +298,8 @@ export const aiService = {
     return aiRequestQueue.execute(() => 
       executeWithFallback(["gemini", "groq", "openrouter", "mistral"], async (provider) => {
         if (provider.type === "gemini") {
-          const rawResponse = await flashModel!
+          const modelInstance = getGeminiFlashModel(provider.model);
+          const rawResponse = await modelInstance!
             .generateContent(prompt)
             .then(res => res.response.text());
           return JSON.parse(sanitizeJsonResponse(rawResponse));

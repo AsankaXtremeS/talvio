@@ -91,10 +91,15 @@ export const updateResume = async (req: Request, res: Response) => {
     if (!cvUrl) return res.status(400).json({ message: "CV URL is required" });
 
     // 1. Extract Text from PDF
-    const cvText = await aiService.extractCvText(cvUrl);
-
-    // 2. Extract Skills using AI
-    const extractedSkills = await aiService.extractSkills(cvText);
+    let extractedSkills: string[] = [];
+    try {
+      const cvText = await aiService.extractCvText(cvUrl);
+      // 2. Extract Skills using AI
+      extractedSkills = await aiService.extractSkills(cvText);
+    } catch (aiErr) {
+      console.warn("AI skill extraction failed during resume upload:", aiErr);
+      // Proceed without failing the resume upload
+    }
 
     // 3. Update Profile using candidateRepository
     const updatedProfile = await candidateRepository.upsertProfile(userId, {
@@ -109,7 +114,7 @@ export const updateResume = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("updateResume error:", err);
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: "Failed to update resume. Please try again." });
   }
 };
 
