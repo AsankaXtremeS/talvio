@@ -28,7 +28,7 @@ export default function LoginPage() {
         </div>
 
         {/* Role Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8">
           {/* Undergraduate Card */}
           <div className="flex flex-col items-center p-8 text-center transition-all border border-gray-200 rounded-2xl hover:border-blue-300 hover:shadow-lg">
             <div className="flex items-center justify-center w-20 h-20 mb-6 bg-blue-100 rounded-full">
@@ -70,6 +70,16 @@ export default function LoginPage() {
               <Button>Sign in</Button>
             </Link>
           </div>
+        </div>
+
+        {/* Admin Access Footer */}
+        <div className="pt-4 border-t border-gray-100 flex items-center justify-center">
+          <Link
+            href="/login/admin"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-500 hover:text-violet-700 bg-slate-50 hover:bg-violet-50 rounded-full border border-slate-200 hover:border-violet-200 transition-all duration-200"
+          >
+            Administrator Portal
+          </Link>
         </div>
       </div>
     </div>

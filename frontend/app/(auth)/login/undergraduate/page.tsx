@@ -98,18 +98,6 @@ export default function UndergraduateLoginPage() {
 
             {/* OAuth Buttons */}
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                <Image
-                  src="/images/linkedin.svg"
-                  alt="LinkedIn"
-                  width={18}
-                  height={18}
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  LinkedIn
-                </span>
-              </button>
-
               <a
                 href="/api/auth/oauth/google?role=STUDENT"
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
@@ -121,7 +109,7 @@ export default function UndergraduateLoginPage() {
                   height={18}
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  Google
+                  Continue with Google
                 </span>
               </a>
             </div>
