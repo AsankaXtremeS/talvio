@@ -27,12 +27,12 @@ export default function JobPostsTable({
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 sm:px-6 py-4">
         <h2 className="text-base font-semibold text-gray-800">Job Posts</h2>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed">
+        <table className="w-full min-w-160 table-fixed">
           <colgroup>
             <col className="w-[24%]" />
             <col className="w-[16%]" />
