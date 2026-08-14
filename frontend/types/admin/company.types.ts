@@ -15,6 +15,7 @@ export interface JobPost {
 	companyId?: string;
 	companyName: string;
 	companyEmail: string;
+	companyLogoUrl?: string | null;
 	companyLogoColor?: string;
 	companyLogoText?: string;
 	category: string;

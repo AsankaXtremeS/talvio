@@ -26,6 +26,7 @@ interface JobPostsApiItem {
 	id: string;
 	companyName: string;
 	companyEmail: string;
+	companyLogoUrl?: string | null;
 	companyLogoColor: string;
 	companyLogoText: string;
 	category: string;
@@ -78,6 +79,7 @@ const mapJobPost = (item: JobPostsApiItem): JobPost => ({
 	id: item.id,
 	companyName: item.companyName,
 	companyEmail: item.companyEmail,
+	companyLogoUrl: item.companyLogoUrl ?? null,
 	companyLogoColor: item.companyLogoColor,
 	companyLogoText: item.companyLogoText,
 	category: item.category,

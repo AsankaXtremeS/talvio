@@ -137,6 +137,23 @@ export default function AdminDetailModal(props: AdminDetailModalProps) {
           <div className="md:col-span-2">
             <DetailField icon={<Briefcase size={18} />} label="Job Title" value={data.jobTitle} />
           </div>
+          {data.companyLogoUrl && (
+            <div className="md:col-span-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-2">Company Logo</p>
+              <div className="h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img
+                  src={data.companyLogoUrl}
+                  alt={`${data.companyName} logo`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <DetailField icon={<Building2 size={18} />} label="Company" value={data.companyName} />
           <DetailField icon={<Mail size={18} />} label="Company Email" value={data.companyEmail} />
           <DetailField icon={<Tag size={18} />} label="Job Type" value={data.type} />

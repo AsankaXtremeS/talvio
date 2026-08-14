@@ -24,6 +24,7 @@ export interface AdminJobPostDTO {
 	id: string;
 	companyName: string;
 	companyEmail: string;
+	companyLogoUrl?: string | null;
 	companyLogoColor: string;
 	companyLogoText: string;
 	category: string;
@@ -93,6 +94,7 @@ const toDTO = (post: AdminJobPostRecord): AdminJobPostDTO => {
 		id: post.id,
 		companyName,
 		companyEmail: post.employer.user.email,
+		companyLogoUrl: post.employer.companyLogoUrl ?? null,
 		companyLogoColor: colorFromText(companyName),
 		companyLogoText: toInitials(companyName),
 		category: toCategory(post),

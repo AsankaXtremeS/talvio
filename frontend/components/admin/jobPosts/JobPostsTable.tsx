@@ -68,12 +68,36 @@ export default function JobPostsTable({
                 <td className="px-4 py-4 text-sm text-gray-500">{post.type === 'Internship' ? 'Internship' : 'Job'}</td>
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
-                    <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white"
-                      style={{ backgroundColor: post.companyLogoColor || '#1e3a8a' }}
-                    >
-                      {post.companyLogoText?.slice(0, 4) || post.companyName.slice(0, 2)}
-                    </div>
+                    {post.companyLogoUrl ? (
+                      <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+                        <img
+                          src={post.companyLogoUrl}
+                          alt={`${post.companyName} logo`}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                            const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div
+                          className="hidden h-full w-full items-center justify-center text-[10px] font-bold text-white"
+                          style={{ backgroundColor: post.companyLogoColor || '#1e3a8a' }}
+                          aria-hidden="true"
+                        >
+                          {post.companyLogoText?.slice(0, 4) || post.companyName.slice(0, 2)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white"
+                        style={{ backgroundColor: post.companyLogoColor || '#1e3a8a' }}
+                      >
+                        {post.companyLogoText?.slice(0, 4) || post.companyName.slice(0, 2)}
+                      </div>
+                    )}
                     <p className="text-sm font-medium text-gray-800">{post.companyName}</p>
                   </div>
                 </td>
