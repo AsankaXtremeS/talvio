@@ -19,13 +19,6 @@ export const PROVIDERS: ProviderConfig[] = [
     model: "llama-3.3-70b-versatile",
   },
   {
-    name: "cerebras",
-    type: "openai",
-    baseURL: "https://api.cerebras.net/openai/v1",
-    apiKey: env.CEREBRAS_API_KEY,
-    model: "cerebras-gpt-13b",
-  },
-  {
     name: "mistral",
     type: "openai",
     baseURL: "https://api.mistral.ai/v1",
@@ -42,7 +35,7 @@ export const PROVIDERS: ProviderConfig[] = [
   {
     name: "gemini",
     type: "gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     apiKey: env.GEMINI_API_KEY,
   },
 ];
