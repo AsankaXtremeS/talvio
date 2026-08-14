@@ -6,14 +6,13 @@ import LoginForm from "./LoginForm"
 export default function ProfessionalLoginPage() {
   return (
     <div
-  className="flex items-center justify-center min-h-screen p-4"
-  style={{ backgroundColor: "#E9F3FD" }}
->
-
-      <div className="flex w-full max-w-6xl overflow-hidden bg-white shadow-lg h-[600px] rounded-3xl">
+      className="flex items-center justify-center min-h-screen p-4 sm:p-6"
+      style={{ backgroundColor: "#E9F3FD" }}
+    >
+      <div className="flex flex-col lg:flex-row w-full max-w-6xl overflow-hidden bg-white shadow-lg min-h-fit lg:h-[600px] rounded-3xl">
         {/* Left Panel */}
         <div
-          className="flex flex-col justify-between w-1/2 p-12 border-r"
+          className="flex flex-col justify-between w-full lg:w-1/2 p-6 sm:p-10 lg:p-12 border-b lg:border-b-0 lg:border-r"
           style={{
             background: `
       linear-gradient(
@@ -27,26 +26,26 @@ export default function ProfessionalLoginPage() {
         >
           {/* Brand */}
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-violet-700">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-violet-700">
               Talvio
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
               Career & Opportunity Platform
             </p>
           </div>
 
           {/* Main Message */}
-          <div>
-            <h2 className="mb-4 text-xl font-semibold text-slate-800">
+          <div className="my-6 lg:my-0">
+            <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold text-slate-800">
               Take the next step in your career.
             </h2>
 
-            <p className="mb-8 text-sm leading-relaxed text-slate-600">
+            <p className="mb-6 sm:mb-8 text-xs sm:text-sm leading-relaxed text-slate-600">
               Discover full-time opportunities, connect with verified employers,
               and manage your job applications in one place.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Feature
                 icon={<Briefcase className="w-4 h-4 text-indigo-600" />}
                 text="Full-time job opportunities"
@@ -62,31 +61,31 @@ export default function ProfessionalLoginPage() {
             </div>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-[11px] sm:text-xs text-slate-400">
             Built for professionals seeking new career opportunities.
           </p>
         </div>
 
         {/* Right Panel */}
-        <div className="relative w-1/2 p-10 overflow-y-auto">
+        <div className="relative w-full lg:w-1/2 p-6 sm:p-10 overflow-y-auto flex flex-col justify-center">
           <Link href="/login"> 
           <button className="absolute text-gray-400 top-4 right-4 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
           </Link>
 
-          <div className="max-w-md mx-auto">
-            <h2 className="mb-1 text-2xl font-bold text-gray-900">
+          <div className="max-w-md w-full mx-auto">
+            <h2 className="mb-1 text-xl sm:text-2xl font-bold text-gray-900">
               Professional Login
             </h2>
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-5 sm:mb-6 text-xs sm:text-sm text-gray-500">
               Access your job dashboard
             </p>
 
             <LoginForm />
 
             {/* Divider */}
-            <div className="relative my-6">
+            <div className="relative my-5 sm:my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
@@ -115,7 +114,7 @@ export default function ProfessionalLoginPage() {
               </a>
             </div>
 
-            <p className="mt-5 text-sm text-center text-gray-600">
+            <p className="mt-4 sm:mt-5 text-xs sm:text-sm text-center text-gray-600">
               Don&apos;t have a professional account?{" "}
               <Link
                 href="/register/professional"
