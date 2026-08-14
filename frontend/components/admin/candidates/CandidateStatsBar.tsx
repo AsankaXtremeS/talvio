@@ -23,35 +23,35 @@ function RateBox({ label, rate, isUp }: { label: string; rate: number; isUp: boo
 
 export default function CandidateStatsBar({ stats }: CandidateStatsBarProps) {
   return (
-    <div className="flex gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       {/* Internship seekers */}
-      <div className="bg-[#7C6FCD] rounded-2xl p-5 text-white flex flex-col gap-3 flex-1">
+      <div className="bg-[#7C6FCD] rounded-2xl p-5 text-white flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium opacity-90">Internship Seekers</span>
           <div className="text-white opacity-80">
             <GraduationCap size={20} />
           </div>
         </div>
-        <span className="text-4xl font-bold tracking-tight text-white">
+        <span className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
           {stats.lookingForInternships.toLocaleString()}
         </span>
       </div>
 
       {/* Job seekers */}
-      <div className="bg-[#6B5FC0] rounded-2xl p-5 text-white flex flex-col gap-3 flex-1">
+      <div className="bg-[#6B5FC0] rounded-2xl p-5 text-white flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium opacity-90">Job Seekers</span>
           <div className="text-white opacity-80">
             <Briefcase size={20} />
           </div>
         </div>
-        <span className="text-4xl font-bold tracking-tight text-white">
+        <span className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
           {stats.lookingForJobs.toLocaleString()}
         </span>
       </div>
 
       {/* Internship rates */}
-      <div className="bg-[#5A4FB3] rounded-2xl p-5 flex-1">
+      <div className="bg-[#5A4FB3] rounded-2xl p-5">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm font-medium text-white opacity-90">Internships</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">This Month</span>
@@ -63,7 +63,7 @@ export default function CandidateStatsBar({ stats }: CandidateStatsBarProps) {
       </div>
 
       {/* Job rates */}
-      <div className="bg-[#4A3FA6] rounded-2xl p-5 flex-1">
+      <div className="bg-[#4A3FA6] rounded-2xl p-5">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm font-medium text-white opacity-90">Jobs</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">This Month</span>
