@@ -235,6 +235,11 @@ export default function JobPostForm({
           <p className="mt-1 text-[14px] text-blue-600">
             Fill in the information below to publish a new opportunity.
           </p>
+          <p className="mt-2 text-[12.5px] text-gray-400">
+            Fields marked with{" "}
+            <span className="font-semibold text-red-500">*</span>{" "}
+            are required.
+          </p>
         </div>
 
         {error && (
@@ -246,7 +251,9 @@ export default function JobPostForm({
         <div className="space-y-5 pb-2">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
             <div className="md:col-span-4">
-              <label className={labelCls}>Job Title</label>
+              <label className={labelCls}>
+                Job Title <span className="text-red-500">*</span>
+              </label>
               <input
                 className={inputCls}
                 placeholder="Software Engineer"
@@ -312,7 +319,9 @@ export default function JobPostForm({
             </div>
 
             <div className="md:col-span-8">
-              <label className={labelCls}>Location</label>
+              <label className={labelCls}>
+                Location <span className="text-red-500">*</span>
+              </label>
               <input
                 className={inputCls}
                 placeholder="Moratuwa, Sri Lanka"
@@ -324,7 +333,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Job Description</label>
+            <label className={labelCls}>
+              Job Description <span className="text-red-500">*</span>
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(min 20 characters)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-30`}
               placeholder="Describe the role, team and what the candidate will be doing..."
@@ -334,7 +346,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Responsibilities</label>
+            <label className={labelCls}>
+              Responsibilities
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List the key responsibilities for this role..."
@@ -344,7 +359,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Requirements</label>
+            <label className={labelCls}>
+              Requirements
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List required experience and education..."
@@ -354,7 +372,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Additional Information</label>
+            <label className={labelCls}>
+              Additional Information
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="Add any extra details candidates should know..."
@@ -364,7 +385,10 @@ export default function JobPostForm({
           </div>
 
           <div className="max-w-md">
-            <label className={labelCls}>Skills</label>
+            <label className={labelCls}>
+              Skills
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+            </label>
             <input
               className={inputCls}
               placeholder="Add skills (e.g. React, Python)"
@@ -374,7 +398,10 @@ export default function JobPostForm({
           </div>
 
           <div className="max-w-md">
-            <label className={labelCls}>Closing Date</label>
+            <label className={labelCls}>
+              Closing Date
+              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+            </label>
             <DatePicker
               selected={closingDateValue}
               onChange={(date: Date | null) => setField("closingDate", date ? date.toISOString().slice(0, 10) : "")}

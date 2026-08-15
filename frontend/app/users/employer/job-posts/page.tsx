@@ -49,11 +49,24 @@ export default function JobPostsPage() {
   const stats = data?.stats || { total: 0, active: 0, closed: 0, draft: 0, applications: 0 };
   const [error, setError] = useState("");
 
+  // When we successfully load from the live DB, clear any stale offline cache
+  // so the next load always fetches fresh data rather than localStorage fallback.
+  useEffect(() => {
+    if (data?.posts && data.posts.length >= 0) {
+      try {
+        localStorage.removeItem("employerOfflineJobPosts");
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [data?.posts]);
+
   useEffect(() => {
     if (queryError) {
       setError("Failed to load job posts. Please try again.");
     }
   }, [queryError]);
+
 
   // ── UI State ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -91,18 +104,23 @@ export default function JobPostsPage() {
       .filter((p) => {
         const title = p.title ?? "";
         const statusValue = p.status ?? "";
+        const typeValue = p.type ?? "";
         const matchSearch = title.toLowerCase().includes(search.toLowerCase());
         // Convert "Close" filter to "Closed" status for matching
         const statusFilter = status === "Close" ? "Closed" : status;
         const matchStatus = status === "Status" || statusValue === statusFilter;
-        const matchRole = jobRole === "Job Role";
+        // Apply jobRole filter ("Job" or "Internship" type)
+        const matchRole =
+          jobRole === "Job Role" || typeValue === jobRole;
         return matchSearch && matchStatus && matchRole;
       })
-      .sort((a, b) =>
-        sort === "Newest"
-          ? b.id.localeCompare(a.id)
-          : a.id.localeCompare(b.id)
-      );
+      .sort((a, b) => {
+        const aTime = a.createdAt ?? "";
+        const bTime = b.createdAt ?? "";
+        return sort === "Newest"
+          ? bTime.localeCompare(aTime)
+          : aTime.localeCompare(bTime);
+      });
   }, [posts, search, status, jobRole, sort]);
 
   // Navigate to Edit page

@@ -1,7 +1,9 @@
+import { z } from "zod";
+
 export type CreateJobPostInput = z.infer<typeof createJobPostSchema>;
 export type UpdateJobPostInput = z.infer<typeof updateJobPostSchema>;
 export type JobPostQueryInput = z.infer<typeof jobPostQuerySchema>;
-import { z } from "zod";
+
 const normalizeStringList = (value: string | string[]): string[] => {
   const parts = Array.isArray(value) ? value : value.split(/\r?\n|,/);
   return parts.map((item) => item.trim()).filter(Boolean);
@@ -14,17 +16,22 @@ const jobPostStatusEnum = z.enum(["Draft", "Active", "Closed"]);
 export const createJobPostSchema = z.object({
   title: z.string().min(1).max(150).trim(),
   type: z.enum(["Job", "Internship"]),
-  closingDate: z.string().max(30),
-  location: z.string().max(255),
+  // closingDate is optional — the DatePicker has isClearable, user can skip it
+  closingDate: z.string().max(30).optional().or(z.literal("")),
+  // location can be empty — UI placeholder only, not a hard requirement
+  location: z.string().max(255).optional().or(z.literal("")),
   description: z.string().min(20).max(700),
   responsibilities: z.string().min(20).max(700).optional().or(z.literal("")).default(""),
-  requirements: z.string().min(20).max(700),
+  // requirements: required when present (min 20), but omittable for drafts
+  requirements: z.string().min(20).max(700).optional().or(z.literal("")).default(""),
   additionalInformation: z.string().min(20).max(700).optional().or(z.literal("")).default(""),
-  skills: z.string().max(1000),
+  // skills can be blank
+  skills: z.string().max(1000).optional().or(z.literal("")).default(""),
   workMode: z.enum(["On site", "Remote", "Hybrid"]),
   employmentType: z.enum(["Full-time", "Part-time", "Contract"]),
   status: jobPostStatusEnum.optional().default("Active"),
 });
+
 
 export const updateJobPostSchema = z.object({
   title: z.string().min(1).max(150).trim().optional(),
