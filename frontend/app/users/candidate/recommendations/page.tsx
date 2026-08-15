@@ -72,6 +72,7 @@ export default function CandidateRecommendationsPage() {
   const resumeInputRef = useRef<HTMLInputElement | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
+  //Fetches all jobs the user already applied to
   const { data: myApplications = [], refetch: refetchApplications } = useQuery({
     queryKey: ["candidate-applications", user?.id],
     queryFn: () => candidateJobService.getMyApplications(),
@@ -95,11 +96,12 @@ export default function CandidateRecommendationsPage() {
           total: number; 
           totalPages: number;
           page: number;
-        }>(`/api/candidate/jobs?page=${currentPage}&limit=20`);
+        }>(`/api/candidate/jobs?page=${currentPage}&limit=20`);     //Fetches 20 jobs per page from the API.
 
         setTotal(data.total);
         setTotalPages(data.totalPages);
 
+        //Maps raw API data into the Job interface shape.
         const formatted: Job[] = data.jobs.map((job) => ({
           id: job.id,
           title: job.title,
@@ -134,9 +136,10 @@ export default function CandidateRecommendationsPage() {
       }
     };
 
-    fetchJobs();
+    fetchJobs();      //Re-runs whenever currentPage changes
   }, [currentPage]);
   
+  //Listens for the custom event fired by NotificationBell to open a job modal by ID.
   useEffect(() => {
     const handler = (e: any) => {
       const jobId = e.detail?.jobId;
@@ -166,6 +169,7 @@ export default function CandidateRecommendationsPage() {
     loadProfile();
   }, []);
 
+  //Client-side filtering.
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
       const matchSearch =
@@ -271,7 +275,8 @@ export default function CandidateRecommendationsPage() {
       {!loading && !error && totalPages > 1 && (
       <div className="flex items-center justify-between mt-6">
         <p className="text-sm text-gray-400">
-          Showing {((currentPage - 1) * 20) + 1}–{Math.min(currentPage * 20, total)} of {total} results
+          Showing {((currentPage - 1) * 20) + 1}–{Math.min(currentPage * 20, total)} of {total} results  
+          {/* Calculates and displays the range of job results currently visible based on the current page and total number of jobs. */}
         </p>
         <div className="flex items-center gap-2">
         <button
@@ -282,6 +287,7 @@ export default function CandidateRecommendationsPage() {
           Previous
         </button>
 
+        {/* Displays clickable page numbers, skipping intermediate pages with an ellipsis (...) */}
         {Array.from({ length: totalPages }, (_, i) => i + 1)
           .filter((page) => 
             page === 1 || 
