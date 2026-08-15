@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { JobPost } from "@/types/employer/jobPost.types";
 import JobPostForm from "@/components/employer/job-posts/JobPostForm";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
 
 export default function EditJobPostPage() {
+  const router = useRouter();
   const params = useParams<{ postId?: string | string[] }>();
   const postId = useMemo(() => {
     const raw = params?.postId;
@@ -49,6 +50,15 @@ export default function EditJobPostPage() {
 
   return (
     <div className="p-8 bg-[#F4F6FB] min-h-screen">
+      {/* ── Top Navigation ── */}
+      <button 
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors mb-6"
+      >
+        <ArrowLeft size={16} /> Go Back
+      </button>
+
+      {/* ── Page Header ── */}
       <div className="flex items-center gap-2.5 mb-6">
         <Pencil size={20} className="text-indigo-500" />
         <h1 className="text-2xl font-bold text-indigo-600">Edit Job Post</h1>

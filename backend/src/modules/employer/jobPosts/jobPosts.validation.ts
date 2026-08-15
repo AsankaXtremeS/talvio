@@ -1,7 +1,9 @@
+import { z } from "zod";
+
 export type CreateJobPostInput = z.infer<typeof createJobPostSchema>;
 export type UpdateJobPostInput = z.infer<typeof updateJobPostSchema>;
 export type JobPostQueryInput = z.infer<typeof jobPostQuerySchema>;
-import { z } from "zod";
+
 const normalizeStringList = (value: string | string[]): string[] => {
   const parts = Array.isArray(value) ? value : value.split(/\r?\n|,/);
   return parts.map((item) => item.trim()).filter(Boolean);
@@ -14,13 +16,13 @@ const jobPostStatusEnum = z.enum(["Draft", "Active", "Closed"]);
 export const createJobPostSchema = z.object({
   title: z.string().min(1).max(150).trim(),
   type: z.enum(["Job", "Internship"]),
-  closingDate: z.string().max(30),
+  closingDate: z.string().max(30).optional().or(z.literal("")).default(""),
   location: z.string().max(255),
   description: z.string().min(20).max(700),
-  responsibilities: z.string().min(20).max(700).optional().or(z.literal("")).default(""),
+  responsibilities: z.string().min(20).max(700),
   requirements: z.string().min(20).max(700),
-  additionalInformation: z.string().min(20).max(700).optional().or(z.literal("")).default(""),
-  skills: z.string().max(1000),
+  additionalInformation: z.string().max(700).optional().or(z.literal("")).default(""),
+  skills: z.string().min(1).max(1000),
   workMode: z.enum(["On site", "Remote", "Hybrid"]),
   employmentType: z.enum(["Full-time", "Part-time", "Contract"]),
   status: jobPostStatusEnum.optional().default("Active"),
@@ -29,13 +31,13 @@ export const createJobPostSchema = z.object({
 export const updateJobPostSchema = z.object({
   title: z.string().min(1).max(150).trim().optional(),
   type: z.enum(["Job", "Internship"]).optional(),
-  closingDate: z.string().max(30).optional(),
+  closingDate: z.string().max(30).optional().or(z.literal("")),
   location: z.string().max(255).optional(),
   description: z.string().min(20).max(700).optional(),
-  responsibilities: z.string().min(20).max(700).optional().or(z.literal("")),
+  responsibilities: z.string().min(20).max(700).optional(),
   requirements: z.string().min(20).max(700).optional(),
-  additionalInformation: z.string().min(20).max(700).optional().or(z.literal("")),
-  skills: z.string().max(1000).optional(),
+  additionalInformation: z.string().max(700).optional().or(z.literal("")),
+  skills: z.string().min(1).max(1000).optional(),
   workMode: z.enum(["On site", "Remote", "Hybrid"]).optional(),
   employmentType: z.enum(["Full-time", "Part-time", "Contract"]).optional(),
   status: jobPostStatusEnum.optional(),

@@ -84,8 +84,6 @@ const mapToDTO = (post: any): JobPostDTO => ({
   additionalInformation:
     typeof post.additionalInformation === "string"
       ? post.additionalInformation
-      : Array.isArray(post.responsibilities) && post.responsibilities.length > 0
-      ? post.responsibilities.join(", ")
       : "",
   skills:
     typeof post.skills === "string"
@@ -229,10 +227,7 @@ export const jobsService = {
     const created = await jobsRepository.create(employerId, data);
 
     // Transform and return with company context
-    return {
-      ...mapToDTO(created),
-      company: { name: "" },
-    };
+    return mapToDTO(created);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -253,10 +248,7 @@ export const jobsService = {
 
     // Update post in database (only provided fields are changed)
     const updated = await jobsRepository.update(postId, employerId, data);
-    return {
-      ...mapToDTO(updated),
-      company: { name: "" },
-    };
+    return mapToDTO(updated);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

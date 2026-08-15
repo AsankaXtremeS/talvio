@@ -5,6 +5,7 @@ interface JobsPreviewWidgetProps {
   jobs: JobPost[];
   isLoading?: boolean;
   onViewAll?: () => void;
+  onViewJob?: (postId: string) => void;
 }
 
 function getJobAgeLabel(job: JobPost) {
@@ -18,7 +19,7 @@ function getJobAgeLabel(job: JobPost) {
   });
 }
 
-export default function JobsPreviewWidget({ jobs, isLoading, onViewAll }: JobsPreviewWidgetProps) {
+export default function JobsPreviewWidget({ jobs, isLoading, onViewAll, onViewJob }: JobsPreviewWidgetProps) {
   const visibleJobs = jobs.slice(0, 3);
 
   return (
@@ -41,7 +42,11 @@ export default function JobsPreviewWidget({ jobs, isLoading, onViewAll }: JobsPr
         <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Loading jobs…</div>
       ) : visibleJobs.length > 0 ? (
         visibleJobs.map((job) => (
-          <div key={job.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 mb-4 last:mb-0">
+          <div
+            key={job.id}
+            onClick={() => onViewJob?.(job.id)}
+            className="rounded-3xl border border-slate-200 bg-slate-50 p-4 mb-4 last:mb-0 cursor-pointer transition hover:bg-slate-100/80 active:scale-[0.99] hover:border-indigo-300 shadow-sm"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 {job.companyLogoUrl ? (

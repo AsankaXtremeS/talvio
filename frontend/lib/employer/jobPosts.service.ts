@@ -211,16 +211,17 @@ function writeOfflinePosts(posts: JobPost[]): void {
 // Called when backend /api/employer/job-posts/stats returns 503.
 // ═══════════════════════════════════════════════════════════════════════════════
 function computeOfflineStats(posts: JobPost[]): JobPostStats {
-  // Count posts by status using reduce
+  // Count posts by status using reduce and accumulate total applications
   return posts.reduce(
     (acc, post) => {
       acc.total += 1;
       if (post.status === "Active") acc.active += 1;
       if (post.status === "Closed") acc.closed += 1;
       if (post.status === "Draft") acc.draft += 1;
+      acc.applications += post.applicantsCount || 0;
       return acc;
     },
-    { total: 0, active: 0, closed: 0, draft: 0 }
+    { total: 0, active: 0, closed: 0, draft: 0, applications: 0 }
   );
 }
 
@@ -400,8 +401,8 @@ function normalizePost(post: BackendJobPost): JobPost {
     ...post,
     // Convert "ACTIVE" → "Active", "DRAFT" → "Draft", "CLOSED" → "Closed"
     status: post.status.charAt(0) + post.status.slice(1).toLowerCase() as JobPost["status"],
-    // Convert "JOB" → "Job", "INTERNSHIP" → "Internship"
-    type: post.type === "JOB" ? "Job" : "Internship",
+    // Convert "JOB" or "Job" → "Job", others to "Internship"
+    type: String(post.type).toUpperCase() === "JOB" ? "Job" : "Internship",
     // Keep as yyyy-mm-dd for date input and format in UI where needed.
     closingDate: post.closingDate ? post.closingDate.slice(0, 10) : "",
     // Map company data from backend response
