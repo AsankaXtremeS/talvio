@@ -12,6 +12,7 @@ interface ApplicationTimelineProps {
   onClose: () => void;
 }
 
+// Format the date for display.
 function formatDate(value: string) {
   const date = new Date(value);
   return new Intl.DateTimeFormat("en-US", {
@@ -28,7 +29,7 @@ export default function ApplicationTimeline({
   applicationTitle,
   onClose,
 }: ApplicationTimelineProps) {
-  // Prevent scrolling when modal is open
+  // Prevent background scrolling when modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {

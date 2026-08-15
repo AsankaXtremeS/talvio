@@ -28,13 +28,20 @@ const sections: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: "skills", label: "Skills", icon: <Sparkles className="w-[15px] h-[15px]" /> },
 ];
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+//Reusable Field component 
+function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-[#374151]">{label}</label>
-      <div className="[&_input]:w-full [&_input]:h-9 [&_input]:rounded-lg [&_input]:border [&_input]:border-[#E4E8F2] [&_input]:px-3 [&_input]:text-sm [&_input]:text-[#111827] [&_input]:outline-none [&_input]:transition [&_input:focus]:border-blue-400 [&_input:focus]:ring-2 [&_input:focus]:ring-blue-50 [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-[#E4E8F2] [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-sm [&_textarea]:text-[#111827] [&_textarea]:outline-none [&_textarea]:transition [&_textarea:focus]:border-blue-400 [&_textarea:focus]:ring-2 [&_textarea]:focus:ring-blue-50">
+      <div className={`[&_input]:w-full [&_input]:h-9 [&_input]:rounded-lg [&_input]:border 
+      ${error ? "[&_input]:border-red-500 [&_textarea]:border-red-500 focus-within:[&_input]:border-red-500 focus-within:[&_textarea]:border-red-500" : "[&_input]:border-[#E4E8F2] [&_textarea]:border-[#E4E8F2]"} 
+      [&_input]:px-3 [&_input]:text-sm [&_input]:text-[#111827] [&_input]:outline-none [&_input]:transition [&_input:focus]:border-blue-400 
+      [&_input:focus]:ring-2 [&_input:focus]:ring-blue-50 [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border 
+      [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-sm [&_textarea]:text-[#111827] [&_textarea]:outline-none [&_textarea]:transition [&_textarea:focus]:border-blue-400 
+      [&_textarea:focus]:ring-2 [&_textarea]:focus:ring-blue-50`}>
         {children}
       </div>
+      {error && <span className="text-[11px] font-medium text-red-500">{error}</span>}
     </div>
   );
 }
@@ -47,12 +54,19 @@ export default function ProfileSummaryEditModal({
   // Guard — if initial is not ready yet, render nothing
   if (!initial) return null;
 
+  //Splitting full name into first and last name 
   const safeName = initial.fullName ?? "";
   const nameParts = safeName.trim().split(" ");
 
   const [activeSection, setActiveSection] = useState<Section>("personal");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    phone?: string;
+    githubUrl?: string;
+    linkedinUrl?: string;
+  }>({});
   const [newSkill, setNewSkill] = useState("");
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -73,17 +87,58 @@ export default function ProfileSummaryEditModal({
 
   const handleAddSkill = () => {
     const trimmed = newSkill.trim();
-    if (trimmed && !skills.includes(trimmed)) {
-      setSkills((prev) => [...prev, trimmed]);
+    if (trimmed && !skills.includes(trimmed)) {   //Ensuring the skill is not empty and not already present
+      setSkills((prev) => [...prev, trimmed]);    //add to end of array
     }
-    setNewSkill("");
+    setNewSkill("");                         //clearing the input field
   };
 
   const handleSave = async () => {
+    // Validate fields
+    const errors: {
+      email?: string;
+      phone?: string;
+      githubUrl?: string;
+      linkedinUrl?: string;
+    } = {};
+
+    // Generic email validation (RFC 5322 simplified)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      errors.email = "Email is required";
+    } else if (!emailRegex.test(email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Phone validation: optional leading '+', digits only, length between 7-15
+    const cleanedPhone = phone.replace(/[^\d]/g, '');
+    if (phone) {
+      const phoneValid = /^\+?\d{7,15}$/.test(phone.replace(/\s+/g, '')) && cleanedPhone.length >= 7 && cleanedPhone.length <= 15;
+      if (!phoneValid) {
+        errors.phone = "Please enter a valid contact number (7 to 15 digits)";
+      }
+    }
+
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-._~]+\/?$/i;
+    if (githubUrl && !githubRegex.test(githubUrl)) {
+      errors.githubUrl = "Please enter a valid GitHub URL (e.g. https://github.com/username)";
+    }
+
+    const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/[a-zA-Z0-9\-._~%/]+\/?$/i;
+    if (linkedinUrl && !linkedinRegex.test(linkedinUrl)) {
+      errors.linkedinUrl = "Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/username)";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setActiveSection("personal");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await profileService.updateProfile({
+      await profileService.updateProfile({      //calls the service to update the profile 
         firstName,
         lastName,
         email,
@@ -94,7 +149,7 @@ export default function ProfileSummaryEditModal({
         githubUrl,
         portfolioUrl,
       });
-      onSave({
+      onSave({                                            // calls onSave prop to update the parent's local state
         fullName: `${firstName} ${lastName}`.trim(),
         firstName,
         lastName,
@@ -178,18 +233,24 @@ export default function ProfileSummaryEditModal({
                     />
                   </Field>
                 </div>
-                <Field label="Email">
+                <Field label="Email" error={fieldErrors.email}>
                   <input
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
                     type="email"
                     placeholder="email@example.com"
                   />
                 </Field>
-                <Field label="Phone">
+                <Field label="Phone" error={fieldErrors.phone}>
                   <input
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (fieldErrors.phone) setFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                    }}
                     placeholder="+1 123 456 7890"
                   />
                 </Field>
@@ -201,17 +262,23 @@ export default function ProfileSummaryEditModal({
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="LinkedIn URL">
+                  <Field label="LinkedIn URL" error={fieldErrors.linkedinUrl}>
                     <input
                       value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      onChange={(e) => {
+                        setLinkedinUrl(e.target.value);
+                        if (fieldErrors.linkedinUrl) setFieldErrors((prev) => ({ ...prev, linkedinUrl: undefined }));
+                      }}
                       placeholder="https://linkedin.com/in/username"
                     />
                   </Field>
-                  <Field label="GitHub URL">
+                  <Field label="GitHub URL" error={fieldErrors.githubUrl}>
                     <input
                       value={githubUrl}
-                      onChange={(e) => setGithubUrl(e.target.value)}
+                      onChange={(e) => {
+                        setGithubUrl(e.target.value);
+                        if (fieldErrors.githubUrl) setFieldErrors((prev) => ({ ...prev, githubUrl: undefined }));
+                      }}
                       placeholder="https://github.com/username"
                     />
                   </Field>

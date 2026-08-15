@@ -10,7 +10,7 @@ interface ContactInfoCardProps {
   onUpdate?: (data: { githubUrl: string; linkedinUrl: string }) => void;
 }
 
-function extractLabel(url: string) {
+function extractLabel(url: string) {                  // Extract the label from the url
   return url.replace(/^https?:\/\//, "");
 }
 
@@ -26,6 +26,7 @@ export default function ContactInfoCard({
   const [currentLinkedin, setCurrentLinkedin] = useState(linkedinUrl ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ github?: string; linkedin?: string }>({});
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Sync internal state with props when they change
@@ -35,9 +36,10 @@ export default function ContactInfoCard({
   }, [githubUrl, linkedinUrl]);
 
   const handleOpen = () => {
-    setGithub(currentGithub);
+    setGithub(currentGithub);             //pre-fill input with currently saved value
     setLinkedin(currentLinkedin);
-    setError(null);
+    setError(null);                     // clear any old errors
+    setFieldErrors({});
     setEditOpen(true);
   };
 
@@ -46,6 +48,23 @@ export default function ContactInfoCard({
   };
 
   const handleSave = async () => {
+    const errors: { github?: string; linkedin?: string } = {};
+
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-._~]+\/?$/i;
+    if (github && !githubRegex.test(github)) {
+      errors.github = "Please enter a valid GitHub URL (e.g. https://github.com/username)";
+    }
+
+    const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/[a-zA-Z0-9\-._~%/]+\/?$/i;
+    if (linkedin && !linkedinRegex.test(linkedin)) {
+      errors.linkedin = "Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/username)";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -150,10 +169,18 @@ export default function ContactInfoCard({
                 </label>
                 <input
                   value={github}
-                  onChange={(e) => setGithub(e.target.value)}
+                  onChange={(e) => {
+                    setGithub(e.target.value);
+                    if (fieldErrors.github) setFieldErrors(prev => ({ ...prev, github: undefined }));
+                  }}
                   placeholder="https://github.com/yourname"
-                  className="w-full h-9 rounded-lg border border-[#E4E8F2] px-3 text-sm text-[#111827] outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  className={`w-full h-9 rounded-lg border ${
+                    fieldErrors.github ? "border-red-500" : "border-[#E4E8F2]"
+                  } px-3 text-sm text-[#111827] outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-50`}
                 />
+                {fieldErrors.github && (
+                  <p className="text-[11px] text-red-500 font-medium">{fieldErrors.github}</p>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -162,10 +189,18 @@ export default function ContactInfoCard({
                 </label>
                 <input
                   value={linkedin}
-                  onChange={(e) => setLinkedin(e.target.value)}
+                  onChange={(e) => {
+                    setLinkedin(e.target.value);
+                    if (fieldErrors.linkedin) setFieldErrors(prev => ({ ...prev, linkedin: undefined }));
+                  }}
                   placeholder="https://linkedin.com/in/yourname"
-                  className="w-full h-9 rounded-lg border border-[#E4E8F2] px-3 text-sm text-[#111827] outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  className={`w-full h-9 rounded-lg border ${
+                    fieldErrors.linkedin ? "border-red-500" : "border-[#E4E8F2]"
+                  } px-3 text-sm text-[#111827] outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-50`}
                 />
+                {fieldErrors.linkedin && (
+                  <p className="text-[11px] text-red-500 font-medium">{fieldErrors.linkedin}</p>
+                )}
               </div>
 
               {error && (

@@ -20,10 +20,10 @@ export default function UpgradeToProfessionalCard({ onSuccess }: { onSuccess?: (
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/me/role", {
+      const res = await fetch("/api/auth/me/role", {        
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetRole: "PROFESSIONAL" }),
+        body: JSON.stringify({ targetRole: "PROFESSIONAL" }),   
       });
 
       const data = await res.json();
