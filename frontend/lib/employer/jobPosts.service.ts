@@ -400,8 +400,8 @@ function normalizePost(post: BackendJobPost): JobPost {
     ...post,
     // Convert "ACTIVE" → "Active", "DRAFT" → "Draft", "CLOSED" → "Closed"
     status: post.status.charAt(0) + post.status.slice(1).toLowerCase() as JobPost["status"],
-    // Convert "JOB" → "Job", "INTERNSHIP" → "Internship"
-    type: post.type === "JOB" ? "Job" : "Internship",
+    // Convert "JOB" or "Job" → "Job", others to "Internship"
+    type: String(post.type).toUpperCase() === "JOB" ? "Job" : "Internship",
     // Keep as yyyy-mm-dd for date input and format in UI where needed.
     closingDate: post.closingDate ? post.closingDate.slice(0, 10) : "",
     // Map company data from backend response
