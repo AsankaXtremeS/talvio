@@ -33,6 +33,14 @@ describe("candidateRepository", () => {
 
       expect(prisma.candidateProfile.findUnique).toHaveBeenCalledWith({
         where: { userId: mockUserId },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       });
       expect(result).toEqual(mockProfile);
     });

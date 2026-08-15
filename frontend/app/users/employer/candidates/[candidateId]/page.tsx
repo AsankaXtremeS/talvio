@@ -59,7 +59,7 @@ export default function CandidateProfilePage({ params }: Props) {
     setLoading(true);
     setError(null);
 
-    getCandidateById(candidateId)
+    getCandidateById(candidateId, postId || undefined)
       .then((data) => {
         if (!mounted) return;
         if (!data) {

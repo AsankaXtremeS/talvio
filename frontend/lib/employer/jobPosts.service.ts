@@ -211,16 +211,17 @@ function writeOfflinePosts(posts: JobPost[]): void {
 // Called when backend /api/employer/job-posts/stats returns 503.
 // ═══════════════════════════════════════════════════════════════════════════════
 function computeOfflineStats(posts: JobPost[]): JobPostStats {
-  // Count posts by status using reduce
+  // Count posts by status using reduce and accumulate total applications
   return posts.reduce(
     (acc, post) => {
       acc.total += 1;
       if (post.status === "Active") acc.active += 1;
       if (post.status === "Closed") acc.closed += 1;
       if (post.status === "Draft") acc.draft += 1;
+      acc.applications += post.applicantsCount || 0;
       return acc;
     },
-    { total: 0, active: 0, closed: 0, draft: 0 }
+    { total: 0, active: 0, closed: 0, draft: 0, applications: 0 }
   );
 }
 
