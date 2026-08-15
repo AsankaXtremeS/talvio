@@ -95,7 +95,14 @@ export default function JobPostForm({
     setError("");
 
     // Required fields check
-    if (!form.title || !form.location || !form.description) {
+    if (
+      !form.title ||
+      !form.location ||
+      !form.description ||
+      !form.requirements ||
+      !form.responsibilities ||
+      !form.skills
+    ) {
       setError("Please fill in the required fields before posting.");
       return;
     }
@@ -104,6 +111,7 @@ export default function JobPostForm({
     const requiredFieldsToValidate = [
       { key: "description", label: "Job Description" },
       { key: "requirements", label: "Qualifications" },
+      { key: "responsibilities", label: "Responsibilities" },
     ];
     for (const { key, label } of requiredFieldsToValidate) {
       const value = form[key as keyof typeof form] as string;
@@ -116,15 +124,20 @@ export default function JobPostForm({
         return;
       }
     }
+
+    if (form.skills.length > 1000) {
+      setError("Skills must be at most 1000 characters.");
+      return;
+    }
+
     // Optional fields: validate only if not empty
     const optionalFieldsToValidate = [
-      { key: "responsibilities", label: "Responsibilities" },
-      { key: "additionalInformation", label: "Additional Information" },
+      { key: "additionalInformation", label: "Additional Information", checkMin: false },
     ];
-    for (const { key, label } of optionalFieldsToValidate) {
+    for (const { key, label, checkMin } of optionalFieldsToValidate) {
       const value = form[key as keyof typeof form] as string;
       if (value && value.length > 0) {
-        if (value.length < 20) {
+        if (checkMin && value.length < 20) {
           setError(`${label} must be at least 20 characters if provided.`);
           return;
         }
@@ -235,11 +248,6 @@ export default function JobPostForm({
           <p className="mt-1 text-[14px] text-blue-600">
             Fill in the information below to publish a new opportunity.
           </p>
-          <p className="mt-2 text-[12.5px] text-gray-400">
-            Fields marked with{" "}
-            <span className="font-semibold text-red-500">*</span>{" "}
-            are required.
-          </p>
         </div>
 
         {error && (
@@ -301,7 +309,9 @@ export default function JobPostForm({
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
             <div className="md:col-span-4">
-              <label className={labelCls}>Workplace Type</label>
+              <label className={labelCls}>
+                Workplace Type <span className="text-red-500">*</span>
+              </label>
               <select
                 className={inputCls}
                 value={form.workMode}
@@ -334,8 +344,8 @@ export default function JobPostForm({
 
           <div>
             <label className={labelCls}>
-              Job Description <span className="text-red-500">*</span>
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(min 20 characters)</span>
+              Job Description <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
             </label>
             <textarea
               className={`${textareaCls} min-h-30`}
@@ -347,8 +357,8 @@ export default function JobPostForm({
 
           <div>
             <label className={labelCls}>
-              Responsibilities
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+              Responsibilities <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
             </label>
             <textarea
               className={`${textareaCls} min-h-25`}
@@ -360,8 +370,8 @@ export default function JobPostForm({
 
           <div>
             <label className={labelCls}>
-              Requirements
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+              Requirements <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
             </label>
             <textarea
               className={`${textareaCls} min-h-25`}
@@ -373,8 +383,8 @@ export default function JobPostForm({
 
           <div>
             <label className={labelCls}>
-              Additional Information
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+              Additional Information{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Optional)</span>
             </label>
             <textarea
               className={`${textareaCls} min-h-25`}
@@ -386,8 +396,7 @@ export default function JobPostForm({
 
           <div className="max-w-md">
             <label className={labelCls}>
-              Skills
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+              Skills <span className="text-red-500">*</span>
             </label>
             <input
               className={inputCls}
@@ -399,8 +408,7 @@ export default function JobPostForm({
 
           <div className="max-w-md">
             <label className={labelCls}>
-              Closing Date
-              <span className="ml-2 text-[12px] font-normal text-gray-400">(optional)</span>
+              Closing Date <span className="text-[13px] font-normal text-gray-400">(Optional)</span>
             </label>
             <DatePicker
               selected={closingDateValue}
