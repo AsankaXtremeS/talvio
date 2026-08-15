@@ -188,6 +188,7 @@ export default function DashboardPage() {
             jobs={jobPosts}
             isLoading={jobsLoading}
             onViewAll={() => router.push("/users/employer/job-posts")}
+            onViewJob={(postId) => router.push(`/users/employer/job-posts/${postId}`)}
           />
         </div>
 
