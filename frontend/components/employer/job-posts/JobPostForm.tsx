@@ -424,6 +424,16 @@ export default function JobPostForm({
             />
           </div>
           <div className="flex items-center justify-end gap-3 pt-3">
+            {isEdit && (
+              <button
+                type="button"
+                onClick={() => router.push("/users/employer/job-posts")}
+                className="inline-flex min-w-32 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            )}
+
             {!isEdit && (
               <button
                 type="button"
