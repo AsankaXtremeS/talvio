@@ -25,7 +25,8 @@ export default function CandidatesPage() {
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId"); // Get postId from URL if available
 
-  const [status, setStatus]   = useState<CandidateStatus>("Applied");
+  const initialStatus = (searchParams.get("status") as CandidateStatus) || "Applied";
+  const [status, setStatus]   = useState<CandidateStatus>(initialStatus);
   const [query, setQuery]     = useState("");
   const [all, setAll]         = useState<CandidateInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,25 @@ export default function CandidatesPage() {
   useEffect(() => {
     clearOfflineJobPostsCache();
   }, []);
+
+  // Sync state when URL status query changes (e.g. back/forward navigation or redirect)
+  useEffect(() => {
+    const urlStatus = searchParams.get("status") as CandidateStatus | null;
+    if (urlStatus && urlStatus !== status) {
+      setStatus(urlStatus);
+    }
+  }, [searchParams]);
+
+  const handleStatusChange = (newStatus: CandidateStatus) => {
+    setStatus(newStatus);
+    setQuery("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", newStatus);
+    const base = postId
+      ? `/users/employer/candidates?postId=${postId}&${params.toString()}`
+      : `/users/employer/candidates?${params.toString()}`;
+    router.replace(base, { scroll: false });
+  };
 
   // Fetch candidate data directly from real API
   useEffect(() => {
@@ -60,28 +80,23 @@ export default function CandidatesPage() {
     return () => { mounted = false; };
   }, [status, postId]);
 
-  /* ── Filtered list — derived from status + search query ── */
+  /* ── Filtered list — derived from search query ── */
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     return all.filter((c) => {
-      const matchesStatus =
-        status === "AI Matches"
-          ? c.status === "Applied" && c.matchScore >= 85
-          : c.status === status;
-
       return (
-        matchesStatus &&
-        (!q ||
-          c.name.toLowerCase().includes(q) ||
-          c.role.toLowerCase().includes(q) ||
-          c.skills.some((s) => s.toLowerCase().includes(q)))
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.role.toLowerCase().includes(q) ||
+        c.skills.some((s) => s.toLowerCase().includes(q))
       );
     });
-  }, [all, status, query]);
+  }, [all, query]);
 
   /* ── Handlers ── */
   const handleViewProfile = (id: string) => {
-    router.push(`/users/employer/candidates/${id}`);
+    const url = `/users/employer/candidates/${id}${postId ? `?postId=${postId}` : ""}`;
+    router.push(url);
   };
 
   const handleSchedule = (id: string) => {
@@ -95,7 +110,7 @@ export default function CandidatesPage() {
       {/* ── Filter bar (top) ── */}
       <CandidateFilterBar
         status={status}
-        onStatusChange={(s) => { setStatus(s); setQuery(""); }}
+        onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
       />

@@ -79,7 +79,7 @@ export default function CandidateProfilePage({ params }: Props) {
       });
 
     return () => { mounted = false; };
-  }, [candidateId]);
+  }, [candidateId, postId]);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -99,6 +99,7 @@ export default function CandidateProfilePage({ params }: Props) {
         setIsShortlisted(result.isShortlisted);
         setAppStatus(result.applicationStatus);
         showToast("Marked as Reviewed ✓", true);
+        router.push(`/users/employer/job-posts/${postId}/candidates?status=Reviewed`);
       } else {
         showToast("Failed to update. Please try again.", false);
       }

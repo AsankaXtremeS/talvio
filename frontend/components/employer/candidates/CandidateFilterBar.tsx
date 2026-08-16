@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Users, Calendar, CheckCircle, Bot } from "lucide-react";
+import { Search, Users, Calendar, CheckCircle, CheckCircle2, Bot } from "lucide-react";
 import { CandidateStatus } from "@/types/candidate/candidate.types";
 
 interface Props {
@@ -18,6 +18,10 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
   {
     label: "AI Matches",
     icon: <Bot size={13} strokeWidth={2} />,
+  },
+  {
+    label: "Reviewed",
+    icon: <CheckCircle2 size={13} strokeWidth={2} />,
   },
   {
     label: "Shortlisted",

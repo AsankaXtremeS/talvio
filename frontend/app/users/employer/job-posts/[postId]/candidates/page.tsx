@@ -26,12 +26,20 @@ export default function PostCandidatesPage({ params }: Props) {
   const [jobPost, setJobPost] = useState<JobPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sync state when URL status query changes (e.g. back/forward navigation or redirect)
   useEffect(() => {
     const urlStatus = searchParams.get("status") as CandidateStatus | null;
     if (urlStatus && urlStatus !== status) {
       setStatus(urlStatus);
     }
-  }, [searchParams, status]);
+  }, [searchParams]);
+
+  const handleStatusChange = (newStatus: CandidateStatus) => {
+    setStatus(newStatus);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", newStatus);
+    router.replace(`/users/employer/job-posts/${postId}/candidates?${params.toString()}`, { scroll: false });
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -106,7 +114,7 @@ export default function PostCandidatesPage({ params }: Props) {
 
       <CandidateFilterBar
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
       />

@@ -540,7 +540,7 @@ export const jobsRepository = {
   async markReviewed(applicationId: string) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: { isReviewed: true },
+      data: { isReviewed: true, applicationStatus: "REVIEWED" },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },

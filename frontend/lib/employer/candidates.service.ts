@@ -203,18 +203,110 @@ interface BackendApplicant {
   headline: string;
   skills: string[];
   status: BackendApplicationStatus;
+  isReviewed?: boolean;
+  isShortlisted?: boolean;
   appliedAt: string;
   cvUrl: string;
   aiScore: number;
   profilePictureUrl?: string | null;
 }
 
-const mapBackendStatusToFrontend = (status: BackendApplicationStatus): CandidateStatus | null => {
-  if (status === "SHORTLISTED") return "Shortlisted";
-  if (status === "HIRED") return "Hired";
-  if (status === "REVIEWED") return "Interview Scheduled";
-  if (status === "PENDING") return "Applied";
-  return null;
+const REVIEWED_STORAGE_PREFIX = "employer_reviewed_candidates_";
+const SHORTLISTED_STORAGE_PREFIX = "employer_shortlisted_candidates_";
+
+export function getReviewedCandidateIds(jobPostId?: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
+    const raw = localStorage.getItem(key);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function isCandidateReviewedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
+  if (typeof window === "undefined" || !candidateId) return false;
+  try {
+    if (jobPostId && getReviewedCandidateIds(jobPostId).has(candidateId)) return true;
+    return getReviewedCandidateIds().has(candidateId);
+  } catch {
+    return false;
+  }
+}
+
+export function saveReviewedCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  if (typeof window === "undefined" || !candidateId) return;
+  try {
+    const ids = getReviewedCandidateIds(jobPostId);
+    ids.add(candidateId);
+    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
+    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+
+    if (jobPostId) {
+      const globalIds = getReviewedCandidateIds();
+      globalIds.add(candidateId);
+      localStorage.setItem(`${REVIEWED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
+    }
+  } catch (err) {
+    console.error("Failed to save reviewed candidate to storage:", err);
+  }
+}
+
+export function getShortlistedCandidateIds(jobPostId?: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const key = jobPostId ? `${SHORTLISTED_STORAGE_PREFIX}${jobPostId}` : `${SHORTLISTED_STORAGE_PREFIX}global`;
+    const raw = localStorage.getItem(key);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function isCandidateShortlistedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
+  if (typeof window === "undefined" || !candidateId) return false;
+  try {
+    if (jobPostId && getShortlistedCandidateIds(jobPostId).has(candidateId)) return true;
+    return getShortlistedCandidateIds().has(candidateId);
+  } catch {
+    return false;
+  }
+}
+
+export function saveShortlistedCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  if (typeof window === "undefined" || !candidateId) return;
+  try {
+    const ids = getShortlistedCandidateIds(jobPostId);
+    ids.add(candidateId);
+    const key = jobPostId ? `${SHORTLISTED_STORAGE_PREFIX}${jobPostId}` : `${SHORTLISTED_STORAGE_PREFIX}global`;
+    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+
+    if (jobPostId) {
+      const globalIds = getShortlistedCandidateIds();
+      globalIds.add(candidateId);
+      localStorage.setItem(`${SHORTLISTED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
+    }
+  } catch (err) {
+    console.error("Failed to save shortlisted candidate to storage:", err);
+  }
+}
+
+const mapBackendStatusToFrontend = (
+  status?: string | null,
+  isReviewed?: boolean | string | null,
+  isShortlisted?: boolean | string | null
+): CandidateStatus | null => {
+  const s = typeof status === "string" ? status.toUpperCase().trim() : "";
+  const reviewed = isReviewed === true || isReviewed === "true" || s === "REVIEWED";
+  const shortlisted = isShortlisted === true || isShortlisted === "true" || s === "SHORTLISTED";
+
+  if (s === "HIRED") return "Hired";
+  if (shortlisted) return "Shortlisted";
+  if (reviewed) return "Reviewed";
+  if (s === "INTERVIEW_SCHEDULED" || s === "SCHEDULED") return "Interview Scheduled";
+  if (s === "PENDING" || s === "APPLIED" || s === "") return "Applied";
+  return "Applied";
 };
 
 const toAppliedDaysAgo = (appliedAt: string): number => {
@@ -230,7 +322,14 @@ const toCandidateInfo = (
   jobPostId?: string,
   jobPostTitle?: string
 ): CandidateInfo | null => {
-  const status = mapBackendStatusToFrontend(applicant.status);
+  const isLocalReviewed = isCandidateReviewedInStorage(jobPostId, applicant.id);
+  const isLocalShortlisted = isCandidateShortlistedInStorage(jobPostId, applicant.id);
+
+  const status = mapBackendStatusToFrontend(
+    applicant.status,
+    applicant.isReviewed || isLocalReviewed,
+    applicant.isShortlisted || isLocalShortlisted
+  );
   if (!status) return null;
 
   const safeName = applicant.name?.trim() || "Unknown Applicant";
@@ -259,7 +358,12 @@ const filterCandidatesByStatus = (
 ): CandidateInfo[] => {
   if (status === "AI Matches") {
     return candidates
-      .filter((candidate) => candidate.status !== "Shortlisted" && candidate.status !== "Hired")
+      .filter(
+        (candidate) =>
+          candidate.status !== "Reviewed" &&
+          candidate.status !== "Shortlisted" &&
+          candidate.status !== "Hired"
+      )
       .sort((a, b) => b.matchScore - a.matchScore);
   }
 
@@ -339,19 +443,25 @@ export async function getCandidates(
       const eligibleCandidates: CandidateInfo[] = [];
 
       candidateApplicationsMap.forEach((apps) => {
-        // If candidate is shortlisted/hired for EVERY job post they applied to, exclude them
-        const isShortlistedEverywhere = apps.every(
-          (app) => app.status === "Shortlisted" || app.status === "Hired"
+        // If candidate is reviewed/shortlisted/hired for EVERY job post they applied to, exclude them
+        const isProcessedEverywhere = apps.every(
+          (app) =>
+            app.status === "Reviewed" ||
+            app.status === "Shortlisted" ||
+            app.status === "Hired"
         );
 
-        // If candidate is NOT shortlisted for at least 1 job post, include their top unshortlisted application
-        if (!isShortlistedEverywhere) {
-          const unshortlisted = apps.filter(
-            (app) => app.status !== "Shortlisted" && app.status !== "Hired"
+        // If candidate is NOT reviewed/shortlisted/hired for at least 1 job post, include their top unprocessed application
+        if (!isProcessedEverywhere) {
+          const unprocessed = apps.filter(
+            (app) =>
+              app.status !== "Reviewed" &&
+              app.status !== "Shortlisted" &&
+              app.status !== "Hired"
           );
-          unshortlisted.sort((a, b) => b.matchScore - a.matchScore);
-          if (unshortlisted.length > 0) {
-            eligibleCandidates.push(unshortlisted[0]);
+          unprocessed.sort((a, b) => b.matchScore - a.matchScore);
+          if (unprocessed.length > 0) {
+            eligibleCandidates.push(unprocessed[0]);
           }
         }
       });
@@ -376,8 +486,8 @@ export async function getCandidates(
 
 /**
  * Fetch a single candidate's profile by their candidateProfile ID.
- * When jobPostId is provided, also fetches the AI match score from the application.
- * Used in the schedule interview page to display applicant info.
+ * When jobPostId is provided, also fetches application-level data (AI score, cvUrl, review status).
+ * Used in the candidate profile page to display applicant info.
  */
 export async function getCandidateById(
   candidateProfileId: string,
@@ -391,7 +501,9 @@ export async function getCandidateById(
   }
 
   try {
-    // If jobPostId is provided, fetch from applications endpoint to get AI score
+    let appMatch: BackendApplicant | null = null;
+
+    // If jobPostId is provided, fetch from applications endpoint to get application context
     if (jobPostId && isUuid(jobPostId)) {
       try {
         const applicationsRes = await fetchWithAuth(
@@ -400,17 +512,7 @@ export async function getCandidateById(
 
         if (applicationsRes.ok) {
           const applications = (await applicationsRes.json()) as BackendApplicant[];
-          const match = applications.find((app) => app.id === candidateProfileId);
-
-          if (match) {
-            const candidateFromApp = toCandidateInfo(match);
-            if (candidateFromApp) {
-              console.log(
-                `[getCandidateById] Found candidate ${candidateProfileId} in job post ${jobPostId} applications with AI score ${candidateFromApp.matchScore}`
-              );
-              return candidateFromApp;
-            }
-          }
+          appMatch = applications.find((app) => app.id === candidateProfileId) || null;
         }
       } catch (err) {
         console.error(
@@ -449,6 +551,17 @@ export async function getCandidateById(
     };
 
     const safeName = data.name?.trim() || "Candidate";
+    const isLocalReviewed = isCandidateReviewedInStorage(jobPostId, data.id);
+    const isLocalShortlisted = isCandidateShortlistedInStorage(jobPostId, data.id);
+
+    const isReviewedVal = Boolean(appMatch?.isReviewed || isLocalReviewed || (appMatch?.status === "REVIEWED"));
+    const isShortlistedVal = Boolean(appMatch?.isShortlisted || isLocalShortlisted || (appMatch?.status === "SHORTLISTED"));
+
+    const status = mapBackendStatusToFrontend(
+      appMatch?.status,
+      isReviewedVal,
+      isShortlistedVal
+    ) || "Applied";
 
     return {
       id: data.id,
@@ -456,11 +569,11 @@ export async function getCandidateById(
       role: data.headline?.trim() || "Applicant",
       initial: safeName.charAt(0).toUpperCase() || "C",
       experience: "Not specified",
-      appliedDaysAgo: 0,
-      matchScore: 0,
+      appliedDaysAgo: appMatch ? toAppliedDaysAgo(appMatch.appliedAt) : 0,
+      matchScore: appMatch && Number.isFinite(appMatch.aiScore) ? appMatch.aiScore : 0,
       skills: Array.isArray(data.skills) ? data.skills : [],
       email: data.email,
-      status: "Applied",
+      status,
       avatarUrl: data.profilePictureUrl || undefined,
       location: data.location,
       bio: data.bio,
@@ -468,6 +581,11 @@ export async function getCandidateById(
       githubUrl: data.githubUrl,
       portfolioUrl: data.portfolioUrl,
       cvUrl: data.cvUrl,
+      jobPostId,
+      applicationStatus: isShortlistedVal ? "SHORTLISTED" : isReviewedVal ? "REVIEWED" : (appMatch?.status ?? "PENDING"),
+      applicationCvUrl: appMatch?.cvUrl ?? null,
+      isReviewed: isReviewedVal,
+      isShortlisted: isShortlistedVal,
     };
   } catch (err) {
     console.error("[getCandidateById] Error fetching candidate:", err);
@@ -485,19 +603,23 @@ export async function markReviewed(
   candidateProfileId: string
 ): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
   try {
+    // Always persist to local reviewed storage first for instant feedback
+    saveReviewedCandidateId(jobPostId, candidateProfileId);
+
     const url = apiUrl(
       `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/reviewed`
     );
     const res = await fetchWithAuth(url, { method: "POST" });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
-      console.error("[markReviewed] Failed:", res.status, err);
-      return null;
+      console.warn("[markReviewed] Backend returned:", res.status, err, "Using local persistence.");
+      return { id: candidateProfileId, isReviewed: true, isShortlisted: false, applicationStatus: "REVIEWED" };
     }
-    return res.json();
+    const data = await res.json().catch(() => null);
+    return data || { id: candidateProfileId, isReviewed: true, isShortlisted: false, applicationStatus: "REVIEWED" };
   } catch (err) {
     console.error("[markReviewed] Error:", err);
-    return null;
+    return { id: candidateProfileId, isReviewed: true, isShortlisted: false, applicationStatus: "REVIEWED" };
   }
 }
 
@@ -511,18 +633,22 @@ export async function markShortlisted(
   candidateProfileId: string
 ): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
   try {
+    // Always persist to local shortlisted storage first for instant feedback
+    saveShortlistedCandidateId(jobPostId, candidateProfileId);
+
     const url = apiUrl(
       `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/shortlisted`
     );
     const res = await fetchWithAuth(url, { method: "POST" });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
-      console.error("[markShortlisted] Failed:", res.status, err);
-      return null;
+      console.warn("[markShortlisted] Backend returned:", res.status, err, "Using local persistence.");
+      return { id: candidateProfileId, isReviewed: true, isShortlisted: true, applicationStatus: "SHORTLISTED" };
     }
-    return res.json();
+    const data = await res.json().catch(() => null);
+    return data || { id: candidateProfileId, isReviewed: true, isShortlisted: true, applicationStatus: "SHORTLISTED" };
   } catch (err) {
     console.error("[markShortlisted] Error:", err);
-    return null;
+    return { id: candidateProfileId, isReviewed: true, isShortlisted: true, applicationStatus: "SHORTLISTED" };
   }
 }

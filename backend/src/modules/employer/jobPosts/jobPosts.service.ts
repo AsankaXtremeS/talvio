@@ -293,7 +293,9 @@ export const jobsService = {
       email: app.candidateProfile.user.email,
       headline: app.candidateProfile.headline || "",
       skills: app.candidateProfile.skills || [],
-      status: app.applicationStatus, // PENDING, SHORTLISTED, REJECTED
+      status: app.applicationStatus, // PENDING, REVIEWED, SHORTLISTED, REJECTED, HIRED
+      isReviewed: app.isReviewed,
+      isShortlisted: app.isShortlisted,
       appliedAt: app.appliedAt.toISOString(),
       cvUrl: app.cvUrl,
       aiScore: app.aiScore || 0,
