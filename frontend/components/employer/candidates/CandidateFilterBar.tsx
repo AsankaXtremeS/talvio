@@ -32,10 +32,6 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
     label: "Interview Scheduled",
     icon: <Calendar size={13} strokeWidth={2} />,
   },
-  {
-    label: "Hired",
-    icon: <CheckCircle size={13} strokeWidth={2} />,
-  },
 ];
 
 export default function CandidateFilterBar({

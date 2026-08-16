@@ -3,8 +3,7 @@ export type CandidateStatus =
   | "AI Matches"
   | "Reviewed"
   | "Shortlisted"
-  | "Interview Scheduled"
-  | "Hired";
+  | "Interview Scheduled";
 
 export interface CandidateInfo {
   id: string;

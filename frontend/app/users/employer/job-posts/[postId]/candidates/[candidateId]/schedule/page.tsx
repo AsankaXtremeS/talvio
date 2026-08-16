@@ -39,7 +39,7 @@ import {
   getInterviews,
   getScheduledDates,
 } from "@/lib/employer/interviews.service";
-import { getCandidateById } from "@/lib/employer/candidates.service";
+import { getCandidateById, saveInterviewScheduledCandidateId } from "@/lib/employer/candidates.service";
 
 // Use the SAME type names as backend: InterviewDTO, EmailPreviewDTO
 import { MeetingType, InterviewDTO } from "@/types/employer/interview.types";
@@ -316,6 +316,9 @@ export default function ScheduleInterviewPage({ params }: Props) {
       console.log("Interview scheduled successfully:", { id: scheduled.id, rescheduledFromId: scheduled.rescheduledFromId });
       setDraft(scheduled);
       
+      // Save to local storage for instant sync in applicants list
+      saveInterviewScheduledCandidateId(postId, candidateId);
+
       // Invalidate React Query cache to ensure automatic update on dashboard
       queryClient.invalidateQueries({ queryKey: ["employer-interviews"] });
 
@@ -494,6 +497,8 @@ export default function ScheduleInterviewPage({ params }: Props) {
           // After reschedule, navigate to interviews dashboard to see the reschedule notification
           if (isReschedule) {
             router.push("/users/employer/interviews");
+          } else {
+            router.push(`/users/employer/job-posts/${postId}/candidates?status=Interview Scheduled`);
           }
         }}
         candidateName={candidate?.name ?? draft?.candidate?.name}

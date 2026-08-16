@@ -496,7 +496,7 @@ export const jobsRepository = {
       where.applicationStatus = status;
     }
 
-    // Fetch all applications for this job post with candidate details
+    // Fetch all applications for this job post with candidate details and scheduled interviews
     return prisma.application.findMany({
       where,
       include: {
@@ -512,6 +512,17 @@ export const jobsRepository = {
                 email: true,
                 firstName: true,
                 lastName: true,
+              },
+            },
+            interviews: {
+              where: {
+                jobPostId,
+                status: "SCHEDULED",
+              },
+              select: {
+                id: true,
+                status: true,
+                scheduledAt: true,
               },
             },
           },

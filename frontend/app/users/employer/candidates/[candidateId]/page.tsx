@@ -38,11 +38,13 @@ interface Props {
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  PENDING:     { label: "Pending",     color: "#92400E", bg: "#FFFBEB", border: "#FCD34D" },
-  REVIEWED:    { label: "Reviewed",    color: "#4F46E5", bg: "#EEF2FF", border: "#A5B4FC" },
-  SHORTLISTED: { label: "Shortlisted", color: "#059669", bg: "#ECFDF5", border: "#6EE7B7" },
-  REJECTED:    { label: "Rejected",    color: "#DC2626", bg: "#FEF2F2", border: "#FCA5A5" },
-  HIRED:       { label: "Hired",       color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD" },
+  PENDING:             { label: "Pending",             color: "#92400E", bg: "#FFFBEB", border: "#FCD34D" },
+  REVIEWED:            { label: "Reviewed",            color: "#4F46E5", bg: "#EEF2FF", border: "#A5B4FC" },
+  SHORTLISTED:         { label: "Shortlisted",         color: "#059669", bg: "#ECFDF5", border: "#6EE7B7" },
+  INTERVIEW_SCHEDULED: { label: "Interview Scheduled", color: "#4F46E5", bg: "#EEF2FF", border: "#818CF8" },
+  "Interview Scheduled": { label: "Interview Scheduled", color: "#4F46E5", bg: "#EEF2FF", border: "#818CF8" },
+  REJECTED:            { label: "Rejected",            color: "#DC2626", bg: "#FEF2F2", border: "#FCA5A5" },
+  HIRED:               { label: "Hired",               color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD" },
 };
 
 export default function CandidateProfilePage({ params }: Props) {

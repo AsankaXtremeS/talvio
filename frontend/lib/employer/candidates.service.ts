@@ -194,7 +194,7 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
   },
 ];
 
-type BackendApplicationStatus = "PENDING" | "REVIEWED" | "SHORTLISTED" | "REJECTED" | "HIRED";
+type BackendApplicationStatus = "PENDING" | "REVIEWED" | "SHORTLISTED" | "REJECTED" | "HIRED" | "INTERVIEW_SCHEDULED";
 
 interface BackendApplicant {
   id: string;
@@ -202,9 +202,10 @@ interface BackendApplicant {
   email: string;
   headline: string;
   skills: string[];
-  status: BackendApplicationStatus;
+  status: BackendApplicationStatus | string;
   isReviewed?: boolean;
   isShortlisted?: boolean;
+  isInterviewScheduled?: boolean;
   appliedAt: string;
   cvUrl: string;
   aiScore: number;
@@ -215,6 +216,7 @@ const REVIEWED_STORAGE_PREFIX = "employer_reviewed_candidates_";
 const SHORTLISTED_STORAGE_PREFIX = "employer_shortlisted_candidates_";
 const UNSHORTLISTED_STORAGE_PREFIX = "employer_unshortlisted_candidates_";
 const UNREVIEWED_STORAGE_PREFIX = "employer_unreviewed_candidates_";
+const INTERVIEW_SCHEDULED_STORAGE_PREFIX = "employer_interview_scheduled_candidates_";
 
 function getStorageSet(prefix: string, jobPostId?: string): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -263,6 +265,26 @@ function removeFromStorageSet(prefix: string, jobPostId: string | undefined, can
   }
 }
 
+export function getInterviewScheduledCandidateIds(jobPostId?: string): Set<string> {
+  return getStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX, jobPostId);
+}
+
+export function isCandidateInterviewScheduledInStorage(jobPostId: string | undefined, candidateId: string): boolean {
+  if (typeof window === "undefined" || !candidateId) return false;
+  if (jobPostId && getStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX, jobPostId).has(candidateId)) return true;
+  return getStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX).has(candidateId);
+}
+
+export function saveInterviewScheduledCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  addToStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+}
+
+export function removeInterviewScheduledCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  removeFromStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX, jobPostId, candidateId);
+}
+
 export function getReviewedCandidateIds(jobPostId?: string): Set<string> {
   return getStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId);
 }
@@ -281,6 +303,7 @@ export function saveReviewedCandidateId(jobPostId: string | undefined, candidate
 export function removeReviewedCandidateId(jobPostId: string | undefined, candidateId: string): void {
   removeFromStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
   removeFromStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(INTERVIEW_SCHEDULED_STORAGE_PREFIX, jobPostId, candidateId);
   addToStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
   addToStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
 }
@@ -324,16 +347,21 @@ export function isCandidateUnreviewedInStorage(jobPostId: string | undefined, ca
 const mapBackendStatusToFrontend = (
   status?: string | null,
   isReviewed?: boolean | string | null,
-  isShortlisted?: boolean | string | null
+  isShortlisted?: boolean | string | null,
+  isInterviewScheduled?: boolean | string | null
 ): CandidateStatus | null => {
   const s = typeof status === "string" ? status.toUpperCase().trim() : "";
+  const interviewScheduled =
+    isInterviewScheduled === true ||
+    isInterviewScheduled === "true" ||
+    s === "INTERVIEW_SCHEDULED" ||
+    s === "SCHEDULED";
   const reviewed = isReviewed === true || isReviewed === "true" || s === "REVIEWED";
   const shortlisted = isShortlisted === true || isShortlisted === "true" || s === "SHORTLISTED";
 
-  if (s === "HIRED") return "Hired";
+  if (interviewScheduled) return "Interview Scheduled";
   if (shortlisted) return "Shortlisted";
   if (reviewed) return "Reviewed";
-  if (s === "INTERVIEW_SCHEDULED" || s === "SCHEDULED") return "Interview Scheduled";
   if (s === "PENDING" || s === "APPLIED" || s === "") return "Applied";
   return "Applied";
 };
@@ -354,6 +382,13 @@ const toCandidateInfo = (
   const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, applicant.id);
   const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, applicant.id);
 
+  const isInterviewScheduledVal = Boolean(
+    applicant.isInterviewScheduled ||
+    applicant.status === "INTERVIEW_SCHEDULED" ||
+    applicant.status === "SCHEDULED" ||
+    isCandidateInterviewScheduledInStorage(jobPostId, applicant.id)
+  );
+
   const isShortlistedVal = !isExplicitlyUnshortlisted && Boolean(
     applicant.isShortlisted ||
     applicant.status === "SHORTLISTED" ||
@@ -361,6 +396,7 @@ const toCandidateInfo = (
   );
 
   const isReviewedVal = !isExplicitlyUnreviewed && Boolean(
+    isInterviewScheduledVal ||
     isShortlistedVal ||
     applicant.isReviewed ||
     applicant.status === "REVIEWED" ||
@@ -368,8 +404,8 @@ const toCandidateInfo = (
   );
 
   const status: CandidateStatus =
-    applicant.status === "HIRED"
-      ? "Hired"
+    isInterviewScheduledVal
+      ? "Interview Scheduled"
       : isShortlistedVal
       ? "Shortlisted"
       : isReviewedVal
@@ -406,7 +442,7 @@ const filterCandidatesByStatus = (
         (candidate) =>
           candidate.status !== "Reviewed" &&
           candidate.status !== "Shortlisted" &&
-          candidate.status !== "Hired"
+          candidate.status !== "Interview Scheduled"
       )
       .sort((a, b) => b.matchScore - a.matchScore);
   }
@@ -487,21 +523,21 @@ export async function getCandidates(
       const eligibleCandidates: CandidateInfo[] = [];
 
       candidateApplicationsMap.forEach((apps) => {
-        // If candidate is reviewed/shortlisted/hired for EVERY job post they applied to, exclude them
+        // If candidate is reviewed/shortlisted/interview scheduled for EVERY job post they applied to, exclude them
         const isProcessedEverywhere = apps.every(
           (app) =>
             app.status === "Reviewed" ||
             app.status === "Shortlisted" ||
-            app.status === "Hired"
+            app.status === "Interview Scheduled"
         );
 
-        // If candidate is NOT reviewed/shortlisted/hired for at least 1 job post, include their top unprocessed application
+        // If candidate is NOT reviewed/shortlisted/interview scheduled for at least 1 job post, include their top unprocessed application
         if (!isProcessedEverywhere) {
           const unprocessed = apps.filter(
             (app) =>
               app.status !== "Reviewed" &&
               app.status !== "Shortlisted" &&
-              app.status !== "Hired"
+              app.status !== "Interview Scheduled"
           );
           unprocessed.sort((a, b) => b.matchScore - a.matchScore);
           if (unprocessed.length > 0) {
@@ -538,7 +574,6 @@ export async function getCandidateCounts(jobPostId?: string): Promise<Record<Can
     Reviewed: 0,
     Shortlisted: 0,
     "Interview Scheduled": 0,
-    Hired: 0,
   };
 
   try {
@@ -591,11 +626,13 @@ export async function getCandidateCounts(jobPostId?: string): Promise<Record<Can
       else if (c.status === "Reviewed") counts.Reviewed++;
       else if (c.status === "Shortlisted") counts.Shortlisted++;
       else if (c.status === "Interview Scheduled") counts["Interview Scheduled"]++;
-      else if (c.status === "Hired") counts.Hired++;
     });
 
     counts["AI Matches"] = uniqueList.filter(
-      (c) => c.status !== "Reviewed" && c.status !== "Shortlisted" && c.status !== "Hired"
+      (c) =>
+        c.status !== "Reviewed" &&
+        c.status !== "Shortlisted" &&
+        c.status !== "Interview Scheduled"
     ).length;
 
     return counts;
@@ -675,6 +712,12 @@ export async function getCandidateById(
     const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, data.id);
     const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, data.id);
 
+    const isInterviewScheduledVal = Boolean(
+      appMatch?.isInterviewScheduled ||
+      appMatch?.status === "INTERVIEW_SCHEDULED" ||
+      isCandidateInterviewScheduledInStorage(jobPostId, data.id)
+    );
+
     const isShortlistedVal = !isExplicitlyUnshortlisted && Boolean(
       appMatch?.isShortlisted ||
       appMatch?.status === "SHORTLISTED" ||
@@ -682,6 +725,7 @@ export async function getCandidateById(
     );
 
     const isReviewedVal = !isExplicitlyUnreviewed && Boolean(
+      isInterviewScheduledVal ||
       isShortlistedVal ||
       appMatch?.isReviewed ||
       appMatch?.status === "REVIEWED" ||
@@ -689,8 +733,8 @@ export async function getCandidateById(
     );
 
     const status: CandidateStatus =
-      appMatch?.status === "HIRED"
-        ? "Hired"
+      isInterviewScheduledVal
+        ? "Interview Scheduled"
         : isShortlistedVal
         ? "Shortlisted"
         : isReviewedVal
