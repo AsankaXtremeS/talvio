@@ -30,6 +30,7 @@ export const ContactSection = () => {
         src={contactBg}
         alt='Contact background'
         fill
+        sizes="100vw"
         priority
         className='object-cover'
       />

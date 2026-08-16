@@ -66,9 +66,22 @@ export async function apiClient<T>(
         throw new Error('Session expired');
       }
 
-      const responseData = error.response?.data as { message?: string } | undefined;
-      const errorMessage =
-        responseData?.message || error.message || 'Request failed';
+      const responseData = error.response?.data as
+        | { message?: string; errors?: Record<string, string[] | string> }
+        | undefined;
+      let errorMessage = responseData?.message || error.message || 'Request failed';
+      if (responseData?.errors && typeof responseData.errors === 'object') {
+        const fieldDetails = Object.entries(responseData.errors)
+          .map(([field, errs]) => {
+            const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
+            return `${field}: ${errStr}`;
+          })
+          .filter(Boolean)
+          .join('; ');
+        if (fieldDetails) {
+          errorMessage = `${errorMessage} (${fieldDetails})`;
+        }
+      }
       throw new Error(errorMessage);
     } else {
       if (error instanceof Error) {

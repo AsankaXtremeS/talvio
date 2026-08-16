@@ -53,6 +53,7 @@ export const FeaturesSection = () => {
         src={featuresBg}
         alt='Features background'
         fill
+        sizes="100vw"
         priority
         className='object-cover'
       />

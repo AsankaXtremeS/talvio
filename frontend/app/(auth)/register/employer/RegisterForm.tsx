@@ -100,7 +100,9 @@ export default function EmployerSignupForm() {
         return
       }
 
-      const { url, name } = uploadRes[0]
+      const uploaded = uploadRes[0]
+      const fileUrl = uploaded.ufsUrl ?? uploaded.url
+      const fileName = uploaded.name
 
       // Step 2: Register with backend
       const result = await authService.registerEmployer({
@@ -108,8 +110,8 @@ export default function EmployerSignupForm() {
         email: data.email,
         password: data.password,
         confirmPassword: data.confirmPassword,
-        registrationFileUrl: url,
-        registrationFileName: name,
+        registrationFileUrl: fileUrl,
+        registrationFileName: fileName,
       })
 
       if (result?.userId) {
