@@ -9,6 +9,7 @@ import JobPostsTable from "@/components/employer/job-posts/JobPostsTable";
 import { deleteJobPost, getJobPosts, getJobPostStats, setJobPostStatus } from "@/lib/employer/jobPosts.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Popup from "@/components/admin/layout/Popup";
+import { useAuth } from "@/context/AuthContext";
 
 type ToastState = {
   type: "success" | "error";
@@ -27,21 +28,21 @@ type PendingDeleteState = {
 
 export default function JobPostsPage() {
   const router = useRouter();
-
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // ── Data Fetching (React Query) ──
   const { data, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ["employer-job-posts"],
+    queryKey: ["employer-job-posts", user?.id],
     queryFn: async () => {
-      console.log("Fetching from:", `${process.env.NEXT_PUBLIC_API_URL}/api/employer/job-posts`);
       const [postsData, statsData] = await Promise.all([
         getJobPosts(),
         getJobPostStats(),
       ]);
       return { posts: postsData, stats: statsData };
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    enabled: !!user?.id,
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 

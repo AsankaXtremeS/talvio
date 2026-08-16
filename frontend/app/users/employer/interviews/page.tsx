@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { getInterviews, getScheduledDates, getInterview } from "@/lib/employer/interviews.service";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 import { InterviewDTO } from "@/types/employer/interview.types";
 import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import InterviewCard from "@/components/employer/interviews/InterviewCard";
@@ -114,6 +115,7 @@ function getDaysInMonth(year: number, month: number): number {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InterviewsDashboardPage() {
+  const { user } = useAuth();
   // Notification toggle state
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastViewedAt, setLastViewedAt] = useState<number>(Date.now());
@@ -155,7 +157,7 @@ export default function InterviewsDashboardPage() {
     error: queryError,
     refetch,
   } = useQuery({
-    queryKey: ["employer-interviews", calYear, calMonth],
+    queryKey: ["employer-interviews", user?.id, calYear, calMonth],
     queryFn: async () => {
       const scheduledResult = await getInterviews({ status: "SCHEDULED", limit: 100 });
       const cancelledResult = await getInterviews({ status: "CANCELLED", limit: 100 });
@@ -183,7 +185,8 @@ export default function InterviewsDashboardPage() {
         oldInterviews: oldInterviewMap,
       };
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    enabled: !!user?.id,
+    staleTime: 0,
     refetchOnWindowFocus: true, // Automatically refresh when returning to tab
   });
 

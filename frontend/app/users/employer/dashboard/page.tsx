@@ -7,6 +7,7 @@ import { Plus, CalendarDays, LayoutDashboard, FileText, X } from "lucide-react";
 import { getJobPosts, getJobPostStats } from "@/lib/employer/jobPosts.service";
 import { getCandidates } from "@/lib/employer/candidates.service";
 import { getInterviews } from "@/lib/employer/interviews.service";
+import { useAuth } from "@/context/AuthContext";
 import StatsRow from "@/components/employer/dashboard/StatsRow";
 import AIMatchedWidget from "@/components/employer/dashboard/AIMatchedWidget";
 import UpcomingInterviewsWidget from "@/components/employer/dashboard/UpcomingInterviewsWidget";
@@ -28,48 +29,32 @@ function formatRelativeTime(iso: string) {
   if (Number.isNaN(date.getTime())) return "Recently";
 
   const deltaSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (deltaSeconds >= 0) {
-    if (deltaSeconds < 60) return "Just now";
-    if (deltaSeconds < 3600) return `${Math.floor(deltaSeconds / 60)} minutes ago`;
-    if (deltaSeconds < 86400) return `${Math.floor(deltaSeconds / 3600)} hours ago`;
-    return `${Math.floor(deltaSeconds / 86400)} days ago`;
-  }
-
-  const futureSeconds = Math.abs(deltaSeconds);
-  if (futureSeconds < 60) return "In a few seconds";
-  if (futureSeconds < 3600) return `In ${Math.ceil(futureSeconds / 60)} minutes`;
-  if (futureSeconds < 86400) return `In ${Math.ceil(futureSeconds / 3600)} hours`;
-  return `In ${Math.ceil(futureSeconds / 86400)} days`;
+  if (deltaSeconds < 60) return "Just now";
+  const deltaMinutes = Math.floor(deltaSeconds / 60);
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+  const deltaHours = Math.floor(deltaMinutes / 60);
+  if (deltaHours < 24) return `${deltaHours}h ago`;
+  const deltaDays = Math.floor(deltaHours / 24);
+  return `${deltaDays}d ago`;
 }
 
 const createActivityItems = (
   interviews: InterviewDTO[],
   jobs: JobPost[]
 ): DashboardActivityItem[] => {
-  const interviewItems = interviews.map((interview) => {
-    const eventTime = interview.updatedAt || interview.createdAt || interview.scheduledAt;
-    return {
-      id: `interview-${interview.id}`,
-      text: `Scheduled interview with ${interview.candidate.name} for ${interview.jobPost.title}`,
-      time: formatRelativeTime(eventTime),
-      sortValue: new Date(eventTime).getTime() || 0,
-    };
-  });
+  const interviewItems: DashboardActivityItem[] = interviews.map((interview) => ({
+    id: `interview-${interview.id}`,
+    text: `Scheduled interview with ${interview.candidate.name} for ${interview.jobPost.title}`,
+    time: formatRelativeTime(interview.createdAt),
+    sortValue: new Date(interview.createdAt).getTime(),
+  }));
 
-  const jobItems = jobs
-    .filter((job) => typeof job.updatedAt === "string" || typeof job.createdAt === "string")
-    .slice(0, 4)
-    .map((job) => {
-      const timestamp = new Date(job.updatedAt ?? job.createdAt ?? "").getTime();
-      return {
-        id: `job-${job.id}`,
-        text: `${job.status === "Active" ? "New" : "Updated"} job post · ${job.title}`,
-        time: job.updatedAt || job.createdAt
-          ? formatRelativeTime(job.updatedAt ?? job.createdAt ?? "")
-          : "Recently",
-        sortValue: timestamp || 0,
-      };
-    });
+  const jobItems: DashboardActivityItem[] = jobs.map((job) => ({
+    id: `job-${job.id}`,
+    text: `${job.status === "Active" ? "New" : "Updated"} job post · ${job.title}`,
+    time: formatRelativeTime(job.updatedAt || job.createdAt || ""),
+    sortValue: new Date(job.updatedAt || job.createdAt || "").getTime(),
+  }));
 
   return [...interviewItems, ...jobItems]
     .sort((a, b) => b.sortValue - a.sortValue)
@@ -78,23 +63,30 @@ const createActivityItems = (
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const { data: stats } = useQuery({
-    queryKey: ["employer", "jobPostStats"],
+    queryKey: ["employer", "jobPostStats", user?.id],
     queryFn: getJobPostStats,
+    enabled: !!user?.id,
+    staleTime: 0,
   });
 
   const { data: jobPosts = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ["employer", "jobPosts"],
+    queryKey: ["employer", "jobPosts", user?.id],
     queryFn: getJobPosts,
+    enabled: !!user?.id,
+    staleTime: 0,
   });
 
   const { data: upcomingInterviews = [], isLoading: interviewsLoading } = useQuery({
-    queryKey: ["employer", "upcomingInterviews"],
+    queryKey: ["employer", "upcomingInterviews", user?.id],
     queryFn: async () => {
       const response = await getInterviews({ status: "SCHEDULED", limit: 5 });
       return response.data;
     },
+    enabled: !!user?.id,
+    staleTime: 0,
   });
 
   const activeJob = useMemo(
@@ -103,10 +95,12 @@ export default function DashboardPage() {
   );
 
   const { data: aiCandidates = [], isLoading: aiCandidatesLoading } = useQuery({
-    queryKey: ["employer", "aiCandidates"],
+    queryKey: ["employer", "aiCandidates", user?.id],
     queryFn: async () => {
       return await getCandidates("AI Matches");
     },
+    enabled: !!user?.id,
+    staleTime: 0,
   });
 
   const activityFeed = useMemo<DashboardActivityItem[]>(
