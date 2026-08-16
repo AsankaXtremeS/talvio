@@ -13,7 +13,7 @@ import SuccessModal from "@/components/employer/interviews/SuccessModal";
 import ExistingInterviewsModal from "@/components/employer/interviews/ExistingInterviewsModal";
 import { MeetingType, InterviewDTO } from "@/types/employer/interview.types";
 import { createInterview, updateInterview, scheduleAndSend, getInterviews, getScheduledDates } from "@/lib/employer/interviews.service";
-import { getCandidateById } from "@/lib/employer/candidates.service";
+import { getCandidateById, saveInterviewScheduledCandidateId } from "@/lib/employer/candidates.service";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -290,17 +290,15 @@ export default function ScheduleInterviewPage({ params }: Props) {
 
       console.log("[ScheduleInterview] Interview scheduled and sent:", finalInterview);
 
+      // Save to local storage for instant sync in applicants list
+      saveInterviewScheduledCandidateId(realJobPostId || postId || undefined, realCandidateId || candidateId);
+
       // Invalidate React Query cache to ensure automatic update on dashboard
       queryClient.invalidateQueries({ queryKey: ["employer-interviews"] });
 
       // Step 3: Store the interview and show success modal
       setScheduledInterview(finalInterview);
       setIsModalOpen(true);
-
-      // Step 4: Auto-navigate to interviews page after 3 seconds
-      setTimeout(() => {
-        router.push("/users/employer/interviews");
-      }, 3000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to schedule interview";
       setScheduleError(errorMsg);
@@ -461,6 +459,12 @@ export default function ScheduleInterviewPage({ params }: Props) {
         onClose={() => {
           setIsModalOpen(false);
           setScheduledInterview(null);
+          const targetPostId = realJobPostId || postId;
+          if (targetPostId) {
+            router.push(`/users/employer/job-posts/${targetPostId}/candidates?status=Interview Scheduled`);
+          } else {
+            router.push(`/users/employer/candidates?status=Interview Scheduled`);
+          }
         }}
         candidateName={scheduledInterview?.candidate?.name || realCandidateData?.name || "Candidate"}
         candidateEmail={scheduledInterview?.candidateEmail || realCandidateData?.email || ""}

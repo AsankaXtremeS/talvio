@@ -287,20 +287,28 @@ export const jobsService = {
     const applications = await jobsRepository.findApplicationsByJobPost(jobPostId, employerId, status);
 
     // Format applications into candidate format for frontend
-    return applications.map((app) => ({
-      id: app.candidateProfile.id,
-      name: `${app.candidateProfile.user.firstName} ${app.candidateProfile.user.lastName}`,
-      email: app.candidateProfile.user.email,
-      headline: app.candidateProfile.headline || "",
-      skills: app.candidateProfile.skills || [],
-      status: app.applicationStatus, // PENDING, REVIEWED, SHORTLISTED, REJECTED, HIRED
-      isReviewed: app.isReviewed,
-      isShortlisted: app.isShortlisted,
-      appliedAt: app.appliedAt.toISOString(),
-      cvUrl: app.cvUrl,
-      aiScore: app.aiScore || 0,
-      profilePictureUrl: app.candidateProfile.profilePictureUrl || null,
-    }));
+    return applications.map((app) => {
+      const hasInterviewScheduled = Boolean(
+        (app.candidateProfile as any)?.interviews &&
+        (app.candidateProfile as any).interviews.length > 0
+      );
+
+      return {
+        id: app.candidateProfile.id,
+        name: `${app.candidateProfile.user.firstName} ${app.candidateProfile.user.lastName}`,
+        email: app.candidateProfile.user.email,
+        headline: app.candidateProfile.headline || "",
+        skills: app.candidateProfile.skills || [],
+        status: hasInterviewScheduled ? "INTERVIEW_SCHEDULED" : app.applicationStatus, // PENDING, REVIEWED, SHORTLISTED, REJECTED, HIRED, INTERVIEW_SCHEDULED
+        isReviewed: app.isReviewed,
+        isShortlisted: app.isShortlisted,
+        isInterviewScheduled: hasInterviewScheduled,
+        appliedAt: app.appliedAt.toISOString(),
+        cvUrl: app.cvUrl,
+        aiScore: app.aiScore || 0,
+        profilePictureUrl: app.candidateProfile.profilePictureUrl || null,
+      };
+    });
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
