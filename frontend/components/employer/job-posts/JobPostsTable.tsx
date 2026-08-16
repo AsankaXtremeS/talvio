@@ -187,13 +187,8 @@ export default function JobPostsTable({
 }: JobPostsTableProps) {
   const router = useRouter();
 
-  // Sort posts by createdAt descending (latest first)
-  const sortedPosts = [...posts].sort((a, b) => {
-    if (!a.createdAt && !b.createdAt) return 0;
-    if (!a.createdAt) return 1;
-    if (!b.createdAt) return -1;
-    return b.createdAt.localeCompare(a.createdAt);
-  });
+  // Render posts in the order provided by parent component (which handles sorting)
+  const sortedPosts = posts;
 
   const formatDate = (date: string) => {
     if (!date) return "-";

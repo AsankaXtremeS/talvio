@@ -87,9 +87,9 @@ export default function JobPostsPage() {
   // Filter state
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Status");
-  const [jobRole, setJobRole] = useState("Job Role");
+  const [jobType, setJobType] = useState("Job Type");
   const [sort, setSort] = useState("Newest");
-  const [period, setPeriod] = useState("This Week");
+  const [period, setPeriod] = useState("All Time");
 
 
   useEffect(() => {
@@ -97,6 +97,32 @@ export default function JobPostsPage() {
     const timer = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  const isWithinPeriod = (dateStr?: string, periodChoice?: string) => {
+    if (!periodChoice || periodChoice === "All Time") return true;
+
+    const postDate = dateStr ? new Date(dateStr) : null;
+    if (!postDate || isNaN(postDate.getTime())) return true;
+
+    const now = new Date();
+
+    if (periodChoice === "This Week") {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return postDate >= sevenDaysAgo;
+    }
+
+    if (periodChoice === "This Month") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return postDate >= startOfMonth;
+    }
+
+    if (periodChoice === "Past 3 Months") {
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+      return postDate >= threeMonthsAgo;
+    }
+
+    return true;
+  };
 
   // ── Client-side filtering ──
   const filtered = useMemo(() => {
@@ -109,19 +135,30 @@ export default function JobPostsPage() {
         // Convert "Close" filter to "Closed" status for matching
         const statusFilter = status === "Close" ? "Closed" : status;
         const matchStatus = status === "Status" || statusValue === statusFilter;
-        // Apply jobRole filter ("Job" or "Internship" type)
-        const matchRole =
-          jobRole === "Job Role" || typeValue === jobRole;
-        return matchSearch && matchStatus && matchRole;
+        // Apply jobType filter ("Job" or "Internship")
+        const matchType =
+          jobType === "Job Type" || typeValue.toLowerCase() === jobType.toLowerCase();
+
+        // Apply period filter
+        const dateStr = p.createdAt || p.updatedAt || p.closingDate;
+        const matchPeriod = isWithinPeriod(dateStr, period);
+
+        return matchSearch && matchStatus && matchType && matchPeriod;
       })
       .sort((a, b) => {
-        const aTime = a.createdAt ?? "";
-        const bTime = b.createdAt ?? "";
-        return sort === "Newest"
-          ? bTime.localeCompare(aTime)
-          : aTime.localeCompare(bTime);
+        const aTime = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : a.closingDate
+          ? new Date(a.closingDate).getTime()
+          : 0;
+        const bTime = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : b.closingDate
+          ? new Date(b.closingDate).getTime()
+          : 0;
+        return sort === "Newest" ? bTime - aTime : aTime - bTime;
       });
-  }, [posts, search, status, jobRole, sort]);
+  }, [posts, search, status, jobType, sort, period]);
 
   // Navigate to Edit page
   const handleEdit = (id: string) => {
@@ -305,7 +342,7 @@ export default function JobPostsPage() {
         <FilterBar
           search={search} onSearchChange={setSearch}
           status={status} onStatusChange={setStatus}
-          jobRole={jobRole} onJobRoleChange={setJobRole}
+          jobType={jobType} onJobTypeChange={setJobType}
           sort={sort} onSortChange={setSort}
           period={period} onPeriodChange={setPeriod}
         />

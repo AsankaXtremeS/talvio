@@ -8,8 +8,8 @@ interface FilterBarProps {
   onSearchChange: (val: string) => void;
   status: string;
   onStatusChange: (val: string) => void;
-  jobRole: string;
-  onJobRoleChange: (val: string) => void;
+  jobType: string;
+  onJobTypeChange: (val: string) => void;
   sort: string;
   onSortChange: (val: string) => void;
   period: string;
@@ -84,7 +84,7 @@ function Dropdown({
 export default function FilterBar({
   search, onSearchChange,
   status, onStatusChange,
-  jobRole, onJobRoleChange,
+  jobType, onJobTypeChange,
   sort, onSortChange,
   period, onPeriodChange,
 }: FilterBarProps) {
@@ -104,9 +104,9 @@ export default function FilterBar({
       </div>
 
       <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Active", "Close"]} />
-      <Dropdown value={jobRole} onChange={onJobRoleChange} options={["Job Role", "Engineering", "Design", "Marketing", "Management"]} />
+      <Dropdown value={jobType} onChange={onJobTypeChange} options={["Job Type", "Job", "Internship"]} />
       <Dropdown value={sort}    onChange={onSortChange}    options={["Newest", "Oldest"]} />
-      <Dropdown value={period}  onChange={onPeriodChange}  options={["This Week", "This Month", "All Time"]} />
+      <Dropdown value={period}  onChange={onPeriodChange}  options={["All Time", "This Week", "This Month", "Past 3 Months"]} />
     </div>
   );
 }
