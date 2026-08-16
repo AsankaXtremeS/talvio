@@ -13,6 +13,12 @@ interface JobPostsTableProps {
   onStatusChange: (id: string, nextStatus: "Draft" | "Active" | "Closed") => void;
   deletingId?: string | null;
   closingId?: string | null;
+  jobType?: string;
+  onJobTypeChange?: (val: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (val: string) => void;
+  period?: string;
+  onPeriodChange?: (val: string) => void;
 }
 
 const ColHeader = ({
@@ -28,14 +34,243 @@ const ColHeader = ({
     }`}
   >
     <span
-      className={`flex items-center gap-1 cursor-pointer select-none hover:text-gray-900 ${
+      className={`flex items-center gap-1 select-none ${
         align === "center" ? "justify-center" : ""
       }`}
     >
-      {label} <ChevronDown size={13} />
+      {label}
     </span>
   </th>
 );
+
+function TypeHeaderDropdown({
+  jobType,
+  onJobTypeChange,
+}: {
+  jobType?: string;
+  onJobTypeChange?: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const isFiltered = jobType && jobType !== "Job Type";
+  const displayLabel = isFiltered ? `Type: ${jobType}` : "Type";
+
+  return (
+    <th className="px-4 py-3 text-sm font-semibold text-left text-gray-600">
+      <div ref={ref} className="relative inline-block">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition-all select-none ${
+            isFiltered
+              ? "bg-indigo-100 text-indigo-700 shadow-xs"
+              : "hover:bg-gray-200/60 hover:text-gray-900"
+          }`}
+        >
+          <span>{displayLabel}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 z-50 mt-1.5 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            {[
+              { label: "All Types", value: "Job Type" },
+              { label: "Job", value: "Job" },
+              { label: "Internship", value: "Internship" },
+            ].map((opt) => {
+              const active = (jobType || "Job Type") === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    if (onJobTypeChange) onJobTypeChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3.5 py-2.5 text-xs transition-colors ${
+                    active
+                      ? "bg-indigo-50 font-semibold text-indigo-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {active && <Check size={13} className="text-indigo-500" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </th>
+  );
+}
+
+function StatusHeaderDropdown({
+  statusFilter,
+  onStatusFilterChange,
+}: {
+  statusFilter?: string;
+  onStatusFilterChange?: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const isFiltered = statusFilter && statusFilter !== "Status";
+  const displayLabel = isFiltered ? `Status: ${statusFilter === "Close" ? "Closed" : statusFilter}` : "Status";
+
+  return (
+    <th className="px-4 py-3 text-sm font-semibold text-left text-gray-600">
+      <div ref={ref} className="relative inline-block">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition-all select-none ${
+            isFiltered
+              ? "bg-indigo-100 text-indigo-700 shadow-xs"
+              : "hover:bg-gray-200/60 hover:text-gray-900"
+          }`}
+        >
+          <span>{displayLabel}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 z-50 mt-1.5 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            {[
+              { label: "All Statuses", value: "Status" },
+              { label: "Active", value: "Active" },
+              { label: "Closed", value: "Close" },
+            ].map((opt) => {
+              const active = (statusFilter || "Status") === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    if (onStatusFilterChange) onStatusFilterChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3.5 py-2.5 text-xs transition-colors ${
+                    active
+                      ? "bg-indigo-50 font-semibold text-indigo-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {active && <Check size={13} className="text-indigo-500" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </th>
+  );
+}
+
+function DateHeaderDropdown({
+  period,
+  onPeriodChange,
+}: {
+  period?: string;
+  onPeriodChange?: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const isFiltered = period && period !== "All Time";
+  const displayLabel = isFiltered ? `Closing Date (${period})` : "Closing Date";
+
+  return (
+    <th className="px-4 py-3 text-sm font-semibold text-left text-gray-600">
+      <div ref={ref} className="relative inline-block">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition-all select-none ${
+            isFiltered
+              ? "bg-indigo-100 text-indigo-700 shadow-xs"
+              : "hover:bg-gray-200/60 hover:text-gray-900"
+          }`}
+        >
+          <span>{displayLabel}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 z-50 mt-1.5 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            {[
+              { label: "All Time", value: "All Time" },
+              { label: "This Week", value: "This Week" },
+              { label: "This Month", value: "This Month" },
+              { label: "Next 3 Months", value: "Next 3 Months" },
+            ].map((opt) => {
+              const active = (period || "All Time") === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    if (onPeriodChange) onPeriodChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3.5 py-2.5 text-xs transition-colors ${
+                    active
+                      ? "bg-indigo-50 font-semibold text-indigo-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {active && <Check size={13} className="text-indigo-500" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </th>
+  );
+}
 
 // Status dropdown component
 function StatusDropdown({
@@ -184,16 +419,17 @@ export default function JobPostsTable({
   onStatusChange,
   deletingId,
   closingId,
+  jobType,
+  onJobTypeChange,
+  statusFilter,
+  onStatusFilterChange,
+  period,
+  onPeriodChange,
 }: JobPostsTableProps) {
   const router = useRouter();
 
-  // Sort posts by createdAt descending (latest first)
-  const sortedPosts = [...posts].sort((a, b) => {
-    if (!a.createdAt && !b.createdAt) return 0;
-    if (!a.createdAt) return 1;
-    if (!b.createdAt) return -1;
-    return b.createdAt.localeCompare(a.createdAt);
-  });
+  // Render posts in the order provided by parent component (which handles sorting)
+  const sortedPosts = posts;
 
   const formatDate = (date: string) => {
     if (!date) return "-";
@@ -286,91 +522,113 @@ export default function JobPostsTable({
   };
 
   return (
-    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl">
+    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl min-h-[360px] pb-16">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
       </div>
 
-      {sortedPosts.length === 0 ? (
-        <div className="px-6 py-12 text-sm text-center text-gray-400">
-          No job posts found. Click &quot;Post New Job&quot; to get started.
-        </div>
-      ) : (
-        <>
-          <div className="space-y-4 lg:hidden px-4 pb-4">
-            {sortedPosts.map((post, idx) => (
-              <div key={post.id ?? `mobile-post-${idx}`} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{post.title}</p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-                        <span>{post.type}</span>
-                        <span>{formatDate(post.closingDate)}</span>
-                      </div>
+      {/* Mobile list view */}
+      <div className="space-y-4 lg:hidden px-4 py-4">
+        {sortedPosts.length === 0 ? (
+          <div className="py-12 text-center text-sm text-gray-400">
+            No job posts found. Click &quot;Post New Job&quot; to get started.
+          </div>
+        ) : (
+          sortedPosts.map((post, idx) => (
+            <div key={post.id ?? `mobile-post-${idx}`} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{post.title}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500 items-center">
+                      <button
+                        type="button"
+                        onClick={() => onJobTypeChange && onJobTypeChange(post.type)}
+                        className="rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                        title={`Filter by ${post.type}`}
+                      >
+                        {post.type}
+                      </button>
+                      <span>{formatDate(post.closingDate)}</span>
                     </div>
+                  </div>
+                  <StatusDropdown
+                    postId={post.id}
+                    status={post.status}
+                    onStatusChange={onStatusChange}
+                    isClosing={closingId === post.id}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {renderActionButtons(post)}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table view — always rendered with headers and ample space for dropdown menus */}
+      <div className="hidden lg:block overflow-x-auto min-h-[300px] pb-12">
+        <table className="table-auto min-w-full w-full">
+          <thead className="bg-gray-50 sticky top-0 z-20">
+            <tr>
+              <ColHeader label="Job Title" align="center" />
+              <TypeHeaderDropdown jobType={jobType} onJobTypeChange={onJobTypeChange} />
+              <DateHeaderDropdown period={period} onPeriodChange={onPeriodChange} />
+              <StatusHeaderDropdown statusFilter={statusFilter} onStatusFilterChange={onStatusFilterChange} />
+              <ColHeader label="Action" align="center" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {sortedPosts.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-16 text-center text-sm text-gray-400">
+                  No job posts found. Click &quot;Post New Job&quot; to get started.
+                </td>
+              </tr>
+            ) : (
+              sortedPosts.map((post, idx) => (
+                <tr key={post.id ?? `desktop-post-${idx}`} className="transition-colors hover:bg-gray-50">
+                  <td className="px-4 py-4 text-sm font-medium text-gray-800">
+                    {post.title}
+                  </td>
+
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    <button
+                      type="button"
+                      onClick={() => onJobTypeChange && onJobTypeChange(post.type)}
+                      className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                      title={`Filter by ${post.type}`}
+                    >
+                      {post.type}
+                    </button>
+                  </td>
+
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {formatDate(post.closingDate)}
+                  </td>
+
+                  <td className="px-4 py-4">
                     <StatusDropdown
                       postId={post.id}
                       status={post.status}
                       onStatusChange={onStatusChange}
                       isClosing={closingId === post.id}
                     />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {renderActionButtons(post)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                  </td>
 
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="table-auto min-w-full w-full">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <ColHeader label="Job Title" />
-                  <ColHeader label="Type" />
-                  <ColHeader label="Closing Date" />
-                  <ColHeader label="Status" />
-                  <ColHeader label="Action" align="center" />
+                  <td className="px-4 py-4">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {renderActionButtons(post)}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {sortedPosts.map((post, idx) => (
-                  <tr key={post.id ?? `desktop-post-${idx}`} className="transition-colors hover:bg-gray-50">
-                    <td className="px-4 py-4 text-sm font-medium text-gray-800">
-                      {post.title}
-                    </td>
-
-                    <td className="px-4 py-4 text-sm text-gray-500">
-                      {post.type}
-                    </td>
-
-                    <td className="px-4 py-4 text-sm text-gray-500">
-                      {formatDate(post.closingDate)}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <StatusDropdown
-                        postId={post.id}
-                        status={post.status}
-                        onStatusChange={onStatusChange}
-                        isClosing={closingId === post.id}
-                      />
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        {renderActionButtons(post)}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

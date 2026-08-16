@@ -87,9 +87,9 @@ export default function JobPostsPage() {
   // Filter state
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Status");
-  const [jobRole, setJobRole] = useState("Job Role");
+  const [jobType, setJobType] = useState("Job Type");
   const [sort, setSort] = useState("Newest");
-  const [period, setPeriod] = useState("This Week");
+  const [period, setPeriod] = useState("All Time");
 
 
   useEffect(() => {
@@ -97,6 +97,62 @@ export default function JobPostsPage() {
     const timer = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  const parseClosingDate = (dateStr?: string): Date | null => {
+    if (!dateStr || !dateStr.trim()) return null;
+
+    const match = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day, 23, 59, 59, 999);
+    }
+
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const isWithinPeriod = (closingDateStr?: string, periodChoice?: string) => {
+    if (!periodChoice || periodChoice === "All Time") return true;
+
+    const closingDate = parseClosingDate(closingDateStr);
+    if (!closingDate) return false;
+
+    const now = new Date();
+
+    if (periodChoice === "This Week") {
+      // Start of current calendar week (Monday)
+      const dayOfWeek = now.getDay();
+      const distanceToMonday = (dayOfWeek + 6) % 7;
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday, 0, 0, 0, 0);
+      // End of 7 days from today
+      const endOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59, 999);
+
+      return closingDate >= startOfWeek && closingDate <= endOf7Days;
+    }
+
+    if (periodChoice === "This Month") {
+      // Start of current month
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      // End of current month or 30 days ahead
+      const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const in30Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30, 23, 59, 59, 999);
+      const endLimit = endOfCurrentMonth > in30Days ? endOfCurrentMonth : in30Days;
+
+      return closingDate >= startOfMonth && closingDate <= endLimit;
+    }
+
+    if (periodChoice === "Next 3 Months" || periodChoice === "Past 3 Months") {
+      // Start of current month to 90 days ahead
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const in90Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90, 23, 59, 59, 999);
+
+      return closingDate >= startOfMonth && closingDate <= in90Days;
+    }
+
+    return true;
+  };
 
   // ── Client-side filtering ──
   const filtered = useMemo(() => {
@@ -109,19 +165,29 @@ export default function JobPostsPage() {
         // Convert "Close" filter to "Closed" status for matching
         const statusFilter = status === "Close" ? "Closed" : status;
         const matchStatus = status === "Status" || statusValue === statusFilter;
-        // Apply jobRole filter ("Job" or "Internship" type)
-        const matchRole =
-          jobRole === "Job Role" || typeValue === jobRole;
-        return matchSearch && matchStatus && matchRole;
+        // Apply jobType filter ("Job" or "Internship")
+        const matchType =
+          jobType === "Job Type" || typeValue.toLowerCase() === jobType.toLowerCase();
+
+        // Apply period filter to upcoming closing dates
+        const matchPeriod = isWithinPeriod(p.closingDate, period);
+
+        return matchSearch && matchStatus && matchType && matchPeriod;
       })
       .sort((a, b) => {
-        const aTime = a.createdAt ?? "";
-        const bTime = b.createdAt ?? "";
-        return sort === "Newest"
-          ? bTime.localeCompare(aTime)
-          : aTime.localeCompare(bTime);
+        const aTime = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : a.closingDate
+          ? new Date(a.closingDate).getTime()
+          : 0;
+        const bTime = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : b.closingDate
+          ? new Date(b.closingDate).getTime()
+          : 0;
+        return sort === "Newest" ? bTime - aTime : aTime - bTime;
       });
-  }, [posts, search, status, jobRole, sort]);
+  }, [posts, search, status, jobType, sort, period]);
 
   // Navigate to Edit page
   const handleEdit = (id: string) => {
@@ -305,7 +371,7 @@ export default function JobPostsPage() {
         <FilterBar
           search={search} onSearchChange={setSearch}
           status={status} onStatusChange={setStatus}
-          jobRole={jobRole} onJobRoleChange={setJobRole}
+          jobType={jobType} onJobTypeChange={setJobType}
           sort={sort} onSortChange={setSort}
           period={period} onPeriodChange={setPeriod}
         />
@@ -335,7 +401,7 @@ export default function JobPostsPage() {
       </div>
 
       {/* ── Scrollable table area ── */}
-      <div className="flex-1 pr-1 mt-6 overflow-y-auto">
+      <div className="flex-1 pr-1 mt-6 overflow-y-auto min-h-[420px] pb-16">
         {loading ? (
           <div className="p-12 text-sm text-center text-gray-400 bg-white border border-gray-100 rounded-2xl">
             Loading...
@@ -353,6 +419,12 @@ export default function JobPostsPage() {
             onViewCandidates={handleViewCandidates}
             deletingId={deletingId}
             closingId={closingId}
+            jobType={jobType}
+            onJobTypeChange={setJobType}
+            statusFilter={status}
+            onStatusFilterChange={setStatus}
+            period={period}
+            onPeriodChange={setPeriod}
           />
         )}
       </div>

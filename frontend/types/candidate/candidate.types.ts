@@ -1,6 +1,7 @@
 export type CandidateStatus =
   | "Applied"
   | "AI Matches"
+  | "Reviewed"
   | "Shortlisted"
   | "Interview Scheduled"
   | "Hired";
@@ -18,6 +19,8 @@ export interface CandidateInfo {
   skills: string[];
   email: string;
   status: CandidateStatus;
+  jobPostId?: string;
+  jobPostTitle?: string;
 }
 
 export interface FullCandidateProfile extends CandidateInfo {

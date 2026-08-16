@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
-import { MOCK_CANDIDATES, getCandidates } from "@/lib/employer/candidates.service";
+import { getCandidates, unmarkReviewed, unmarkShortlisted } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
@@ -25,49 +25,52 @@ export default function CandidatesPage() {
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId"); // Get postId from URL if available
 
-  const [status, setStatus]   = useState<CandidateStatus>("Applied");
+  const initialStatus = (searchParams.get("status") as CandidateStatus) || "Applied";
+  const [status, setStatus]   = useState<CandidateStatus>(initialStatus);
   const [query, setQuery]     = useState("");
   const [all, setAll]         = useState<CandidateInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
 
   // Clear stale offline cache on mount so DB-recovered data is fetched fresh
   useEffect(() => {
     clearOfflineJobPostsCache();
   }, []);
 
-  // Fetch all candidates from real API. If a postId is in the URL, fetch
-  // candidates for that specific job post. Otherwise, show mock data with a
-  // hint to navigate from a job post (API is scoped per job post).
+  // Sync state when URL status query changes (e.g. back/forward navigation or redirect)
+  useEffect(() => {
+    const urlStatus = searchParams.get("status") as CandidateStatus | null;
+    if (urlStatus && urlStatus !== status) {
+      setStatus(urlStatus);
+    }
+  }, [searchParams]);
+
+  const handleStatusChange = (newStatus: CandidateStatus) => {
+    setStatus(newStatus);
+    setQuery("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", newStatus);
+    const base = postId
+      ? `/users/employer/candidates?postId=${postId}&${params.toString()}`
+      : `/users/employer/candidates?${params.toString()}`;
+    router.replace(base, { scroll: false });
+  };
+
+  // Fetch candidate data directly from real API
   useEffect(() => {
     let mounted = true;
     setLoading(true);
 
     const fetchAll = async () => {
       try {
-        if (postId) {
-          // Fetch real applicants for the specific job post
-          const data = await getCandidates("Applied", postId);
-          if (mounted) {
-            setAll(data.length > 0 ? data : MOCK_CANDIDATES);
-            setUsingMock(data.length === 0);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // Without a postId the backend endpoint is scoped per job post,
-        // so we cannot fetch across all jobs from this page. Show mock data.
+        const data = await getCandidates(status, postId || undefined);
         if (mounted) {
-          setAll(MOCK_CANDIDATES);
-          setUsingMock(true);
+          setAll(data);
           setLoading(false);
         }
       } catch (err) {
         console.error("[CandidatesPage] Failed to fetch candidates:", err);
         if (mounted) {
-          setAll(MOCK_CANDIDATES);
-          setUsingMock(true);
+          setAll([]);
           setLoading(false);
         }
       }
@@ -75,35 +78,42 @@ export default function CandidatesPage() {
 
     fetchAll();
     return () => { mounted = false; };
-  }, [postId]);
+  }, [status, postId]);
 
-  /* ── Filtered list — derived from status + search query ── */
+  /* ── Filtered list — derived from search query ── */
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     return all.filter((c) => {
-      const matchesStatus =
-        status === "AI Matches"
-          ? c.status === "Applied" && c.matchScore >= 85
-          : c.status === status;
-
       return (
-        matchesStatus &&
-        (!q ||
-          c.name.toLowerCase().includes(q) ||
-          c.role.toLowerCase().includes(q) ||
-          c.skills.some((s) => s.toLowerCase().includes(q)))
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.role.toLowerCase().includes(q) ||
+        c.skills.some((s) => s.toLowerCase().includes(q))
       );
     });
-  }, [all, status, query]);
+  }, [all, query]);
 
   /* ── Handlers ── */
   const handleViewProfile = (id: string) => {
-    router.push(`/users/employer/candidates/${id}`);
+    const url = `/users/employer/candidates/${id}${postId ? `?postId=${postId}` : ""}`;
+    router.push(url);
   };
 
   const handleSchedule = (id: string) => {
     const url = `/users/employer/candidates/${id}/schedule${postId ? `?postId=${postId}` : ""}`;
     router.push(url);
+  };
+
+  const handleMoveToApplied = async (candidateId: string) => {
+    await unmarkReviewed(postId || undefined, candidateId);
+    const updated = await getCandidates(status, postId || undefined);
+    setAll(updated);
+  };
+
+  const handleUnshortlist = async (candidateId: string) => {
+    await unmarkShortlisted(postId || undefined, candidateId);
+    const updated = await getCandidates(status, postId || undefined);
+    setAll(updated);
   };
 
   return (
@@ -112,7 +122,7 @@ export default function CandidatesPage() {
       {/* ── Filter bar (top) ── */}
       <CandidateFilterBar
         status={status}
-        onStatusChange={(s) => { setStatus(s); setQuery(""); }}
+        onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
       />
@@ -126,9 +136,7 @@ export default function CandidatesPage() {
           </h1>
         </div>
         <p className="text-[12.5px] text-[#ADADAD]">
-          {usingMock && !postId
-            ? "Navigate from a job post to see real applicants"
-            : "Manage and review all job applicants"}
+          Manage and review all job applicants
         </p>
       </div>
 
@@ -156,6 +164,8 @@ export default function CandidatesPage() {
           candidates={filtered}
           onViewProfile={handleViewProfile}
           onSchedule={handleSchedule}
+          onMoveToApplied={handleMoveToApplied}
+          onUnshortlist={handleUnshortlist}
         />
       )}
     </div>

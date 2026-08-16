@@ -31,11 +31,13 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const { user } = await authService.login(data);
+      const { user, accessToken, refreshToken } = await authService.login(data);
       if (user.role !== 'STUDENT') {
         setError('root', { type: 'manual', message: 'Access denied. This login is for students only.' });
         return;
       }
+      if (accessToken) localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       setUser(user);
       setAccessToken("cookie-session");
       router.push(getRoleHomeRoute(user.role, user.id));

@@ -1,12 +1,12 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
-import { getCandidates } from "@/lib/employer/candidates.service";
+import { getCandidates, unmarkReviewed, unmarkShortlisted } from "@/lib/employer/candidates.service";
 import type { JobPost } from "@/types/employer/jobPost.types";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
@@ -17,12 +17,29 @@ interface Props {
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [status, setStatus] = useState<CandidateStatus>("Applied");
+  const initialStatus = (searchParams.get("status") as CandidateStatus) || "Applied";
+  const [status, setStatus] = useState<CandidateStatus>(initialStatus);
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
   const [jobPost, setJobPost] = useState<JobPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync state when URL status query changes (e.g. back/forward navigation or redirect)
+  useEffect(() => {
+    const urlStatus = searchParams.get("status") as CandidateStatus | null;
+    if (urlStatus && urlStatus !== status) {
+      setStatus(urlStatus);
+    }
+  }, [searchParams]);
+
+  const handleStatusChange = (newStatus: CandidateStatus) => {
+    setStatus(newStatus);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", newStatus);
+    router.replace(`/users/employer/job-posts/${postId}/candidates?${params.toString()}`, { scroll: false });
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -78,6 +95,20 @@ export default function PostCandidatesPage({ params }: Props) {
     });
   }, [candidates, query]);
 
+  const handleMoveToApplied = async (candidateId: string) => {
+    await unmarkReviewed(postId, candidateId);
+    // Refresh current candidate list
+    const updated = await getCandidates(status, postId);
+    setCandidates(updated);
+  };
+
+  const handleUnshortlist = async (candidateId: string) => {
+    await unmarkShortlisted(postId, candidateId);
+    // Refresh current candidate list
+    const updated = await getCandidates(status, postId);
+    setCandidates(updated);
+  };
+
   return (
     <div className="p-6 space-y-6">
 
@@ -97,7 +128,7 @@ export default function PostCandidatesPage({ params }: Props) {
 
       <CandidateFilterBar
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
       />
@@ -114,6 +145,8 @@ export default function PostCandidatesPage({ params }: Props) {
           // Route includes both postId and candidateProfileId.
           router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
+        onMoveToApplied={handleMoveToApplied}
+        onUnshortlist={handleUnshortlist}
       />
     </div>
   );

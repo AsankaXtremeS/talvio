@@ -17,6 +17,8 @@ out/
 # Logs
 logs/
 *.log
+.npm-cache/
+backend/.npm-cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
