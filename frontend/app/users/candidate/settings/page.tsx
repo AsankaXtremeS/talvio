@@ -40,7 +40,7 @@ export default function CandidateSettingsPage() {
         setIsResumeProcessing(true);
         const file = res[0];
         await profileService.updateResume(file.ufsUrl || file.url, file.name);
-        
+
         // Invalidate queries to refresh data
         // refreshes recommendations, profile, and stats all at once after a resume change.
         await queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
@@ -87,7 +87,7 @@ export default function CandidateSettingsPage() {
 
   const handleProfileSaved = (data: any) => {
     queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
-    
+
     // Update AuthContext user state so sidebar reflects changes immediately
     if (user) {
       setUser({
@@ -100,7 +100,7 @@ export default function CandidateSettingsPage() {
         } : user.candidateProfile
       });
     }
-    
+
     setPopup({ open: true, message: "Profile updated successfully!", success: true });
   };
 
@@ -113,8 +113,8 @@ export default function CandidateSettingsPage() {
       title: realProfile?.headline || (user?.role === "PROFESSIONAL" ? "Frontend Engineer" : "Frontend Developer"),
       location: realProfile?.location || "Ottawa, ON, Canada",
       email: user?.email || "example@example.com",
-      phone: "+1123-456-7890",
-      bio: realProfile?.bio || "A motivated web developer with 2 years of experience in React and Next.js.",
+      phone: "+94773427682",
+      bio: realProfile?.bio || "A motivated web developer with experience in React and Next.js.",
       skills: realProfile?.skills?.length ? realProfile.skills : ["JavaScript", "React", "Next.js", "HTML/CSS", "SQL"],
       profilePictureUrl: realProfile?.profilePictureUrl || undefined,
       linkedinUrl: realProfile?.linkedinUrl || undefined,
