@@ -6,7 +6,12 @@ import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
-import { getCandidates, unmarkReviewed, unmarkShortlisted } from "@/lib/employer/candidates.service";
+import {
+  getCandidates,
+  getCandidateCounts,
+  unmarkReviewed,
+  unmarkShortlisted,
+} from "@/lib/employer/candidates.service";
 import type { JobPost } from "@/types/employer/jobPost.types";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
@@ -23,8 +28,14 @@ export default function PostCandidatesPage({ params }: Props) {
   const [status, setStatus] = useState<CandidateStatus>(initialStatus);
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
+  const [counts, setCounts] = useState<Record<CandidateStatus, number> | null>(null);
   const [jobPost, setJobPost] = useState<JobPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch real counts for all tabs
+  const refreshCounts = () => {
+    getCandidateCounts(postId).then(setCounts).catch(() => {});
+  };
 
   // Sync state when URL status query changes (e.g. back/forward navigation or redirect)
   useEffect(() => {
@@ -45,6 +56,7 @@ export default function PostCandidatesPage({ params }: Props) {
     let mounted = true;
 
     setIsLoading(true);
+    refreshCounts();
     getCandidates(status, postId)
       .then((data) => {
         if (mounted) {
@@ -97,16 +109,18 @@ export default function PostCandidatesPage({ params }: Props) {
 
   const handleMoveToApplied = async (candidateId: string) => {
     await unmarkReviewed(postId, candidateId);
-    // Refresh current candidate list
+    // Refresh current candidate list and counts
     const updated = await getCandidates(status, postId);
     setCandidates(updated);
+    refreshCounts();
   };
 
   const handleUnshortlist = async (candidateId: string) => {
     await unmarkShortlisted(postId, candidateId);
-    // Refresh current candidate list
+    // Refresh current candidate list and counts
     const updated = await getCandidates(status, postId);
     setCandidates(updated);
+    refreshCounts();
   };
 
   return (
@@ -131,6 +145,7 @@ export default function PostCandidatesPage({ params }: Props) {
         onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
+        counts={counts || undefined}
       />
 
       {/* ─── UPDATED GRID ROUTING ───────────────────────────────────── */}

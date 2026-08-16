@@ -529,6 +529,83 @@ export async function getCandidates(
 }
 
 /**
+ * Calculate real counts for all candidate status tabs.
+ */
+export async function getCandidateCounts(jobPostId?: string): Promise<Record<CandidateStatus, number>> {
+  const counts: Record<CandidateStatus, number> = {
+    Applied: 0,
+    "AI Matches": 0,
+    Reviewed: 0,
+    Shortlisted: 0,
+    "Interview Scheduled": 0,
+    Hired: 0,
+  };
+
+  try {
+    let allCandidates: CandidateInfo[] = [];
+
+    if (jobPostId) {
+      const url = apiUrl(`/api/employer/job-posts/${jobPostId}/applications`);
+      const res = await fetchWithAuth(url);
+      if (res.ok) {
+        const data = (await res.json()) as BackendApplicant[];
+        allCandidates = data
+          .map((app) => toCandidateInfo(app, jobPostId))
+          .filter((c): c is CandidateInfo => c !== null);
+      }
+    } else {
+      const posts = await getJobPosts();
+      if (posts && posts.length > 0) {
+        const nested = await Promise.all(
+          posts.map(async (job) => {
+            try {
+              const url = apiUrl(`/api/employer/job-posts/${job.id}/applications`);
+              const res = await fetchWithAuth(url);
+              if (res.ok) {
+                const data = (await res.json()) as BackendApplicant[];
+                return data
+                  .map((app) => toCandidateInfo(app, job.id, job.title))
+                  .filter((c): c is CandidateInfo => c !== null);
+              }
+            } catch {
+              // ignore single post errors
+            }
+            return [];
+          })
+        );
+        allCandidates = nested.flat();
+      }
+    }
+
+    // Deduplicate if global across posts
+    const uniqueMap = new Map<string, CandidateInfo>();
+    allCandidates.forEach((c) => {
+      if (!uniqueMap.has(c.id)) {
+        uniqueMap.set(c.id, c);
+      }
+    });
+    const uniqueList = jobPostId ? allCandidates : Array.from(uniqueMap.values());
+
+    uniqueList.forEach((c) => {
+      if (c.status === "Applied") counts.Applied++;
+      else if (c.status === "Reviewed") counts.Reviewed++;
+      else if (c.status === "Shortlisted") counts.Shortlisted++;
+      else if (c.status === "Interview Scheduled") counts["Interview Scheduled"]++;
+      else if (c.status === "Hired") counts.Hired++;
+    });
+
+    counts["AI Matches"] = uniqueList.filter(
+      (c) => c.status !== "Reviewed" && c.status !== "Shortlisted" && c.status !== "Hired"
+    ).length;
+
+    return counts;
+  } catch (err) {
+    console.error("[getCandidateCounts] Error:", err);
+    return counts;
+  }
+}
+
+/**
  * Fetch a single candidate's profile by their candidateProfile ID.
  * When jobPostId is provided, also fetches application-level data (AI score, cvUrl, review status).
  * Used in the candidate profile page to display applicant info.
