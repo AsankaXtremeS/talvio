@@ -31,11 +31,13 @@ export default function AdminLoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { user } = await authService.login(data)
+      const { user, accessToken, refreshToken } = await authService.login(data)
       if (user.role !== "ADMIN") {
         setError("root", { type: "manual", message: "Access denied. Admin only." })
         return
       }
+      if (accessToken) localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       setUser(user)
       setAccessToken("cookie-session")
       router.push(getRoleHomeRoute(user.role, user.id))
