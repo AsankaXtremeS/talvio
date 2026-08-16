@@ -359,4 +359,22 @@ export const jobsService = {
 
     return jobsRepository.markShortlisted(app.id);
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNMARK SHORTLISTED — Remove candidate from shortlist (isShortlisted = false).
+  // ═══════════════════════════════════════════════════════════════════════════
+  async unmarkShortlisted(
+    userId: string,
+    jobPostId: string,
+    candidateProfileId: string
+  ) {
+    const employerId = await resolveApprovedEmployerId(userId);
+    const jobPost = await jobsRepository.findById(jobPostId, employerId);
+    if (!jobPost) throw buildHttpError("Job post not found", 404);
+
+    const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
+    if (!app) throw buildHttpError("Application not found for this candidate", 404);
+
+    return jobsRepository.unmarkShortlisted(app.id);
+  },
 };

@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
-import { getCandidates, unmarkReviewed } from "@/lib/employer/candidates.service";
+import { getCandidates, unmarkReviewed, unmarkShortlisted } from "@/lib/employer/candidates.service";
 import type { JobPost } from "@/types/employer/jobPost.types";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
@@ -102,6 +102,13 @@ export default function PostCandidatesPage({ params }: Props) {
     setCandidates(updated);
   };
 
+  const handleUnshortlist = async (candidateId: string) => {
+    await unmarkShortlisted(postId, candidateId);
+    // Refresh current candidate list
+    const updated = await getCandidates(status, postId);
+    setCandidates(updated);
+  };
+
   return (
     <div className="p-6 space-y-6">
 
@@ -139,6 +146,7 @@ export default function PostCandidatesPage({ params }: Props) {
           router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
         onMoveToApplied={handleMoveToApplied}
+        onUnshortlist={handleUnshortlist}
       />
     </div>
   );

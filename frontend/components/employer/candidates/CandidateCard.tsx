@@ -10,6 +10,7 @@ interface Props {
   onViewProfile: (id: string) => void;
   onSchedule: (id: string) => void;
   onMoveToApplied?: (id: string) => void;
+  onUnshortlist?: (id: string) => void;
 }
 
 function matchStyle(score: number) {
@@ -18,7 +19,7 @@ function matchStyle(score: number) {
   return           { bg: "#FFFBEB", border: "#FCD34D", text: "#B45309" };         
 }
 
-export default function CandidateCard({ candidate, index, onViewProfile, onSchedule, onMoveToApplied }: Props) {
+export default function CandidateCard({ candidate, index, onViewProfile, onSchedule, onMoveToApplied, onUnshortlist }: Props) {
   const grad      = candidate.avatarGradient ?? getAvatarGradient(index);
   const daysLabel = candidate.appliedDaysAgo === 1 ? "day" : "days";
   const ms        = matchStyle(candidate.matchScore);
@@ -135,6 +136,21 @@ export default function CandidateCard({ candidate, index, onViewProfile, onSched
           >
             <RotateCcw size={13} strokeWidth={2} />
             To Applied
+          </button>
+        ) : null}
+
+        {/* If in Shortlisted tab, provide quick Unshortlist button */}
+        {candidate.status === "Shortlisted" && onUnshortlist ? (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onUnshortlist(candidate.id);
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D1FAE5] bg-[#F0FDF4] px-3 py-2.25 text-[12px] font-semibold text-[#059669] transition-colors duration-150 hover:border-[#6EE7B7] hover:bg-[#DCFCE7]"
+            title="Remove candidate from Shortlist"
+          >
+            <RotateCcw size={13} strokeWidth={2} />
+            Unshortlist
           </button>
         ) : null}
 

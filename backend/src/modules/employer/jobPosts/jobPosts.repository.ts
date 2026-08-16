@@ -562,4 +562,17 @@ export const jobsRepository = {
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
+
+  // Set isShortlisted = false on an application and revert status to REVIEWED.
+  async unmarkShortlisted(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        isShortlisted: false,
+        isReviewed: true,
+        applicationStatus: "REVIEWED",
+      },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+    });
+  },
 };

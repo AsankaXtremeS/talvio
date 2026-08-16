@@ -22,6 +22,7 @@ import {
   markReviewed,
   unmarkReviewed,
   markShortlisted,
+  unmarkShortlisted,
 } from "./jobPosts.controller";
 
 const router = Router();
@@ -74,6 +75,10 @@ router.post("/:jobPostId/applications/:candidateProfileId/unreviewed", unmarkRev
 // POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
 // Employer shortlists the candidate (isShortlisted = true, applicationStatus = SHORTLISTED).
 router.post("/:jobPostId/applications/:candidateProfileId/shortlisted", markShortlisted);
+
+// POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unshortlisted
+// Employer unshortlists candidate (isShortlisted = false).
+router.post("/:jobPostId/applications/:candidateProfileId/unshortlisted", unmarkShortlisted);
 
 // GET    /api/employer/job-posts/:id      — Get a single post by ID
 // PATCH  /api/employer/job-posts/:id      — Partially update a post (including status changes)

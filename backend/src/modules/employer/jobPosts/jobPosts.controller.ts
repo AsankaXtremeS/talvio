@@ -424,3 +424,29 @@ export const markShortlisted = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unshortlisted
+ * Employer unshortlists candidate (sets isShortlisted = false).
+ */
+export const unmarkShortlisted = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const jobPostId = String(req.params.jobPostId);
+    const candidateProfileId = String(req.params.candidateProfileId);
+    if (!jobPostId || !isUuid(jobPostId))
+      return res.status(400).json({ message: "Invalid job post ID" });
+    if (!candidateProfileId || !isUuid(candidateProfileId))
+      return res.status(400).json({ message: "Invalid candidate profile ID" });
+
+    const result = await jobsService.unmarkShortlisted(userId, jobPostId, candidateProfileId);
+    res.json(result);
+  } catch (err: any) {
+    logControllerError("unmarkShortlisted", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to remove candidate from shortlist."),
+    });
+  }
+};

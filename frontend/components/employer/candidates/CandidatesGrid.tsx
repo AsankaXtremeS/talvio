@@ -8,9 +8,10 @@ interface Props {
   onViewProfile: (id: string) => void;
   onSchedule: (id: string) => void;
   onMoveToApplied?: (id: string) => void;
+  onUnshortlist?: (id: string) => void;
 }
 
-export default function CandidatesGrid({ candidates, isLoading = false, onViewProfile, onSchedule, onMoveToApplied }: Props) {
+export default function CandidatesGrid({ candidates, isLoading = false, onViewProfile, onSchedule, onMoveToApplied, onUnshortlist }: Props) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -44,6 +45,7 @@ export default function CandidatesGrid({ candidates, isLoading = false, onViewPr
             onViewProfile={onViewProfile}
             onSchedule={onSchedule}
             onMoveToApplied={onMoveToApplied}
+            onUnshortlist={onUnshortlist}
           />
         ))}
       </div>

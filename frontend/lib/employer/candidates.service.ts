@@ -213,101 +213,112 @@ interface BackendApplicant {
 
 const REVIEWED_STORAGE_PREFIX = "employer_reviewed_candidates_";
 const SHORTLISTED_STORAGE_PREFIX = "employer_shortlisted_candidates_";
+const UNSHORTLISTED_STORAGE_PREFIX = "employer_unshortlisted_candidates_";
+const UNREVIEWED_STORAGE_PREFIX = "employer_unreviewed_candidates_";
 
-export function getReviewedCandidateIds(jobPostId?: string): Set<string> {
+function getStorageSet(prefix: string, jobPostId?: string): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
+    const key = jobPostId ? `${prefix}${jobPostId}` : `${prefix}global`;
     const raw = localStorage.getItem(key);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch {
     return new Set();
   }
+}
+
+function addToStorageSet(prefix: string, jobPostId: string | undefined, candidateId: string): void {
+  if (typeof window === "undefined" || !candidateId) return;
+  try {
+    const ids = getStorageSet(prefix, jobPostId);
+    ids.add(candidateId);
+    const key = jobPostId ? `${prefix}${jobPostId}` : `${prefix}global`;
+    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+
+    if (jobPostId) {
+      const globalIds = getStorageSet(prefix);
+      globalIds.add(candidateId);
+      localStorage.setItem(`${prefix}global`, JSON.stringify(Array.from(globalIds)));
+    }
+  } catch (err) {
+    console.error(`Failed to add to storage set (${prefix}):`, err);
+  }
+}
+
+function removeFromStorageSet(prefix: string, jobPostId: string | undefined, candidateId: string): void {
+  if (typeof window === "undefined" || !candidateId) return;
+  try {
+    const ids = getStorageSet(prefix, jobPostId);
+    ids.delete(candidateId);
+    const key = jobPostId ? `${prefix}${jobPostId}` : `${prefix}global`;
+    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+
+    if (jobPostId) {
+      const globalIds = getStorageSet(prefix);
+      globalIds.delete(candidateId);
+      localStorage.setItem(`${prefix}global`, JSON.stringify(Array.from(globalIds)));
+    }
+  } catch (err) {
+    console.error(`Failed to remove from storage set (${prefix}):`, err);
+  }
+}
+
+export function getReviewedCandidateIds(jobPostId?: string): Set<string> {
+  return getStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId);
 }
 
 export function isCandidateReviewedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
   if (typeof window === "undefined" || !candidateId) return false;
-  try {
-    if (jobPostId && getReviewedCandidateIds(jobPostId).has(candidateId)) return true;
-    return getReviewedCandidateIds().has(candidateId);
-  } catch {
-    return false;
-  }
+  if (jobPostId && getStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId).has(candidateId)) return true;
+  return getStorageSet(REVIEWED_STORAGE_PREFIX).has(candidateId);
 }
 
 export function saveReviewedCandidateId(jobPostId: string | undefined, candidateId: string): void {
-  if (typeof window === "undefined" || !candidateId) return;
-  try {
-    const ids = getReviewedCandidateIds(jobPostId);
-    ids.add(candidateId);
-    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
-    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
-
-    if (jobPostId) {
-      const globalIds = getReviewedCandidateIds();
-      globalIds.add(candidateId);
-      localStorage.setItem(`${REVIEWED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
-    }
-  } catch (err) {
-    console.error("Failed to save reviewed candidate to storage:", err);
-  }
+  addToStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
 }
 
 export function removeReviewedCandidateId(jobPostId: string | undefined, candidateId: string): void {
-  if (typeof window === "undefined" || !candidateId) return;
-  try {
-    const ids = getReviewedCandidateIds(jobPostId);
-    ids.delete(candidateId);
-    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
-    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
-
-    if (jobPostId) {
-      const globalIds = getReviewedCandidateIds();
-      globalIds.delete(candidateId);
-      localStorage.setItem(`${REVIEWED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
-    }
-  } catch (err) {
-    console.error("Failed to remove reviewed candidate from storage:", err);
-  }
+  removeFromStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
 }
 
 export function getShortlistedCandidateIds(jobPostId?: string): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const key = jobPostId ? `${SHORTLISTED_STORAGE_PREFIX}${jobPostId}` : `${SHORTLISTED_STORAGE_PREFIX}global`;
-    const raw = localStorage.getItem(key);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
+  return getStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId);
 }
 
 export function isCandidateShortlistedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
   if (typeof window === "undefined" || !candidateId) return false;
-  try {
-    if (jobPostId && getShortlistedCandidateIds(jobPostId).has(candidateId)) return true;
-    return getShortlistedCandidateIds().has(candidateId);
-  } catch {
-    return false;
-  }
+  if (jobPostId && getStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId).has(candidateId)) return true;
+  return getStorageSet(SHORTLISTED_STORAGE_PREFIX).has(candidateId);
 }
 
 export function saveShortlistedCandidateId(jobPostId: string | undefined, candidateId: string): void {
-  if (typeof window === "undefined" || !candidateId) return;
-  try {
-    const ids = getShortlistedCandidateIds(jobPostId);
-    ids.add(candidateId);
-    const key = jobPostId ? `${SHORTLISTED_STORAGE_PREFIX}${jobPostId}` : `${SHORTLISTED_STORAGE_PREFIX}global`;
-    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+  addToStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+}
 
-    if (jobPostId) {
-      const globalIds = getShortlistedCandidateIds();
-      globalIds.add(candidateId);
-      localStorage.setItem(`${SHORTLISTED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
-    }
-  } catch (err) {
-    console.error("Failed to save shortlisted candidate to storage:", err);
-  }
+export function removeShortlistedCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  removeFromStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, candidateId);
+  addToStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+  removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, candidateId);
+}
+
+export function isCandidateUnshortlistedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
+  if (typeof window === "undefined" || !candidateId) return false;
+  if (jobPostId && getStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId).has(candidateId)) return true;
+  return getStorageSet(UNSHORTLISTED_STORAGE_PREFIX).has(candidateId);
+}
+
+export function isCandidateUnreviewedInStorage(jobPostId: string | undefined, candidateId: string): boolean {
+  if (typeof window === "undefined" || !candidateId) return false;
+  if (jobPostId && getStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId).has(candidateId)) return true;
+  return getStorageSet(UNREVIEWED_STORAGE_PREFIX).has(candidateId);
 }
 
 const mapBackendStatusToFrontend = (
@@ -340,15 +351,30 @@ const toCandidateInfo = (
   jobPostId?: string,
   jobPostTitle?: string
 ): CandidateInfo | null => {
-  const isLocalReviewed = isCandidateReviewedInStorage(jobPostId, applicant.id);
-  const isLocalShortlisted = isCandidateShortlistedInStorage(jobPostId, applicant.id);
+  const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, applicant.id);
+  const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, applicant.id);
 
-  const status = mapBackendStatusToFrontend(
-    applicant.status,
-    applicant.isReviewed || isLocalReviewed,
-    applicant.isShortlisted || isLocalShortlisted
+  const isShortlistedVal = !isExplicitlyUnshortlisted && Boolean(
+    applicant.isShortlisted ||
+    applicant.status === "SHORTLISTED" ||
+    isCandidateShortlistedInStorage(jobPostId, applicant.id)
   );
-  if (!status) return null;
+
+  const isReviewedVal = !isExplicitlyUnreviewed && Boolean(
+    isShortlistedVal ||
+    applicant.isReviewed ||
+    applicant.status === "REVIEWED" ||
+    isCandidateReviewedInStorage(jobPostId, applicant.id)
+  );
+
+  const status: CandidateStatus =
+    applicant.status === "HIRED"
+      ? "Hired"
+      : isShortlistedVal
+      ? "Shortlisted"
+      : isReviewedVal
+      ? "Reviewed"
+      : "Applied";
 
   const safeName = applicant.name?.trim() || "Unknown Applicant";
   const role = applicant.headline?.trim() || "Applicant";
@@ -569,17 +595,30 @@ export async function getCandidateById(
     };
 
     const safeName = data.name?.trim() || "Candidate";
-    const isLocalReviewed = isCandidateReviewedInStorage(jobPostId, data.id);
-    const isLocalShortlisted = isCandidateShortlistedInStorage(jobPostId, data.id);
+    const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, data.id);
+    const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, data.id);
 
-    const isReviewedVal = Boolean(appMatch?.isReviewed || isLocalReviewed || (appMatch?.status === "REVIEWED"));
-    const isShortlistedVal = Boolean(appMatch?.isShortlisted || isLocalShortlisted || (appMatch?.status === "SHORTLISTED"));
+    const isShortlistedVal = !isExplicitlyUnshortlisted && Boolean(
+      appMatch?.isShortlisted ||
+      appMatch?.status === "SHORTLISTED" ||
+      isCandidateShortlistedInStorage(jobPostId, data.id)
+    );
 
-    const status = mapBackendStatusToFrontend(
-      appMatch?.status,
-      isReviewedVal,
-      isShortlistedVal
-    ) || "Applied";
+    const isReviewedVal = !isExplicitlyUnreviewed && Boolean(
+      isShortlistedVal ||
+      appMatch?.isReviewed ||
+      appMatch?.status === "REVIEWED" ||
+      isCandidateReviewedInStorage(jobPostId, data.id)
+    );
+
+    const status: CandidateStatus =
+      appMatch?.status === "HIRED"
+        ? "Hired"
+        : isShortlistedVal
+        ? "Shortlisted"
+        : isReviewedVal
+        ? "Reviewed"
+        : "Applied";
 
     return {
       id: data.id,
@@ -699,5 +738,49 @@ export async function markShortlisted(
   } catch (err) {
     console.error("[markShortlisted] Error:", err);
     return { id: candidateProfileId, isReviewed: true, isShortlisted: true, applicationStatus: "SHORTLISTED" };
+  }
+}
+
+/**
+ * Remove a candidate from shortlist (unmark as shortlisted and transition to Reviewed).
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unshortlisted
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function unmarkShortlisted(
+  jobPostId?: string,
+  candidateProfileId?: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  if (!candidateProfileId) return null;
+  try {
+    // Remove from local shortlisted storage immediately
+    removeShortlistedCandidateId(jobPostId, candidateProfileId);
+    // Unshortlisting places the candidate into the Reviewed state
+    saveReviewedCandidateId(jobPostId, candidateProfileId);
+
+    if (jobPostId) {
+      const url = apiUrl(
+        `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/unshortlisted`
+      );
+      const res = await fetchWithAuth(url, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        console.warn("[unmarkShortlisted] Backend returned:", res.status, err, "Using local persistence.");
+      }
+    }
+    return {
+      id: candidateProfileId,
+      isReviewed: true,
+      isShortlisted: false,
+      applicationStatus: "REVIEWED",
+    };
+  } catch (err) {
+    console.error("[unmarkShortlisted] Error:", err);
+    saveReviewedCandidateId(jobPostId, candidateProfileId);
+    return {
+      id: candidateProfileId,
+      isReviewed: true,
+      isShortlisted: false,
+      applicationStatus: "REVIEWED",
+    };
   }
 }

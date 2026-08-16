@@ -23,7 +23,13 @@ import {
   CheckCheck,
   RotateCcw,
 } from "lucide-react";
-import { getCandidateById, markReviewed, unmarkReviewed, markShortlisted } from "@/lib/employer/candidates.service";
+import {
+  getCandidateById,
+  markReviewed,
+  unmarkReviewed,
+  markShortlisted,
+  unmarkShortlisted,
+} from "@/lib/employer/candidates.service";
 import { getAvatarGradient } from "@/lib/employer/candidates.service";
 import { FullCandidateProfile } from "@/types/candidate/candidate.types";
 
@@ -140,12 +146,35 @@ export default function CandidateProfilePage({ params }: Props) {
     try {
       const result = await markShortlisted(postId, candidateId);
       if (result) {
-        setIsReviewed(result.isReviewed);
-        setIsShortlisted(result.isShortlisted);
-        setAppStatus(result.applicationStatus);
+        setIsReviewed(true);
+        setIsShortlisted(true);
+        setAppStatus("SHORTLISTED");
         showToast("Candidate Shortlisted ★", true);
+        router.push(`/users/employer/job-posts/${postId}/candidates?status=Shortlisted`);
       } else {
         showToast("Failed to shortlist. Please try again.", false);
+      }
+    } finally {
+      setStatusLoading(null);
+    }
+  };
+
+  const handleUnmarkShortlisted = async () => {
+    setStatusLoading("UNSHORTLISTED");
+    try {
+      const result = await unmarkShortlisted(postId || undefined, candidateId);
+      if (result) {
+        setIsShortlisted(false);
+        setIsReviewed(true);
+        setAppStatus("REVIEWED");
+        showToast("Moved to Reviewed ✓", true);
+        if (postId) {
+          router.push(`/users/employer/job-posts/${postId}/candidates?status=Reviewed`);
+        } else {
+          router.push(`/users/employer/candidates?status=Reviewed`);
+        }
+      } else {
+        showToast("Failed to update. Please try again.", false);
       }
     } finally {
       setStatusLoading(null);
@@ -313,22 +342,25 @@ export default function CandidateProfilePage({ params }: Props) {
                 {isReviewed ? "Move to Applied" : "Mark Reviewed"}
               </button>
 
-              {/* Shortlist — independent boolean */}
+              {/* Shortlist / Unshortlist button */}
               <button
-                onClick={handleMarkShortlisted}
-                disabled={!!statusLoading || isShortlisted}
+                onClick={isShortlisted ? handleUnmarkShortlisted : handleMarkShortlisted}
+                disabled={!!statusLoading}
                 className={`flex items-center gap-2 px-4 py-2.5 text-[12.5px] font-semibold rounded-xl border transition-colors disabled:cursor-not-allowed ${
                   isShortlisted
-                    ? "text-[#059669] border-[#6EE7B7] bg-[#ECFDF5] opacity-80"
+                    ? "text-[#059669] border-[#6EE7B7] bg-[#ECFDF5] hover:bg-[#D1FAE5]"
                     : "text-[#059669] border-[#6EE7B7] bg-[#ECFDF5] hover:bg-[#D1FAE5]"
                 }`}
+                title={isShortlisted ? "Click to remove candidate from Shortlist" : "Shortlist candidate"}
               >
-                {statusLoading === "SHORTLISTED" ? (
+                {statusLoading === "SHORTLISTED" || statusLoading === "UNSHORTLISTED" ? (
                   <Loader2 size={13} className="animate-spin" />
+                ) : isShortlisted ? (
+                  <RotateCcw size={14} strokeWidth={2} />
                 ) : (
                   <Star size={14} strokeWidth={2} />
                 )}
-                {isShortlisted ? "Shortlisted ★" : "Shortlist"}
+                {isShortlisted ? "Remove Shortlist" : "Shortlist"}
               </button>
             </div>
           </div>
