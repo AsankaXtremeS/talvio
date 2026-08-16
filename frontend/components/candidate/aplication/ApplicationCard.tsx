@@ -32,10 +32,15 @@ export default function ApplicationCard({
   const router = useRouter();
 
   //Company Badge: looks up for it , if not found uses the first letter of the company name as the icon. 
+  const companyLogoUrl =
+    job.companyLogoUrl && job.companyLogoUrl !== "null" && job.companyLogoUrl !== "undefined"
+      ? job.companyLogoUrl
+      : "";
+
   const badge = COMPANY_BADGES[job.company] ?? {
     icon: job.company.slice(0, 1).toUpperCase(), // Uses the first letter as the icon if no specific badge is found.
     textClassName: "text-[#4B5563]",
-    bgClassName: "bg-white", 
+    bgClassName: "bg-[#F8FAFC]",
   };
 
   const handleApply = () => {
@@ -82,9 +87,27 @@ export default function ApplicationCard({
         <div className="flex items-start gap-3">
           {/* Company Badge */}
           <div
-            className={`flex h-9 w-9 items-center justify-center rounded-full border border-[#E7EAF2] text-sm font-bold shadow-sm ${badge.bgClassName} ${badge.textClassName}`}
+            className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#E7EAF2] text-sm font-bold shadow-sm ${badge.bgClassName} ${badge.textClassName}`}
           >
-            {badge.icon}
+            {companyLogoUrl ? (
+              <img
+                src={companyLogoUrl}
+                alt={`${job.company} logo`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.parentElement?.querySelector("span");
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            {!companyLogoUrl ? (
+              <span className="flex h-full w-full items-center justify-center">
+                {badge.icon}
+              </span>
+            ) : null}
           </div>
 
           {/* Job Info */}

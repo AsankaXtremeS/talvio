@@ -55,6 +55,7 @@ const mapBackendToFrontend = (app: CandidateApplication): ApplicationCardType =>
     applicationId: app.id, // Keep application ID for timeline actions
     title: app.jobPost.title,
     company: app.jobPost.employer.companyName,
+    companyLogoUrl: app.jobPost.employer.companyLogoUrl || null,
     location: app.jobPost.location || "N/A",
     workLocation: normalizeWorkLocation(app.jobPost.workMode || ""),
     jobType: normalizeJobType(app.jobPost.employmentType || ""),
