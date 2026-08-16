@@ -4,6 +4,7 @@
 // SECURITY: Only fields needed for display are exposed — no raw DB rows.
 
 import { CandidateInfo, CandidateStatus, FullCandidateProfile } from "@/types/candidate/candidate.types";
+import { getJobPosts } from "@/lib/employer/jobPosts.service";
 
 const apiUrl = (path: string) => {
   // Use relative /api paths so requests go through Next.js rewrites proxy and browser auth cookies are sent.
@@ -224,7 +225,11 @@ const toAppliedDaysAgo = (appliedAt: string): number => {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 };
 
-const toCandidateInfo = (applicant: BackendApplicant): CandidateInfo | null => {
+const toCandidateInfo = (
+  applicant: BackendApplicant,
+  jobPostId?: string,
+  jobPostTitle?: string
+): CandidateInfo | null => {
   const status = mapBackendStatusToFrontend(applicant.status);
   if (!status) return null;
 
@@ -243,6 +248,8 @@ const toCandidateInfo = (applicant: BackendApplicant): CandidateInfo | null => {
     email: applicant.email,
     status,
     avatarUrl: applicant.profilePictureUrl || undefined,
+    jobPostId,
+    jobPostTitle,
   };
 };
 
@@ -252,7 +259,7 @@ const filterCandidatesByStatus = (
 ): CandidateInfo[] => {
   if (status === "AI Matches") {
     return candidates
-      .filter((candidate) => candidate.status !== "Shortlisted")
+      .filter((candidate) => candidate.status !== "Shortlisted" && candidate.status !== "Hired")
       .sort((a, b) => b.matchScore - a.matchScore);
   }
 
@@ -277,7 +284,7 @@ export async function getCandidates(
       if (res.ok) {
         const data = (await res.json()) as BackendApplicant[];
         const mapped = data
-          .map(toCandidateInfo)
+          .map((app) => toCandidateInfo(app, jobPostId))
           .filter((candidate): candidate is CandidateInfo => candidate !== null);
         const filtered = filterCandidatesByStatus(mapped, status);
 
@@ -286,18 +293,85 @@ export async function getCandidates(
         );
         return filtered;
       } else {
-        console.error(`[getCandidates] Failed to fetch candidates: ${res.status}, falling back to mock data`);
-        return filterCandidatesByStatus(MOCK_CANDIDATES, status);
+        console.error(`[getCandidates] Failed to fetch candidates: ${res.status}`);
+        return [];
       }
     } catch (err) {
-      console.error("[getCandidates] Error fetching from API, falling back to mock data:", err);
-      return filterCandidatesByStatus(MOCK_CANDIDATES, status);
+      console.error("[getCandidates] Error fetching from API:", err);
+      return [];
     }
   }
 
-  // Fallback: return mock data filtered by status, including AI Matches based on score.
-  console.log(`[getCandidates] Using mock data for status ${status}`);
-  return Promise.resolve(filterCandidatesByStatus(MOCK_CANDIDATES, status));
+  // Fetch applications across all employer job posts from backend API
+  try {
+    const posts = await getJobPosts();
+    if (!posts || posts.length === 0) return [];
+
+    const allApplicantsNested = await Promise.all(
+      posts.map(async (job) => {
+        try {
+          const url = apiUrl(`/api/employer/job-posts/${job.id}/applications`);
+          const res = await fetchWithAuth(url);
+          if (res.ok) {
+            const data = (await res.json()) as BackendApplicant[];
+            return data
+              .map((app) => toCandidateInfo(app, job.id, job.title))
+              .filter((c): c is CandidateInfo => c !== null);
+          }
+        } catch {
+          // ignore single job post fetch errors
+        }
+        return [];
+      })
+    );
+
+    const allApplicants = allApplicantsNested.flat();
+
+    if (status === "AI Matches") {
+      // Group all applications by candidate profile ID
+      const candidateApplicationsMap = new Map<string, CandidateInfo[]>();
+      allApplicants.forEach((candidate) => {
+        const existing = candidateApplicationsMap.get(candidate.id) || [];
+        existing.push(candidate);
+        candidateApplicationsMap.set(candidate.id, existing);
+      });
+
+      const eligibleCandidates: CandidateInfo[] = [];
+
+      candidateApplicationsMap.forEach((apps) => {
+        // If candidate is shortlisted/hired for EVERY job post they applied to, exclude them
+        const isShortlistedEverywhere = apps.every(
+          (app) => app.status === "Shortlisted" || app.status === "Hired"
+        );
+
+        // If candidate is NOT shortlisted for at least 1 job post, include their top unshortlisted application
+        if (!isShortlistedEverywhere) {
+          const unshortlisted = apps.filter(
+            (app) => app.status !== "Shortlisted" && app.status !== "Hired"
+          );
+          unshortlisted.sort((a, b) => b.matchScore - a.matchScore);
+          if (unshortlisted.length > 0) {
+            eligibleCandidates.push(unshortlisted[0]);
+          }
+        }
+      });
+
+      return eligibleCandidates.sort((a, b) => b.matchScore - a.matchScore);
+    }
+
+    // Deduplicate by candidate profile ID for other status filters
+    const uniqueMap = new Map<string, CandidateInfo>();
+    allApplicants.forEach((candidate) => {
+      if (!uniqueMap.has(candidate.id)) {
+        uniqueMap.set(candidate.id, candidate);
+      }
+    });
+
+    return filterCandidatesByStatus(Array.from(uniqueMap.values()), status);
+  } catch (err) {
+    console.error("[getCandidates] Error fetching all job post applications:", err);
+    return [];
+  }
 }
 
 /**
@@ -313,7 +387,7 @@ export async function getCandidateById(
     console.warn(
       `[getCandidateById] Skipping API fetch for invalid candidate profile id: ${candidateProfileId}`
     );
-    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+    return null;
   }
 
   try {
@@ -343,7 +417,6 @@ export async function getCandidateById(
           `[getCandidateById] Error fetching from applications endpoint:`,
           err
         );
-        // Fall through to fetch candidate profile separately
       }
     }
 
@@ -357,7 +430,7 @@ export async function getCandidateById(
       if (res.status !== 404) {
         console.error(`[getCandidateById] Failed to fetch candidate: ${res.status}`);
       }
-      return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+      return null;
     }
 
     const data = (await res.json()) as {
@@ -398,7 +471,7 @@ export async function getCandidateById(
     };
   } catch (err) {
     console.error("[getCandidateById] Error fetching candidate:", err);
-    return MOCK_CANDIDATES.find((c) => c.id === candidateProfileId) as FullCandidateProfile ?? null;
+    return null;
   }
 }
 

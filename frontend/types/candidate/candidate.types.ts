@@ -18,6 +18,8 @@ export interface CandidateInfo {
   skills: string[];
   email: string;
   status: CandidateStatus;
+  jobPostId?: string;
+  jobPostTitle?: string;
 }
 
 export interface FullCandidateProfile extends CandidateInfo {

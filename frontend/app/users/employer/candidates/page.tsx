@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
-import { MOCK_CANDIDATES, getCandidates } from "@/lib/employer/candidates.service";
+import { getCandidates } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
@@ -29,45 +29,28 @@ export default function CandidatesPage() {
   const [query, setQuery]     = useState("");
   const [all, setAll]         = useState<CandidateInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
 
   // Clear stale offline cache on mount so DB-recovered data is fetched fresh
   useEffect(() => {
     clearOfflineJobPostsCache();
   }, []);
 
-  // Fetch all candidates from real API. If a postId is in the URL, fetch
-  // candidates for that specific job post. Otherwise, show mock data with a
-  // hint to navigate from a job post (API is scoped per job post).
+  // Fetch candidate data directly from real API
   useEffect(() => {
     let mounted = true;
     setLoading(true);
 
     const fetchAll = async () => {
       try {
-        if (postId) {
-          // Fetch real applicants for the specific job post
-          const data = await getCandidates("Applied", postId);
-          if (mounted) {
-            setAll(data.length > 0 ? data : MOCK_CANDIDATES);
-            setUsingMock(data.length === 0);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // Without a postId the backend endpoint is scoped per job post,
-        // so we cannot fetch across all jobs from this page. Show mock data.
+        const data = await getCandidates(status, postId || undefined);
         if (mounted) {
-          setAll(MOCK_CANDIDATES);
-          setUsingMock(true);
+          setAll(data);
           setLoading(false);
         }
       } catch (err) {
         console.error("[CandidatesPage] Failed to fetch candidates:", err);
         if (mounted) {
-          setAll(MOCK_CANDIDATES);
-          setUsingMock(true);
+          setAll([]);
           setLoading(false);
         }
       }
@@ -75,7 +58,7 @@ export default function CandidatesPage() {
 
     fetchAll();
     return () => { mounted = false; };
-  }, [postId]);
+  }, [status, postId]);
 
   /* ── Filtered list — derived from status + search query ── */
   const filtered = useMemo(() => {
@@ -126,9 +109,7 @@ export default function CandidatesPage() {
           </h1>
         </div>
         <p className="text-[12.5px] text-[#ADADAD]">
-          {usingMock && !postId
-            ? "Navigate from a job post to see real applicants"
-            : "Manage and review all job applicants"}
+          Manage and review all job applicants
         </p>
       </div>
 

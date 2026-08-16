@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
@@ -17,12 +17,21 @@ interface Props {
 export default function PostCandidatesPage({ params }: Props) {
   const { postId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [status, setStatus] = useState<CandidateStatus>("Applied");
+  const initialStatus = (searchParams.get("status") as CandidateStatus) || "Applied";
+  const [status, setStatus] = useState<CandidateStatus>(initialStatus);
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
   const [jobPost, setJobPost] = useState<JobPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const urlStatus = searchParams.get("status") as CandidateStatus | null;
+    if (urlStatus && urlStatus !== status) {
+      setStatus(urlStatus);
+    }
+  }, [searchParams, status]);
 
   useEffect(() => {
     let mounted = true;
