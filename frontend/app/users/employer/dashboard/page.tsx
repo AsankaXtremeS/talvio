@@ -17,6 +17,7 @@ import RecentActivityFeed, {
 import InterviewDetailsModal from "@/components/employer/interviews/InterviewDetailsModal";
 import type { InterviewDTO } from "@/types/employer/interview.types";
 import type { JobPost } from "@/types/employer/jobPost.types";
+import type { CandidateInfo } from "@/types/candidate/candidate.types";
 
 interface DashboardActivityItem extends RecentActivityFeedActivityItem {
   sortValue: number;
@@ -102,12 +103,10 @@ export default function DashboardPage() {
   );
 
   const { data: aiCandidates = [], isLoading: aiCandidatesLoading } = useQuery({
-    queryKey: ["employer", "aiCandidates", activeJob?.id],
+    queryKey: ["employer", "aiCandidates"],
     queryFn: async () => {
-      if (!activeJob?.id) return [];
-      return await getCandidates("AI Matches", activeJob.id);
+      return await getCandidates("AI Matches");
     },
-    enabled: Boolean(activeJob?.id),
   });
 
   const activityFeed = useMemo<DashboardActivityItem[]>(
@@ -188,7 +187,13 @@ export default function DashboardPage() {
           <AIMatchedWidget
             candidates={aiCandidates}
             isLoading={aiCandidatesLoading}
-            onViewProfile={(candidateId) => router.push(`/users/employer/candidates/${candidateId}`)}
+            onViewProfile={(candidateId, jobPostId) => {
+              if (jobPostId) {
+                router.push(`/users/employer/job-posts/${jobPostId}/candidates?status=AI Matches`);
+              } else {
+                router.push(`/users/employer/candidates/${candidateId}`);
+              }
+            }}
           />
           <JobsPreviewWidget
             jobs={jobPosts}

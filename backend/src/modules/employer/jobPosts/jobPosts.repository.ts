@@ -540,7 +540,16 @@ export const jobsRepository = {
   async markReviewed(applicationId: string) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: { isReviewed: true },
+      data: { isReviewed: true, applicationStatus: "REVIEWED" },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+    });
+  },
+
+  // Set isReviewed = false on an application and revert status to PENDING.
+  async unmarkReviewed(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: { isReviewed: false, applicationStatus: "PENDING" },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
@@ -550,6 +559,19 @@ export const jobsRepository = {
     return prisma.application.update({
       where: { id: applicationId },
       data: { isShortlisted: true, applicationStatus: "SHORTLISTED" },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+    });
+  },
+
+  // Set isShortlisted = false on an application and revert status to REVIEWED.
+  async unmarkShortlisted(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        isShortlisted: false,
+        isReviewed: true,
+        applicationStatus: "REVIEWED",
+      },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },

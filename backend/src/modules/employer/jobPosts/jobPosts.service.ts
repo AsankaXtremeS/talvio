@@ -293,7 +293,9 @@ export const jobsService = {
       email: app.candidateProfile.user.email,
       headline: app.candidateProfile.headline || "",
       skills: app.candidateProfile.skills || [],
-      status: app.applicationStatus, // PENDING, SHORTLISTED, REJECTED
+      status: app.applicationStatus, // PENDING, REVIEWED, SHORTLISTED, REJECTED, HIRED
+      isReviewed: app.isReviewed,
+      isShortlisted: app.isShortlisted,
       appliedAt: app.appliedAt.toISOString(),
       cvUrl: app.cvUrl,
       aiScore: app.aiScore || 0,
@@ -321,6 +323,24 @@ export const jobsService = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // UNMARK REVIEWED — Move candidate back to Applied status (isReviewed = false).
+  // ═══════════════════════════════════════════════════════════════════════════
+  async unmarkReviewed(
+    userId: string,
+    jobPostId: string,
+    candidateProfileId: string
+  ) {
+    const employerId = await resolveApprovedEmployerId(userId);
+    const jobPost = await jobsRepository.findById(jobPostId, employerId);
+    if (!jobPost) throw buildHttpError("Job post not found", 404);
+
+    const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
+    if (!app) throw buildHttpError("Application not found for this candidate", 404);
+
+    return jobsRepository.unmarkReviewed(app.id);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // MARK SHORTLISTED — Employer shortlists the candidate for the job post.
   // Sets isShortlisted = true AND updates applicationStatus to SHORTLISTED.
   // Can co-exist with isReviewed = true.
@@ -338,5 +358,23 @@ export const jobsService = {
     if (!app) throw buildHttpError("Application not found", 404);
 
     return jobsRepository.markShortlisted(app.id);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNMARK SHORTLISTED — Remove candidate from shortlist (isShortlisted = false).
+  // ═══════════════════════════════════════════════════════════════════════════
+  async unmarkShortlisted(
+    userId: string,
+    jobPostId: string,
+    candidateProfileId: string
+  ) {
+    const employerId = await resolveApprovedEmployerId(userId);
+    const jobPost = await jobsRepository.findById(jobPostId, employerId);
+    if (!jobPost) throw buildHttpError("Job post not found", 404);
+
+    const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
+    if (!app) throw buildHttpError("Application not found for this candidate", 404);
+
+    return jobsRepository.unmarkShortlisted(app.id);
   },
 };

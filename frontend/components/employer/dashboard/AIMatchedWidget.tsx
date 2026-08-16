@@ -2,21 +2,40 @@ import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import type { CandidateInfo } from "@/types/candidate/candidate.types";
 
+import { getAvatarGradient } from "@/lib/employer/candidates.service";
+
 interface AIMatchedWidgetProps {
   candidates: CandidateInfo[];
   isLoading?: boolean;
-  onViewProfile?: (candidateId: string) => void;
+  onViewProfile?: (candidateId: string, jobPostId?: string) => void;
 }
 
-function Avatar({ seed }: { seed: string }) {
+function CandidateAvatar({ candidate, index }: { candidate: CandidateInfo; index: number }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (candidate.avatarUrl && !imgError) {
+    return (
+      <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-indigo-50 border border-slate-200">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={candidate.avatarUrl}
+          alt={candidate.name}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  const grad = candidate.avatarGradient ?? getAvatarGradient(index);
+  const initial = candidate.initial || candidate.name?.charAt(0)?.toUpperCase() || "C";
+
   return (
-    <div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center shrink-0">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(seed)}`}
-        alt="avatar"
-        className="w-full h-full object-cover"
-      />
+    <div
+      style={{ background: grad }}
+      className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-white font-semibold text-sm shadow-xs"
+    >
+      {initial}
     </div>
   );
 }
@@ -43,9 +62,10 @@ export default function AIMatchedWidget({ candidates, isLoading, onViewProfile }
 
   const filteredCandidates = useMemo(() => {
     const sorted = [...candidates].sort((a, b) => b.matchScore - a.matchScore);
-    return selectedRole === "Show All"
-      ? sorted
-      : sorted.filter((candidate) => candidate.role === selectedRole);
+    if (selectedRole === "Show All") {
+      return sorted.slice(0, 3);
+    }
+    return sorted.filter((candidate) => candidate.role === selectedRole);
   }, [candidates, selectedRole]);
 
   return (
@@ -97,25 +117,25 @@ export default function AIMatchedWidget({ candidates, isLoading, onViewProfile }
         {isLoading ? (
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Loading AI matches…</div>
         ) : filteredCandidates.length > 0 ? (
-          filteredCandidates.map((candidate) => (
+          filteredCandidates.map((candidate, idx) => (
             <div
               key={candidate.id}
               role={onViewProfile ? "button" : undefined}
               tabIndex={onViewProfile ? 0 : undefined}
-              onClick={onViewProfile ? () => onViewProfile(candidate.id) : undefined}
+              onClick={onViewProfile ? () => onViewProfile(candidate.id, candidate.jobPostId) : undefined}
               onKeyDown={
                 onViewProfile
                   ? (event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        onViewProfile(candidate.id);
+                        onViewProfile(candidate.id, candidate.jobPostId);
                       }
                     }
                   : undefined
               }
               className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 cursor-pointer transition hover:border-slate-300 hover:bg-slate-100"
             >
-              <Avatar seed={candidate.name} />
+              <CandidateAvatar candidate={candidate} index={idx} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{candidate.name}</p>
                 <p className="truncate text-xs text-slate-500">{candidate.role}</p>

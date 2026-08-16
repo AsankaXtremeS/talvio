@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Users, Calendar, CheckCircle, Bot } from "lucide-react";
+import { Search, Users, Calendar, CheckCircle, CheckCircle2, Bot } from "lucide-react";
 import { CandidateStatus } from "@/types/candidate/candidate.types";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   onStatusChange: (s: CandidateStatus) => void;
   query: string;
   onQueryChange: (q: string) => void;
+  counts?: Partial<Record<CandidateStatus, number>>;
 }
 
 const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
@@ -18,6 +19,10 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
   {
     label: "AI Matches",
     icon: <Bot size={13} strokeWidth={2} />,
+  },
+  {
+    label: "Reviewed",
+    icon: <CheckCircle2 size={13} strokeWidth={2} />,
   },
   {
     label: "Shortlisted",
@@ -33,7 +38,13 @@ const PILLS: { label: CandidateStatus; icon: React.ReactNode }[] = [
   },
 ];
 
-export default function CandidateFilterBar({ status, onStatusChange, query, onQueryChange }: Props) {
+export default function CandidateFilterBar({
+  status,
+  onStatusChange,
+  query,
+  onQueryChange,
+  counts,
+}: Props) {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2.5">
 
@@ -56,11 +67,14 @@ export default function CandidateFilterBar({ status, onStatusChange, query, onQu
       {/* ── Status pills ── */}
       {PILLS.map(({ label, icon }) => {
         const active = status === label;
+        const count = counts?.[label];
+        const hasCount = typeof count === "number";
+
         return (
           <button
             key={label}
             onClick={() => onStatusChange(label)}
-            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-all
+            className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-all
               ${active
                 ? "border-[#4F46E5] bg-[#EEEEFF] text-[#4F46E5]"
                 : "border-[#E4E6EE] bg-white text-[#777] hover:border-[#A5B4FC] hover:text-[#4F46E5] hover:bg-[#FAFBFF]"
@@ -69,7 +83,10 @@ export default function CandidateFilterBar({ status, onStatusChange, query, onQu
             <span className={active ? "text-[#4F46E5]" : "text-[#ADADAD]"}>
               {icon}
             </span>
-            {label}
+            <span>
+              {label}
+              {hasCount ? ` (${count})` : ""}
+            </span>
           </button>
         );
       })}
