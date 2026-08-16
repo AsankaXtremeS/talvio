@@ -20,6 +20,7 @@ import {
   deleteJobPost,
   getJobPostApplications,
   markReviewed,
+  unmarkReviewed,
   markShortlisted,
 } from "./jobPosts.controller";
 
@@ -65,6 +66,10 @@ router.get("/:id/applications", getJobPostApplications);
 // POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/reviewed
 // Employer marks the candidate's application as reviewed (isReviewed = true).
 router.post("/:jobPostId/applications/:candidateProfileId/reviewed", markReviewed);
+
+// POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unreviewed
+// Employer reverts the candidate's application back to applied (isReviewed = false).
+router.post("/:jobPostId/applications/:candidateProfileId/unreviewed", unmarkReviewed);
 
 // POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
 // Employer shortlists the candidate (isShortlisted = true, applicationStatus = SHORTLISTED).

@@ -545,6 +545,15 @@ export const jobsRepository = {
     });
   },
 
+  // Set isReviewed = false on an application and revert status to PENDING.
+  async unmarkReviewed(applicationId: string) {
+    return prisma.application.update({
+      where: { id: applicationId },
+      data: { isReviewed: false, applicationStatus: "PENDING" },
+      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+    });
+  },
+
   // Set isShortlisted = true on an application (independent of isReviewed).
   async markShortlisted(applicationId: string) {
     return prisma.application.update({

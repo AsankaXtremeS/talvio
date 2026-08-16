@@ -253,6 +253,24 @@ export function saveReviewedCandidateId(jobPostId: string | undefined, candidate
   }
 }
 
+export function removeReviewedCandidateId(jobPostId: string | undefined, candidateId: string): void {
+  if (typeof window === "undefined" || !candidateId) return;
+  try {
+    const ids = getReviewedCandidateIds(jobPostId);
+    ids.delete(candidateId);
+    const key = jobPostId ? `${REVIEWED_STORAGE_PREFIX}${jobPostId}` : `${REVIEWED_STORAGE_PREFIX}global`;
+    localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+
+    if (jobPostId) {
+      const globalIds = getReviewedCandidateIds();
+      globalIds.delete(candidateId);
+      localStorage.setItem(`${REVIEWED_STORAGE_PREFIX}global`, JSON.stringify(Array.from(globalIds)));
+    }
+  } catch (err) {
+    console.error("Failed to remove reviewed candidate from storage:", err);
+  }
+}
+
 export function getShortlistedCandidateIds(jobPostId?: string): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
@@ -620,6 +638,37 @@ export async function markReviewed(
   } catch (err) {
     console.error("[markReviewed] Error:", err);
     return { id: candidateProfileId, isReviewed: true, isShortlisted: false, applicationStatus: "REVIEWED" };
+  }
+}
+
+/**
+ * Move a candidate's application back to applied (unmark as reviewed).
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unreviewed
+ * Returns: { id, isReviewed, isShortlisted, applicationStatus }
+ */
+export async function unmarkReviewed(
+  jobPostId?: string,
+  candidateProfileId?: string
+): Promise<{ id: string; isReviewed: boolean; isShortlisted: boolean; applicationStatus: string } | null> {
+  if (!candidateProfileId) return null;
+  try {
+    // Remove from local storage immediately for instant UI update
+    removeReviewedCandidateId(jobPostId, candidateProfileId);
+
+    if (jobPostId) {
+      const url = apiUrl(
+        `/api/employer/job-posts/${jobPostId}/applications/${candidateProfileId}/unreviewed`
+      );
+      const res = await fetchWithAuth(url, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        console.warn("[unmarkReviewed] Backend returned:", res.status, err, "Using local persistence.");
+      }
+    }
+    return { id: candidateProfileId, isReviewed: false, isShortlisted: false, applicationStatus: "PENDING" };
+  } catch (err) {
+    console.error("[unmarkReviewed] Error:", err);
+    return { id: candidateProfileId, isReviewed: false, isShortlisted: false, applicationStatus: "PENDING" };
   }
 }
 

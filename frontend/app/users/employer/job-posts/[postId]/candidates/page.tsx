@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 import { getJobPostById } from "@/lib/employer/jobPosts.service";
-import { getCandidates } from "@/lib/employer/candidates.service";
+import { getCandidates, unmarkReviewed } from "@/lib/employer/candidates.service";
 import type { JobPost } from "@/types/employer/jobPost.types";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
 
@@ -95,6 +95,13 @@ export default function PostCandidatesPage({ params }: Props) {
     });
   }, [candidates, query]);
 
+  const handleMoveToApplied = async (candidateId: string) => {
+    await unmarkReviewed(postId, candidateId);
+    // Refresh current candidate list
+    const updated = await getCandidates(status, postId);
+    setCandidates(updated);
+  };
+
   return (
     <div className="p-6 space-y-6">
 
@@ -131,6 +138,7 @@ export default function PostCandidatesPage({ params }: Props) {
           // Route includes both postId and candidateProfileId.
           router.push(`/users/employer/job-posts/${postId}/candidates/${id}/schedule`);
         }}
+        onMoveToApplied={handleMoveToApplied}
       />
     </div>
   );

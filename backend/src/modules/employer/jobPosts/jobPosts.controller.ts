@@ -373,6 +373,32 @@ export const markReviewed = async (req: Request, res: Response) => {
 };
 
 /**
+ * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/unreviewed
+ * Employer moves candidate back to Applied status (sets isReviewed = false).
+ */
+export const unmarkReviewed = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const jobPostId = String(req.params.jobPostId);
+    const candidateProfileId = String(req.params.candidateProfileId);
+    if (!jobPostId || !isUuid(jobPostId))
+      return res.status(400).json({ message: "Invalid job post ID" });
+    if (!candidateProfileId || !isUuid(candidateProfileId))
+      return res.status(400).json({ message: "Invalid candidate profile ID" });
+
+    const result = await jobsService.unmarkReviewed(userId, jobPostId, candidateProfileId);
+    res.json(result);
+  } catch (err: any) {
+    logControllerError("unmarkReviewed", err);
+    res.status(resolveStatusCode(err)).json({
+      message: getPublicErrorMessage(err, "Failed to move candidate back to applied."),
+    });
+  }
+};
+
+/**
  * POST /api/employer/job-posts/:jobPostId/applications/:candidateProfileId/shortlisted
  * Employer shortlists the candidate (sets isShortlisted = true, applicationStatus = SHORTLISTED).
  * Independent from reviewed.

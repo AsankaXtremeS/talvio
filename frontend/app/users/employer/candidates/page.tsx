@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
-import { getCandidates } from "@/lib/employer/candidates.service";
+import { getCandidates, unmarkReviewed } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
@@ -104,6 +104,12 @@ export default function CandidatesPage() {
     router.push(url);
   };
 
+  const handleMoveToApplied = async (candidateId: string) => {
+    await unmarkReviewed(postId || undefined, candidateId);
+    const updated = await getCandidates(status, postId || undefined);
+    setAll(updated);
+  };
+
   return (
     <div className="min-h-screen px-8.5 pt-7 pb-10">
 
@@ -152,6 +158,7 @@ export default function CandidatesPage() {
           candidates={filtered}
           onViewProfile={handleViewProfile}
           onSchedule={handleSchedule}
+          onMoveToApplied={handleMoveToApplied}
         />
       )}
     </div>
