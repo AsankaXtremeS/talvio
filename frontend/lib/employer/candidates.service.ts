@@ -5,18 +5,13 @@
 
 import { CandidateInfo, CandidateStatus, FullCandidateProfile } from "@/types/candidate/candidate.types";
 
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  ""
-).replace(/\/+$|^\s+|\s+$/g, "");
-
 const apiUrl = (path: string) => {
-  if (!path.startsWith("/")) return API_BASE ? `${API_BASE}/${path}` : `/${path}`;
-  return API_BASE ? `${API_BASE}${path}` : path;
+  // Use relative /api paths so requests go through Next.js rewrites proxy and browser auth cookies are sent.
+  if (!path.startsWith("/")) return `/${path}`;
+  return path;
 };
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuid(value: string): boolean {
   return UUID_REGEX.test(value);
@@ -145,7 +140,7 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
     status: "Applied",
   },
   {
-    id: "b2c3d4e5-f6a7-48b9-0c2d-3e4f5a6b7c8d",
+    id: "b2c3d4e5-f6a7-48b9-8c2d-3e4f5a6b7c8d",
     name: "Ravindu Jayasinghe",
     role: "Full Stack Engineer",
     initial: "R",
@@ -158,7 +153,7 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
     status: "Applied",
   },
   {
-    id: "c3d4e5f6-a7b8-49ca-1d3e-4f5a6b7c8d9e",
+    id: "c3d4e5f6-a7b8-49ca-8d3e-4f5a6b7c8d9e",
     name: "Nishani Fernando",
     role: "UI/UX Designer",
     initial: "N",
@@ -171,7 +166,7 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
     status: "Shortlisted",
   },
   {
-    id: "d4e5f6a7-b8c9-40db-2e4f-5a6b7c8d9e0f",
+    id: "d4e5f6a7-b8c9-40db-8e4f-5a6b7c8d9e0f",
     name: "Kasun Bandara",
     role: "DevOps Engineer",
     initial: "K",
@@ -184,7 +179,7 @@ export const MOCK_CANDIDATES: CandidateInfo[] = [
     status: "Shortlisted",
   },
   {
-    id: "e5f6a7b8-c9d0-41ec-3f50-6b7c8d9e0f1a",
+    id: "e5f6a7b8-c9d0-41ec-8f50-6b7c8d9e0f1a",
     name: "Tharushi Amarasinghe",
     role: "Data Analyst",
     initial: "T",
@@ -256,7 +251,9 @@ const filterCandidatesByStatus = (
   status: CandidateStatus
 ): CandidateInfo[] => {
   if (status === "AI Matches") {
-    return [...candidates].sort((a, b) => b.matchScore - a.matchScore);
+    return candidates
+      .filter((candidate) => candidate.status !== "Shortlisted")
+      .sort((a, b) => b.matchScore - a.matchScore);
   }
 
   return candidates.filter((candidate) => candidate.status === status);

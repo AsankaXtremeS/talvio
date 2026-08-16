@@ -137,6 +137,23 @@ export default function AdminDetailModal(props: AdminDetailModalProps) {
           <div className="md:col-span-2">
             <DetailField icon={<Briefcase size={18} />} label="Job Title" value={data.jobTitle} />
           </div>
+          {data.companyLogoUrl && (
+            <div className="md:col-span-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-2">Company Logo</p>
+              <div className="h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img
+                  src={data.companyLogoUrl}
+                  alt={`${data.companyName} logo`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <DetailField icon={<Building2 size={18} />} label="Company" value={data.companyName} />
           <DetailField icon={<Mail size={18} />} label="Company Email" value={data.companyEmail} />
           <DetailField icon={<Tag size={18} />} label="Job Type" value={data.type} />
@@ -182,29 +199,29 @@ export default function AdminDetailModal(props: AdminDetailModalProps) {
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100"
         >
           {/* Header */}
-          <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-linear-to-r from-white to-indigo-50/30">
+          <div className="px-5 sm:px-8 py-4 sm:py-6 border-b border-gray-50 flex items-center justify-between bg-linear-to-r from-white to-indigo-50/30">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 leading-tight">{title}</h3>
-              <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mt-1">Detailed Profile View</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{title}</h3>
+              <p className="text-[10px] sm:text-xs font-semibold text-indigo-500 uppercase tracking-widest mt-0.5 sm:mt-1">Detailed Profile View</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+              className="p-1.5 sm:p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* Content */}
-          <div className="p-8 max-h-[70vh] overflow-y-auto admin-scroll">
+          <div className="p-5 sm:p-8 max-h-[70vh] overflow-y-auto admin-scroll">
             {renderContent()}
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-4 bg-gray-50/80 border-t border-gray-100 flex justify-end">
+          <div className="px-5 sm:px-8 py-3.5 sm:py-4 bg-gray-50/80 border-t border-gray-100 flex justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 active:scale-95"
+              className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-white border border-gray-200 text-xs sm:text-sm font-bold text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 active:scale-95"
             >
               Close Details
             </button>

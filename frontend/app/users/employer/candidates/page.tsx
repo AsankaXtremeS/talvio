@@ -5,9 +5,20 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
-import { MOCK_CANDIDATES } from "@/lib/employer/candidates.service";
+import { MOCK_CANDIDATES, getCandidates } from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
+
+// Clear the offline job-posts cache so stale localStorage data doesn't
+// persist after the database recovers from a 503 outage.
+function clearOfflineJobPostsCache() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem("employerOfflineJobPosts");
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 export default function CandidatesPage() {
   const router = useRouter();
@@ -18,17 +29,53 @@ export default function CandidatesPage() {
   const [query, setQuery]     = useState("");
   const [all, setAll]         = useState<CandidateInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usingMock, setUsingMock] = useState(false);
 
-  /* ── Fetch all candidates once on mount ──
-     When backend is ready, replace MOCK_CANDIDATES with:
-     const data = await getCandidates(status) — or fetch all and filter client-side */
+  // Clear stale offline cache on mount so DB-recovered data is fetched fresh
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setAll(MOCK_CANDIDATES);
-      setLoading(false);
-    }, 300);
+    clearOfflineJobPostsCache();
   }, []);
+
+  // Fetch all candidates from real API. If a postId is in the URL, fetch
+  // candidates for that specific job post. Otherwise, show mock data with a
+  // hint to navigate from a job post (API is scoped per job post).
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    const fetchAll = async () => {
+      try {
+        if (postId) {
+          // Fetch real applicants for the specific job post
+          const data = await getCandidates("Applied", postId);
+          if (mounted) {
+            setAll(data.length > 0 ? data : MOCK_CANDIDATES);
+            setUsingMock(data.length === 0);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Without a postId the backend endpoint is scoped per job post,
+        // so we cannot fetch across all jobs from this page. Show mock data.
+        if (mounted) {
+          setAll(MOCK_CANDIDATES);
+          setUsingMock(true);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("[CandidatesPage] Failed to fetch candidates:", err);
+        if (mounted) {
+          setAll(MOCK_CANDIDATES);
+          setUsingMock(true);
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAll();
+    return () => { mounted = false; };
+  }, [postId]);
 
   /* ── Filtered list — derived from status + search query ── */
   const filtered = useMemo(() => {
@@ -74,12 +121,14 @@ export default function CandidatesPage() {
       <div className="mb-5.5">
         <div className="mb-1 flex items-center gap-2.5">
           <Users size={26} strokeWidth={2.2} className="text-[#4F46E5]" />
-          <h1 className="text-3xl font-bold tracking-tight text-indigo-500 ">
+          <h1 className="text-3xl font-bold tracking-tight text-indigo-500">
             Candidates
           </h1>
         </div>
         <p className="text-[12.5px] text-[#ADADAD]">
-          Manage and review all job applicants
+          {usingMock && !postId
+            ? "Navigate from a job post to see real applicants"
+            : "Manage and review all job applicants"}
         </p>
       </div>
 
@@ -100,16 +149,15 @@ export default function CandidatesPage() {
                 </div>
               </div>
             </div>
-            ))}
-          </div>
-        ) : (
-          <CandidatesGrid
-            candidates={filtered}
-            onViewProfile={handleViewProfile}
-            onSchedule={handleSchedule}
-          />
-        )}
-      </div>
-    
+          ))}
+        </div>
+      ) : (
+        <CandidatesGrid
+          candidates={filtered}
+          onViewProfile={handleViewProfile}
+          onSchedule={handleSchedule}
+        />
+      )}
+    </div>
   );
 }

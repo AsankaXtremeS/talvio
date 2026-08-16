@@ -31,10 +31,11 @@ export default function ApplicationCard({
 }: ApplicationCardProps) {
   const router = useRouter();
 
+  //Company Badge: looks up for it , if not found uses the first letter of the company name as the icon. 
   const badge = COMPANY_BADGES[job.company] ?? {
-    icon: job.company.slice(0, 1).toUpperCase(),
+    icon: job.company.slice(0, 1).toUpperCase(), // Uses the first letter as the icon if no specific badge is found.
     textClassName: "text-[#4B5563]",
-    bgClassName: "bg-white",
+    bgClassName: "bg-white", 
   };
 
   const handleApply = () => {
@@ -46,6 +47,9 @@ export default function ApplicationCard({
   };
 
   // Default implementations if not provided
+
+  //Decide the state of each step, 
+  //if the current stage is before the step, it will be marked as done, if it is the current stage, it will be marked as current, otherwise it will be marked as pending.
   const defaultGetStepState = (
     currentStage: ApplicationMeta["stage"],
     step: ApplicationMeta["stage"]
@@ -58,6 +62,8 @@ export default function ApplicationCard({
     return "pending";
   };
 
+  //calculate the progress of the current stage. 
+  //Converts the stage into a percentage for the green progress bar.
   const defaultGetStageProgress = (stage: ApplicationMeta["stage"]): number => {
     const stageIndex = STEP_LABELS.indexOf(stage);
     const maxIndex = STEP_LABELS.length - 1;

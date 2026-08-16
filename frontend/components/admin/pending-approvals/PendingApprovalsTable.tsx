@@ -205,14 +205,14 @@ export default function PendingApprovalsTable({
   onViewBR,
 }: PendingApprovalsTableProps) {
   return (
-    <div className="flex flex-col h-full p-6 bg-white border border-gray-100 shadow-sm rounded-2xl">
-      <div className="flex items-center justify-between mb-5 shrink-0">
+    <div className="flex flex-col h-full p-4 sm:p-6 bg-white border border-gray-100 shadow-sm rounded-2xl">
+      <div className="flex items-center justify-between mb-4 sm:mb-5 shrink-0">
         <h2 className="text-base font-semibold text-gray-800">Recent Companies</h2>
         <span className="text-xs font-medium text-gray-400 capitalize">{statusFilter}</span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto admin-scroll">
+        <table className="w-full min-w-140">
           <thead className="sticky top-0 bg-white z-10">
             <tr className="border-b border-gray-100">
               <th className="pb-3 pl-2 text-xs font-medium tracking-wide text-left text-gray-400 uppercase">Company</th>

@@ -12,13 +12,13 @@ interface CompaniesTableProps {
 export default function CompaniesTable({ companies, onView, onRemove }: CompaniesTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
         <h2 className="text-base font-semibold text-gray-800">Recent Companies</h2>
         
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="overflow-x-auto admin-scroll">
+        <table className="w-full min-w-140">
           <thead>
             <tr className="border-b border-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium tracking-wide text-gray-400 uppercase">Company</th>

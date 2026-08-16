@@ -17,13 +17,13 @@ const avatarColors = [
 export default function CandidatesTable({ candidates, onView, onRemove }: CandidatesTableProps) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-white rounded-2xl border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
         <h2 className="text-base font-semibold text-gray-800">Recent Candidates</h2>
         
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed">
+        <table className="w-full min-w-160 table-fixed">
           <colgroup>
             <col className="w-[30%]" />
             <col className="w-[16%]" />

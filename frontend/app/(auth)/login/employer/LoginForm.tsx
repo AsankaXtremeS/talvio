@@ -42,6 +42,8 @@ export default function LoginForm() {
         setError('root', { type: 'manual', message: 'Access denied. This login is for employers only.' });
         return;
       }
+      if (accessToken) localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       setUser(user);
       setAccessToken("cookie-session");
       router.push(getRoleHomeRoute(user.role, user.id));

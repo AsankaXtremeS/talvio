@@ -136,6 +136,12 @@ export default function DashboardPage() {
 
   const closeRecentActivityModal = () => setIsRecentActivityModalOpen(false);
 
+  const totalApplications = useMemo(() => {
+    const sumFromJobs = jobPosts.reduce((sum, job) => sum + (job.applicantsCount || 0), 0);
+    const backendCount = stats?.applications ?? 0;
+    return Math.max(backendCount, sumFromJobs);
+  }, [stats?.applications, jobPosts]);
+
   return (
     <div className="flex-1 min-h-screen bg-[#f4f6fb] [&_button:not(:disabled)]:cursor-pointer">
       {/* Sticky header — single block, no nesting */}
@@ -170,7 +176,7 @@ export default function DashboardPage() {
           stats={{
             activePosts: stats?.active ?? 0,
             interviews: upcomingInterviews.length,
-            applications: stats?.applications ?? 0,
+            applications: totalApplications,
             aiMatches: aiCandidates.length,
           }}
         />
@@ -188,6 +194,7 @@ export default function DashboardPage() {
             jobs={jobPosts}
             isLoading={jobsLoading}
             onViewAll={() => router.push("/users/employer/job-posts")}
+            onViewJob={(postId) => router.push(`/users/employer/job-posts/${postId}`)}
           />
         </div>
 

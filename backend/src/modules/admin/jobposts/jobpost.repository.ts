@@ -24,6 +24,7 @@ const adminJobPostSelect = Prisma.validator<Prisma.JobPostSelect>()({
 	employer: {
 		select: {
 			companyName: true,
+			companyLogoUrl: true,
 			user: {
 				select: {
 					email: true,

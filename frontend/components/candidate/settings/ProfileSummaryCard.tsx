@@ -65,6 +65,7 @@ export default function ProfileSummaryCard({
     });
   }, [fullName, location, email, phone, bio, skills, profilePictureUrl, linkedinUrl, githubUrl, portfolioUrl]);
 
+  //For the initials when no profile picture is uploaded
   const initials = fullName
     .split(" ")
     .map((part) => part[0])
@@ -130,6 +131,7 @@ export default function ProfileSummaryCard({
         <p className="mt-4 text-xs text-[#374151] md:text-sm">{profile.bio}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Displays the skills , max 5 skills are displayed at once, if more are present "More" button is shown to display the rest. same for "Show less" */}
           {(showAllSkills ? profile.skills : profile.skills.slice(0, 5)).map((skill) => (
             <span
               key={skill}
@@ -138,6 +140,7 @@ export default function ProfileSummaryCard({
               {skill}
             </span>
           ))}
+          {/* If more than 5 skills, show "More" button to display rest */}
           {profile.skills.length > 5 && (
             <button
               className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-semibold text-[#4F46E5]"

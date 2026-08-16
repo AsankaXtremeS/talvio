@@ -145,11 +145,11 @@ export default function CandidatesPage() {
         }
       />
 
-      <div className="min-h-0 flex flex-1 flex-col px-6 pb-6">
+      <div className="min-h-0 flex flex-1 flex-col px-4 sm:px-6 pb-6">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-6">
           <Users size={24} className="text-indigo-600" />
-          <h1 className="text-2xl font-bold text-indigo-600">Candidates</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-indigo-600">Candidates</h1>
         </div>
 
         <CandidateStatsBar stats={stats} />

@@ -95,7 +95,14 @@ export default function JobPostForm({
     setError("");
 
     // Required fields check
-    if (!form.title || !form.location || !form.description) {
+    if (
+      !form.title ||
+      !form.location ||
+      !form.description ||
+      !form.requirements ||
+      !form.responsibilities ||
+      !form.skills
+    ) {
       setError("Please fill in the required fields before posting.");
       return;
     }
@@ -104,6 +111,7 @@ export default function JobPostForm({
     const requiredFieldsToValidate = [
       { key: "description", label: "Job Description" },
       { key: "requirements", label: "Qualifications" },
+      { key: "responsibilities", label: "Responsibilities" },
     ];
     for (const { key, label } of requiredFieldsToValidate) {
       const value = form[key as keyof typeof form] as string;
@@ -116,15 +124,20 @@ export default function JobPostForm({
         return;
       }
     }
+
+    if (form.skills.length > 1000) {
+      setError("Skills must be at most 1000 characters.");
+      return;
+    }
+
     // Optional fields: validate only if not empty
     const optionalFieldsToValidate = [
-      { key: "responsibilities", label: "Responsibilities" },
-      { key: "additionalInformation", label: "Additional Information" },
+      { key: "additionalInformation", label: "Additional Information", checkMin: false },
     ];
-    for (const { key, label } of optionalFieldsToValidate) {
+    for (const { key, label, checkMin } of optionalFieldsToValidate) {
       const value = form[key as keyof typeof form] as string;
       if (value && value.length > 0) {
-        if (value.length < 20) {
+        if (checkMin && value.length < 20) {
           setError(`${label} must be at least 20 characters if provided.`);
           return;
         }
@@ -246,7 +259,9 @@ export default function JobPostForm({
         <div className="space-y-5 pb-2">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
             <div className="md:col-span-4">
-              <label className={labelCls}>Job Title</label>
+              <label className={labelCls}>
+                Job Title <span className="text-red-500">*</span>
+              </label>
               <input
                 className={inputCls}
                 placeholder="Software Engineer"
@@ -294,7 +309,9 @@ export default function JobPostForm({
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
             <div className="md:col-span-4">
-              <label className={labelCls}>Workplace Type</label>
+              <label className={labelCls}>
+                Workplace Type <span className="text-red-500">*</span>
+              </label>
               <select
                 className={inputCls}
                 value={form.workMode}
@@ -312,7 +329,9 @@ export default function JobPostForm({
             </div>
 
             <div className="md:col-span-8">
-              <label className={labelCls}>Location</label>
+              <label className={labelCls}>
+                Location <span className="text-red-500">*</span>
+              </label>
               <input
                 className={inputCls}
                 placeholder="Moratuwa, Sri Lanka"
@@ -324,7 +343,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Job Description</label>
+            <label className={labelCls}>
+              Job Description <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-30`}
               placeholder="Describe the role, team and what the candidate will be doing..."
@@ -334,7 +356,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Responsibilities</label>
+            <label className={labelCls}>
+              Responsibilities <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List the key responsibilities for this role..."
@@ -344,7 +369,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Requirements</label>
+            <label className={labelCls}>
+              Requirements <span className="text-red-500">*</span>{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Min 20 characters)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="List required experience and education..."
@@ -354,7 +382,10 @@ export default function JobPostForm({
           </div>
 
           <div>
-            <label className={labelCls}>Additional Information</label>
+            <label className={labelCls}>
+              Additional Information{" "}
+              <span className="text-[13px] font-normal text-gray-400">(Optional)</span>
+            </label>
             <textarea
               className={`${textareaCls} min-h-25`}
               placeholder="Add any extra details candidates should know..."
@@ -364,7 +395,9 @@ export default function JobPostForm({
           </div>
 
           <div className="max-w-md">
-            <label className={labelCls}>Skills</label>
+            <label className={labelCls}>
+              Skills <span className="text-red-500">*</span>
+            </label>
             <input
               className={inputCls}
               placeholder="Add skills (e.g. React, Python)"
@@ -374,7 +407,9 @@ export default function JobPostForm({
           </div>
 
           <div className="max-w-md">
-            <label className={labelCls}>Closing Date</label>
+            <label className={labelCls}>
+              Closing Date <span className="text-[13px] font-normal text-gray-400">(Optional)</span>
+            </label>
             <DatePicker
               selected={closingDateValue}
               onChange={(date: Date | null) => setField("closingDate", date ? date.toISOString().slice(0, 10) : "")}
@@ -389,6 +424,16 @@ export default function JobPostForm({
             />
           </div>
           <div className="flex items-center justify-end gap-3 pt-3">
+            {isEdit && (
+              <button
+                type="button"
+                onClick={() => router.push("/users/employer/job-posts")}
+                className="inline-flex min-w-32 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            )}
+
             {!isEdit && (
               <button
                 type="button"

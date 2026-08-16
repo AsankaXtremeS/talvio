@@ -18,6 +18,7 @@ export default function ProfilePictureUpdateModal({
   const [error, setError] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  //Handles the closing of the modal when the overlay is clicked
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) onClose();
   };
@@ -50,7 +51,7 @@ export default function ProfilePictureUpdateModal({
 
         {/* Content */}
         <div className="p-6">
-          <UploadDropzone
+          <UploadDropzone                 
             endpoint="imageUploader"
             onClientUploadComplete={async (res) => {
               if (res && res[0]) {
@@ -76,7 +77,7 @@ export default function ProfilePictureUpdateModal({
                 allowedContent: "text-[#6B7280] text-xs mt-2",
                 button: "bg-[#4F46E5] ut-ready:bg-[#4F46E5] ut-uploading:cursor-not-allowed rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#4338CA] focus-within:ring-2 focus-within:ring-[#4F46E5] focus-within:ring-offset-2",
             }}
-            content={{
+            content={{                                  // override the default text labels
                 label: "Choose a photo",
                 allowedContent: "Image (Max 4MB)",
             }}

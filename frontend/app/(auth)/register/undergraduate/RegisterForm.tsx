@@ -223,18 +223,6 @@ export default function UndergraduateRegisterForm() {
         </div>
       </div>
 
-      {/* LinkedIn Button */}
-      <button
-        type="button"
-        onClick={() => {
-          window.location.href = authService.getOAuthSignupUrl("linkedin", "STUDENT")
-        }}
-        className="flex items-center justify-center w-full gap-2 px-4 py-2 transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
-      >
-        <Image src="/images/linkedin.svg" alt="LinkedIn" width={16} height={16} />
-        <span className="text-xs font-medium text-slate-700">Sign up with LinkedIn</span>
-      </button>
-
       {/* Google Button */}
       <button
         type="button"

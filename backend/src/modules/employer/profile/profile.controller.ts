@@ -32,11 +32,25 @@ const isDbUnavailableError = (err: any): boolean => {
   );
 };
 
+const isPrismaError = (err: any): boolean => {
+  const name = typeof err?.name === "string" ? err.name : "";
+  const message = typeof err?.message === "string" ? err.message : "";
+  return (
+    name.startsWith("Prisma") ||
+    message.includes("Invalid `prisma.") ||
+    message.includes("Unknown field") ||
+    message.includes("invocation in")
+  );
+};
+
 const getPublicErrorMessage = (err: any, fallback: string): string => {
   if (isDbUnavailableError(err)) {
     return "Service temporarily unavailable. Please try again in a moment.";
   }
-  if (typeof err?.message === "string" && err.message.trim()) {
+  if (isPrismaError(err)) {
+    return fallback;
+  }
+  if (typeof err?.message === "string" && err.message.trim() && !err.message.includes("prisma.")) {
     return err.message;
   }
   return fallback;

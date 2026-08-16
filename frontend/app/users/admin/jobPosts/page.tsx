@@ -127,10 +127,10 @@ export default function JobPostsPage() {
         showSearch
       />
 
-      <div className="min-h-0 flex flex-1 flex-col px-6 pb-6">
-        <div className="mb-6 flex items-center gap-2">
+      <div className="min-h-0 flex flex-1 flex-col px-4 sm:px-6 pb-6">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2">
           <MessageSquare size={24} className="text-indigo-600" />
-          <h1 className="text-2xl font-bold text-indigo-600">Job Posts</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-indigo-600">Job Posts</h1>
         </div>
 
         <JobPostStatBar

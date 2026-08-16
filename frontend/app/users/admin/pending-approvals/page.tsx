@@ -126,7 +126,7 @@ export default function PendingApprovalsPage() {
         rightControl={<StatusFilterButtons statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} />}
       />
 
-      <div className="admin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+      <div className="admin-scroll min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 pb-6">
         <PageHeader pendingCount={approvals.length} loading={isLoading} />
 
         {isLoading ? (

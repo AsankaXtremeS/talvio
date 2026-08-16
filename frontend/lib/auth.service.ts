@@ -63,7 +63,7 @@ export const authService = {
       data,
     }),
 
-  getOAuthSignupUrl: (provider: 'google' | 'linkedin', role: 'STUDENT' | 'PROFESSIONAL') =>
+  getOAuthSignupUrl: (provider: 'google', role: 'STUDENT' | 'PROFESSIONAL') =>
     `/api/auth/oauth/${provider}?role=${role}`,
 
   login: (data: { email: string; password: string }) =>

@@ -18,12 +18,13 @@ export default function CandidateSettingsPage() {
   const queryClient = useQueryClient();
   const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
+  //For the popup messages 
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
     open: false,
     message: "",
     success: false,
   });
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false); //For the remove resume modal 
 
   // Fetch profile using React Query
   const { data: realProfile, isLoading: isProfileLoading } = useQuery({
@@ -41,6 +42,7 @@ export default function CandidateSettingsPage() {
         await profileService.updateResume(file.ufsUrl || file.url, file.name);
         
         // Invalidate queries to refresh data
+        // refreshes recommendations, profile, and stats all at once after a resume change.
         await queryClient.invalidateQueries({ queryKey: ["candidate-recommendations", user?.id] });
         await queryClient.invalidateQueries({ queryKey: ["candidate-profile", user?.id] });
         await queryClient.invalidateQueries({ queryKey: ["candidate-stats", user?.id] });
@@ -60,11 +62,11 @@ export default function CandidateSettingsPage() {
   };
 
   const handleRemoveResume = () => {
-    setIsConfirmOpen(true);
+    setIsConfirmOpen(true);           // When this button is clicked, opens the confirm dialog
   };
 
   const handleConfirmRemove = async () => {
-    setIsConfirmOpen(false);
+    setIsConfirmOpen(false);          //close dialog first
     try {
       setIsResumeProcessing(true);
       await profileService.removeResume();
@@ -179,7 +181,7 @@ export default function CandidateSettingsPage() {
         message="Are you sure you want to remove your default resume? This will clear your extracted skills and affect your job recommendations."
         confirmLabel="Remove Resume"
         cancelLabel="Keep it"
-        variant="danger"
+        variant="danger"                  //makes the confirm button red
         onConfirm={handleConfirmRemove}
         onCancel={() => setIsConfirmOpen(false)}
       />

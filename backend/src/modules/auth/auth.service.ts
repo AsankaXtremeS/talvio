@@ -239,7 +239,7 @@ export const authService = {
   },
 
   async login(data: any) {
-    const normalizedEmail = String(data.email || "").trim();
+    const normalizedEmail = String(data.email || "").trim().toLowerCase();
     const user = await authRepository.findUserByEmail(normalizedEmail);
     if (!user || !user.password) throw new Error("Invalid credentials");
 
