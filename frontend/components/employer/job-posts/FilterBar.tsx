@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { Search, ChevronDown, Check, RotateCcw, X } from "lucide-react";
 
 interface FilterBarProps {
   search: string;
@@ -14,6 +14,7 @@ interface FilterBarProps {
   onSortChange: (val: string) => void;
   period: string;
   onPeriodChange: (val: string) => void;
+  onClearFilters?: () => void;
 }
 
 function Dropdown({
@@ -87,7 +88,24 @@ export default function FilterBar({
   jobType, onJobTypeChange,
   sort, onSortChange,
   period, onPeriodChange,
+  onClearFilters,
 }: FilterBarProps) {
+  const isFiltered =
+    search !== "" ||
+    status !== "Status" ||
+    jobType !== "Job Type" ||
+    sort !== "Newest" ||
+    period !== "All Time";
+
+  const handleClear = () => {
+    onSearchChange("");
+    onStatusChange("Status");
+    onJobTypeChange("Job Type");
+    onSortChange("Newest");
+    onPeriodChange("All Time");
+    if (onClearFilters) onClearFilters();
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
@@ -98,15 +116,39 @@ export default function FilterBar({
           placeholder="Search Posts"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900
+          className="w-full pl-9 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900
                      placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={() => onSearchChange("")}
+            className="absolute -translate-y-1/2 right-2.5 top-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+            title="Clear search"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Active", "Close"]} />
       <Dropdown value={jobType} onChange={onJobTypeChange} options={["Job Type", "Job", "Internship"]} />
       <Dropdown value={sort}    onChange={onSortChange}    options={["Newest", "Oldest"]} />
       <Dropdown value={period}  onChange={onPeriodChange}  options={["All Time", "This Week", "This Month", "Past 3 Months"]} />
+
+      {isFiltered && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="flex items-center gap-1.5 px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200
+                     text-gray-600 hover:text-gray-800 rounded-xl text-sm font-medium
+                     transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300
+                     whitespace-nowrap shadow-xs"
+        >
+          <RotateCcw size={13} />
+          Clear Filters
+        </button>
+      )}
     </div>
   );
 }
