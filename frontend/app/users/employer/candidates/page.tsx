@@ -5,7 +5,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CandidateInfo, CandidateStatus } from "@/types/candidate/candidate.types";
-import { getCandidates, unmarkReviewed, unmarkShortlisted } from "@/lib/employer/candidates.service";
+import {
+  getCandidates,
+  getCandidateCounts,
+  unmarkReviewed,
+  unmarkShortlisted,
+} from "@/lib/employer/candidates.service";
 import CandidateFilterBar from "@/components/employer/candidates/CandidateFilterBar";
 import CandidatesGrid from "@/components/employer/candidates/CandidatesGrid";
 
@@ -29,7 +34,12 @@ export default function CandidatesPage() {
   const [status, setStatus]   = useState<CandidateStatus>(initialStatus);
   const [query, setQuery]     = useState("");
   const [all, setAll]         = useState<CandidateInfo[]>([]);
+  const [counts, setCounts]   = useState<Record<CandidateStatus, number> | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshCounts = () => {
+    getCandidateCounts(postId || undefined).then(setCounts).catch(() => {});
+  };
 
   // Clear stale offline cache on mount so DB-recovered data is fetched fresh
   useEffect(() => {
@@ -59,6 +69,7 @@ export default function CandidatesPage() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    refreshCounts();
 
     const fetchAll = async () => {
       try {
@@ -108,12 +119,14 @@ export default function CandidatesPage() {
     await unmarkReviewed(postId || undefined, candidateId);
     const updated = await getCandidates(status, postId || undefined);
     setAll(updated);
+    refreshCounts();
   };
 
   const handleUnshortlist = async (candidateId: string) => {
     await unmarkShortlisted(postId || undefined, candidateId);
     const updated = await getCandidates(status, postId || undefined);
     setAll(updated);
+    refreshCounts();
   };
 
   return (
@@ -125,6 +138,7 @@ export default function CandidatesPage() {
         onStatusChange={handleStatusChange}
         query={query}
         onQueryChange={setQuery}
+        counts={counts || undefined}
       />
 
       {/* ── Page heading ── */}
