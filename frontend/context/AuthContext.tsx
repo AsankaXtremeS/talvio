@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '@/lib/auth.service';
 
 interface AuthUser {
@@ -39,6 +40,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
@@ -75,7 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { user: sessionUser } = await authService.me();
         if (!mounted || !sessionUser) return;
 
-        setUser(sessionUser);
+        // If user changed to a different account, clear stale cached queries
+        setUser((prev) => {
+          if (prev && prev.id !== sessionUser.id) {
+            queryClient.clear();
+          }
+          return sessionUser;
+        });
         setAccessToken('cookie-session');
       } catch {
         if (!mounted) return;
@@ -94,13 +102,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [hasHydratedSession, pathname]);
+  }, [hasHydratedSession, pathname, queryClient]);
 
   const logout = async () => {
-    await authService.logout();
+    try {
+      await authService.logout();
+    } catch {
+      // ignore logout network errors
+    }
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("token");
+    localStorage.removeItem("employerOfflineJobPosts");
+    if (typeof window !== "undefined") {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("employer_") || key.startsWith("employerJobPost")) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    queryClient.clear();
     setUser(null);
     setAccessToken(null);
     window.location.href = '/login';

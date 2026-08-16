@@ -173,6 +173,7 @@ export default function JobPostForm({
 
       // Invalidate React Query cache to ensure automatic update on dashboard
       queryClient.invalidateQueries({ queryKey: ["employer-job-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["employer"] });
 
       setPopup({
         open: true,
