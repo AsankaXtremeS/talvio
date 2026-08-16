@@ -5,15 +5,10 @@
 
 import { CandidateInfo, CandidateStatus, FullCandidateProfile } from "@/types/candidate/candidate.types";
 
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  ""
-).replace(/\/+$|^\s+|\s+$/g, "");
-
 const apiUrl = (path: string) => {
-  if (!path.startsWith("/")) return API_BASE ? `${API_BASE}/${path}` : `/${path}`;
-  return API_BASE ? `${API_BASE}${path}` : path;
+  // Use relative /api paths so requests go through Next.js rewrites proxy and browser auth cookies are sent.
+  if (!path.startsWith("/")) return `/${path}`;
+  return path;
 };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
