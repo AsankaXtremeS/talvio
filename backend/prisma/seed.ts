@@ -336,11 +336,13 @@ async function main() {
     },
   });
 
-  for (const application of seededApplications) {
+  for (let i = 0; i < seededApplications.length; i++) {
+    const application = seededApplications[i];
     const createdAt = new Date();
     const firstDate = new Date(createdAt.getTime() - 1000 * 60 * 60 * 24 * 2);
     const secondDate = new Date(createdAt.getTime() - 1000 * 60 * 60 * 24);
 
+    // Initial submission history (always present for all applications)
     await prisma.applicationStatusHistory.upsert({
       where: { id: `${application.id}-history-1` },
       update: {},
@@ -353,20 +355,40 @@ async function main() {
       },
     });
 
-    await prisma.applicationStatusHistory.upsert({
-      where: { id: `${application.id}-history-2` },
-      update: {},
-      create: {
-        id: `${application.id}-history-2`,
-        applicationId: application.id,
-        status: 'REVIEWED',
-        changedAt: secondDate,
-        note: 'Application reviewed by recruiter',
-      },
-    });
-
-    // Add a shortlisting update for the first job post only
-    if (application.jobPostId === jobPostIds[0]) {
+    // Candidates start in "Applied" tab (PENDING).
+    // Advance a subset to demonstrate REVIEWED and SHORTLISTED workflow
+    if (i % 3 === 1) {
+      await prisma.application.update({
+        where: { id: application.id },
+        data: { applicationStatus: 'REVIEWED', isReviewed: true },
+      });
+      await prisma.applicationStatusHistory.upsert({
+        where: { id: `${application.id}-history-2` },
+        update: {},
+        create: {
+          id: `${application.id}-history-2`,
+          applicationId: application.id,
+          status: 'REVIEWED',
+          changedAt: secondDate,
+          note: 'Application reviewed by recruiter',
+        },
+      });
+    } else if (i % 3 === 2) {
+      await prisma.application.update({
+        where: { id: application.id },
+        data: { applicationStatus: 'SHORTLISTED', isReviewed: true, isShortlisted: true },
+      });
+      await prisma.applicationStatusHistory.upsert({
+        where: { id: `${application.id}-history-2` },
+        update: {},
+        create: {
+          id: `${application.id}-history-2`,
+          applicationId: application.id,
+          status: 'REVIEWED',
+          changedAt: secondDate,
+          note: 'Application reviewed by recruiter',
+        },
+      });
       await prisma.applicationStatusHistory.upsert({
         where: { id: `${application.id}-history-3` },
         update: {},

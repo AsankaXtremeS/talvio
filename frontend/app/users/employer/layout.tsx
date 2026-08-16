@@ -166,6 +166,7 @@ function Sidebar({
                 src={user.employerProfile.companyLogoUrl}
                 alt={`${resolvedCompanyName} logo`}
                 fill
+                sizes="36px"
                 className="object-cover"
               />
             ) : (

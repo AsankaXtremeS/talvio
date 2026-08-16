@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Popup from "@/components/admin/layout/Popup";
 import {
+  AlertCircle,
   ArrowLeft,
   Briefcase,
   Building2,
@@ -17,6 +18,7 @@ import {
   Trash2,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { FaLinkedinIn, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { profileService, UpdateProfilePayload } from "@/lib/employer/profile.service";
@@ -64,6 +66,14 @@ export default function EditEmployerProfilePage() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorBannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [error]);
+
   const [popup, setPopup] = useState<{ open: boolean; message: string; success?: boolean }>({
     open: false,
     message: "",
@@ -109,7 +119,7 @@ export default function EditEmployerProfilePage() {
   // ── UploadThing ─────────────────────────────────────────────────────────────
   const { startUpload: uploadLogo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (res) => {
-      const url = res?.[0]?.url ?? res?.[0]?.ufsUrl;
+      const url = res?.[0]?.ufsUrl ?? res?.[0]?.url;
       if (url) setForm((p) => ({ ...p, logoUrl: url }));
       setIsUploadingLogo(false);
     },
@@ -121,7 +131,7 @@ export default function EditEmployerProfilePage() {
 
   const { startUpload: uploadCover } = useUploadThing("imageUploader", {
     onClientUploadComplete: (res) => {
-      const url = res?.[0]?.url ?? res?.[0]?.ufsUrl;
+      const url = res?.[0]?.ufsUrl ?? res?.[0]?.url;
       if (url) setForm((p) => ({ ...p, coverImageUrl: url }));
       setIsUploadingCover(false);
     },
@@ -158,21 +168,48 @@ export default function EditEmployerProfilePage() {
     e.preventDefault();
     setIsSaving(true); setError(null); setPopup({ open: false, message: "", success: false });
 
+    if (!form.name.trim()) {
+      setError("Company name is required.");
+      setIsSaving(false);
+      return;
+    }
+
+    const normalizeUrl = (val: string) => {
+      const trimmed = val.trim();
+      if (!trimmed) return "";
+      if (!/^https?:\/\//i.test(trimmed)) {
+        return `https://${trimmed}`;
+      }
+      return trimmed;
+    };
+
+    const currentYear = new Date().getFullYear();
+    let parsedYear: number | null = null;
+    if (form.foundedYear.trim()) {
+      const num = parseInt(form.foundedYear.trim(), 10);
+      if (isNaN(num) || num < 1800 || num > currentYear) {
+        setError(`Founded year must be between 1800 and ${currentYear}.`);
+        setIsSaving(false);
+        return;
+      }
+      parsedYear = num;
+    }
+
     const payload: UpdateProfilePayload = {
-      companyName: form.name.trim() || undefined,
-      companyDescription: form.description,
-      companyWebsite: form.website,
-      companyLocation: form.location,
-      companyLogoUrl: form.logoUrl,
-      coverImageUrl: form.coverImageUrl,
-      industry: form.industry,
-      companyType: form.companyType,
-      companySize: form.companySize,
-      foundedYear: form.foundedYear ? parseInt(form.foundedYear, 10) : null,
-      specialties: form.specialties,
-      linkedInUrl: form.linkedIn,
-      facebookUrl: form.facebook,
-      twitterUrl: form.twitter,
+      companyName: form.name.trim(),
+      companyDescription: form.description.trim(),
+      companyWebsite: normalizeUrl(form.website),
+      companyLocation: form.location.trim(),
+      companyLogoUrl: normalizeUrl(form.logoUrl),
+      coverImageUrl: normalizeUrl(form.coverImageUrl),
+      industry: form.industry.trim(),
+      companyType: form.companyType.trim(),
+      companySize: form.companySize.trim(),
+      foundedYear: parsedYear,
+      specialties: form.specialties.trim(),
+      linkedInUrl: normalizeUrl(form.linkedIn),
+      facebookUrl: normalizeUrl(form.facebook),
+      twitterUrl: normalizeUrl(form.twitter),
     };
 
     try {
@@ -253,10 +290,43 @@ export default function EditEmployerProfilePage() {
           onClose={handleClosePopup}
         />
 
-        {/* Alerts */}
+        {/* Validation Issue Banner */}
         {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
+          <div
+            ref={errorBannerRef}
+            role="alert"
+            className="mb-6 flex items-start gap-3.5 rounded-2xl border border-red-200 bg-red-50/95 p-4 shadow-sm backdrop-blur-sm transition-all"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 pt-0.5">
+              <h3 className="text-sm font-semibold text-red-900">
+                {error.includes(";") || error.includes(":") ? "Please correct the following issues before saving:" : "Unable to save profile"}
+              </h3>
+              <div className="mt-1 text-sm text-red-700">
+                {error.includes("(") && error.includes(")") ? (
+                  <ul className="mt-1.5 list-inside list-disc space-y-1">
+                    {error
+                      .slice(error.indexOf("(") + 1, error.lastIndexOf(")"))
+                      .split(";")
+                      .map((item, idx) => (
+                        <li key={idx} className="leading-snug">{item.trim()}</li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p className="leading-snug">{error}</p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="rounded-lg p-1.5 text-red-400 transition hover:bg-red-100 hover:text-red-700"
+              aria-label="Dismiss error banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 
@@ -281,7 +351,7 @@ export default function EditEmployerProfilePage() {
                       <div className="relative">
                         {form.logoUrl ? (
                           <div className="relative h-20 w-20 overflow-hidden rounded-2xl">
-                            <Image src={form.logoUrl} alt="Logo" fill className="object-cover" />
+                            <Image src={form.logoUrl} alt="Logo" fill sizes="80px" className="object-cover" />
                           </div>
                         ) : (
                           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#101828] text-2xl font-bold text-white">{logoInitial}</div>
@@ -317,7 +387,7 @@ export default function EditEmployerProfilePage() {
                   <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-[#e5e7eb] transition hover:border-[#2563eb]">
                     {form.coverImageUrl ? (
                       <div className="relative h-50 w-full">
-                        <Image src={form.coverImageUrl} alt="Cover" fill className="object-cover" />
+                        <Image src={form.coverImageUrl} alt="Cover" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px" className="object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition hover:opacity-100">
                           <label htmlFor="cover-upload-change" className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-gray-100">
                             <Upload className="h-4 w-4" />Change
@@ -355,15 +425,15 @@ export default function EditEmployerProfilePage() {
                     <input type="text" name="name" value={form.name} onChange={handleChange} required maxLength={200} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-[#2563eb]/20" placeholder="Enter your company name" />
                   </div>
                   <div className="lg:col-span-2">
-                    <label className="mb-2 block text-sm font-semibold text-[#111827]">Company Description <span className="text-red-500">*</span></label>
-                    <textarea name="description" value={form.description} onChange={handleChange} required rows={4} maxLength={2000} className="w-full resize-none rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-[#2563eb]/20" placeholder="Describe your company, mission, and what makes you unique..." />
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">Company Description</label>
+                    <textarea name="description" value={form.description} onChange={handleChange} rows={4} maxLength={2000} className="w-full resize-none rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-[#2563eb]/20" placeholder="Describe your company, mission, and what makes you unique..." />
                     <p className="mt-1 text-right text-xs text-[#9ca3af]">{form.description.length}/2000</p>
                   </div>
                   <div className="lg:col-span-2">
                     <label className="mb-2 block text-sm font-semibold text-[#111827]">Website</label>
                     <div className="relative">
                       <Link2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
-                      <input type="url" name="website" value={form.website} onChange={handleChange} maxLength={500} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-11 pr-4 text-[#111827] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-[#2563eb]/20" placeholder="https://yourcompany.com" />
+                      <input type="text" name="website" value={form.website} onChange={handleChange} maxLength={500} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-11 pr-4 text-[#111827] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-[#2563eb]/20" placeholder="https://yourcompany.com" />
                     </div>
                   </div>
                 </div>
@@ -435,19 +505,19 @@ export default function EditEmployerProfilePage() {
                     <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
                       <div className="flex h-5 w-5 items-center justify-center rounded bg-[#0A66C2]"><FaLinkedinIn className="h-3 w-3 text-white" /></div>LinkedIn
                     </label>
-                    <input type="url" name="linkedIn" value={form.linkedIn} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#0A66C2] focus:bg-white focus:ring-2 focus:ring-[#0A66C2]/20" placeholder="https://linkedin.com/company/..." />
+                    <input type="text" name="linkedIn" value={form.linkedIn} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#0A66C2] focus:bg-white focus:ring-2 focus:ring-[#0A66C2]/20" placeholder="https://linkedin.com/company/..." />
                   </div>
                   <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
                       <div className="flex h-5 w-5 items-center justify-center rounded bg-[#1877F2]"><FaFacebookF className="h-3 w-3 text-white" /></div>Facebook
                     </label>
-                    <input type="url" name="facebook" value={form.facebook} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#1877F2] focus:bg-white focus:ring-2 focus:ring-[#1877F2]/20" placeholder="https://facebook.com/..." />
+                    <input type="text" name="facebook" value={form.facebook} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#1877F2] focus:bg-white focus:ring-2 focus:ring-[#1877F2]/20" placeholder="https://facebook.com/..." />
                   </div>
                   <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
                       <div className="flex h-5 w-5 items-center justify-center rounded bg-[#111827]"><FaXTwitter className="h-3 w-3 text-white" /></div>X (Twitter)
                     </label>
-                    <input type="url" name="twitter" value={form.twitter} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#111827] focus:bg-white focus:ring-2 focus:ring-[#111827]/20" placeholder="https://twitter.com/..." />
+                    <input type="text" name="twitter" value={form.twitter} onChange={handleChange} className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[#111827] outline-none transition focus:border-[#111827] focus:bg-white focus:ring-2 focus:ring-[#111827]/20" placeholder="https://twitter.com/..." />
                   </div>
                 </div>
                 <div className="mt-6 rounded-2xl bg-[#f9fafb] p-4">

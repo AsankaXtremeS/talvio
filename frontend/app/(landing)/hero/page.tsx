@@ -15,6 +15,7 @@ const Hero = () => {
         src={heroBg}
         alt='Hero background'
         fill
+        sizes="100vw"
         priority
         className='object-cover'
       />

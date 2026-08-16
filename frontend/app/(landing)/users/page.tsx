@@ -48,6 +48,7 @@ export const UsersSection = () => {
         src={employeeBg}
         alt='Employee background'
         fill
+        sizes="100vw"
         priority
         className='object-cover'
       />
