@@ -4,18 +4,10 @@
 
 import { JobPost, JobPostFormData, JobPostStats } from "@/types/employer/jobPost.types";
 
-// Prefer same-origin /api calls so auth cookies from login are always sent.
-// If NEXT_PUBLIC_API_BASE is set, it can override for custom environments.
-// Fallback to NEXT_PUBLIC_API_URL for compatibility with existing env setup.
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  ""
-).replace(/\/+$/, "");
-
 const apiUrl = (path: string) => {
-  if (!path.startsWith("/")) return API_BASE ? `${API_BASE}/${path}` : `/${path}`;
-  return API_BASE ? `${API_BASE}${path}` : path;
+  // Use relative /api paths so requests go through Next.js rewrites proxy and browser auth cookies are sent.
+  if (!path.startsWith("/")) return `/${path}`;
+  return path;
 };
 
 function getStoredAccessToken(): string | null {
