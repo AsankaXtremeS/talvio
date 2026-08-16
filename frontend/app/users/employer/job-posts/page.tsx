@@ -401,7 +401,7 @@ export default function JobPostsPage() {
       </div>
 
       {/* ── Scrollable table area ── */}
-      <div className="flex-1 pr-1 mt-6 overflow-y-auto">
+      <div className="flex-1 pr-1 mt-6 overflow-y-auto min-h-[420px] pb-16">
         {loading ? (
           <div className="p-12 text-sm text-center text-gray-400 bg-white border border-gray-100 rounded-2xl">
             Loading...

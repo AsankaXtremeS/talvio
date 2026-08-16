@@ -522,7 +522,7 @@ export default function JobPostsTable({
   };
 
   return (
-    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl">
+    <div className="overflow-visible bg-white border border-gray-100 rounded-2xl min-h-[360px] pb-16">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-base font-semibold text-gray-800">Job Posts</h3>
       </div>
@@ -530,7 +530,7 @@ export default function JobPostsTable({
       {/* Mobile list view */}
       <div className="space-y-4 lg:hidden px-4 py-4">
         {sortedPosts.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">
+          <div className="py-12 text-center text-sm text-gray-400">
             No job posts found. Click &quot;Post New Job&quot; to get started.
           </div>
         ) : (
@@ -568,10 +568,10 @@ export default function JobPostsTable({
         )}
       </div>
 
-      {/* Desktop table view — always rendered with headers */}
-      <div className="hidden lg:block overflow-x-auto">
+      {/* Desktop table view — always rendered with headers and ample space for dropdown menus */}
+      <div className="hidden lg:block overflow-x-auto min-h-[300px] pb-12">
         <table className="table-auto min-w-full w-full">
-          <thead className="bg-gray-50 sticky top-0 z-10">
+          <thead className="bg-gray-50 sticky top-0 z-20">
             <tr>
               <ColHeader label="Job Title" align="center" />
               <TypeHeaderDropdown jobType={jobType} onJobTypeChange={onJobTypeChange} />
@@ -583,7 +583,7 @@ export default function JobPostsTable({
           <tbody className="divide-y divide-gray-50">
             {sortedPosts.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">
+                <td colSpan={5} className="px-6 py-16 text-center text-sm text-gray-400">
                   No job posts found. Click &quot;Post New Job&quot; to get started.
                 </td>
               </tr>
