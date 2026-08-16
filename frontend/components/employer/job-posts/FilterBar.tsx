@@ -134,7 +134,7 @@ export default function FilterBar({
       <Dropdown value={status}  onChange={onStatusChange}  options={["Status", "Active", "Close"]} />
       <Dropdown value={jobType} onChange={onJobTypeChange} options={["Job Type", "Job", "Internship"]} />
       <Dropdown value={sort}    onChange={onSortChange}    options={["Newest", "Oldest"]} />
-      <Dropdown value={period}  onChange={onPeriodChange}  options={["All Time", "This Week", "This Month", "Past 3 Months"]} />
+      <Dropdown value={period}  onChange={onPeriodChange}  options={["All Time", "This Week", "This Month", "Next 3 Months"]} />
 
       {isFiltered && (
         <button

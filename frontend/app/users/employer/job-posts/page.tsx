@@ -98,27 +98,57 @@ export default function JobPostsPage() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const isWithinPeriod = (dateStr?: string, periodChoice?: string) => {
+  const parseClosingDate = (dateStr?: string): Date | null => {
+    if (!dateStr || !dateStr.trim()) return null;
+
+    const match = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day, 23, 59, 59, 999);
+    }
+
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const isWithinPeriod = (closingDateStr?: string, periodChoice?: string) => {
     if (!periodChoice || periodChoice === "All Time") return true;
 
-    const postDate = dateStr ? new Date(dateStr) : null;
-    if (!postDate || isNaN(postDate.getTime())) return true;
+    const closingDate = parseClosingDate(closingDateStr);
+    if (!closingDate) return false;
 
     const now = new Date();
 
     if (periodChoice === "This Week") {
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return postDate >= sevenDaysAgo;
+      // Start of current calendar week (Monday)
+      const dayOfWeek = now.getDay();
+      const distanceToMonday = (dayOfWeek + 6) % 7;
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday, 0, 0, 0, 0);
+      // End of 7 days from today
+      const endOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59, 999);
+
+      return closingDate >= startOfWeek && closingDate <= endOf7Days;
     }
 
     if (periodChoice === "This Month") {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      return postDate >= startOfMonth;
+      // Start of current month
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      // End of current month or 30 days ahead
+      const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const in30Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30, 23, 59, 59, 999);
+      const endLimit = endOfCurrentMonth > in30Days ? endOfCurrentMonth : in30Days;
+
+      return closingDate >= startOfMonth && closingDate <= endLimit;
     }
 
-    if (periodChoice === "Past 3 Months") {
-      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-      return postDate >= threeMonthsAgo;
+    if (periodChoice === "Next 3 Months" || periodChoice === "Past 3 Months") {
+      // Start of current month to 90 days ahead
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const in90Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90, 23, 59, 59, 999);
+
+      return closingDate >= startOfMonth && closingDate <= in90Days;
     }
 
     return true;
@@ -139,9 +169,8 @@ export default function JobPostsPage() {
         const matchType =
           jobType === "Job Type" || typeValue.toLowerCase() === jobType.toLowerCase();
 
-        // Apply period filter
-        const dateStr = p.createdAt || p.updatedAt || p.closingDate;
-        const matchPeriod = isWithinPeriod(dateStr, period);
+        // Apply period filter to upcoming closing dates
+        const matchPeriod = isWithinPeriod(p.closingDate, period);
 
         return matchSearch && matchStatus && matchType && matchPeriod;
       })
@@ -390,6 +419,12 @@ export default function JobPostsPage() {
             onViewCandidates={handleViewCandidates}
             deletingId={deletingId}
             closingId={closingId}
+            jobType={jobType}
+            onJobTypeChange={setJobType}
+            statusFilter={status}
+            onStatusFilterChange={setStatus}
+            period={period}
+            onPeriodChange={setPeriod}
           />
         )}
       </div>
