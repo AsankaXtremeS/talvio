@@ -20,6 +20,7 @@ export type ApplicationMeta = {
 
 export type ApplicationCard = JobSummary & ApplicationMeta & {
   applicationId?: string;
+  companyLogoUrl?: string | null;
 };
 
 export type CompanyBadge = {

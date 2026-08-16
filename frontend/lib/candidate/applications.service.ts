@@ -12,6 +12,7 @@ export interface CandidateApplication {
     employmentType: string;
     employer: {
       companyName: string;
+      companyLogoUrl?: string | null;
     };
   };
 }
