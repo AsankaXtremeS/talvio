@@ -327,7 +327,8 @@ export const jobsService = {
     const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
     if (!app) throw buildHttpError("Application not found", 404);
 
-    return jobsRepository.markReviewed(app.id);
+    const result = await jobsRepository.markReviewed(app.id);
+    return result;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -345,7 +346,8 @@ export const jobsService = {
     const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
     if (!app) throw buildHttpError("Application not found for this candidate", 404);
 
-    return jobsRepository.unmarkReviewed(app.id);
+    const result = await jobsRepository.unmarkReviewed(app.id);
+    return result;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -365,7 +367,8 @@ export const jobsService = {
     const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
     if (!app) throw buildHttpError("Application not found", 404);
 
-    return jobsRepository.markShortlisted(app.id);
+    const result = await jobsRepository.markShortlisted(app.id);
+    return result;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -383,6 +386,7 @@ export const jobsService = {
     const app = await jobsRepository.findApplicationByJobAndCandidate(jobPostId, candidateProfileId);
     if (!app) throw buildHttpError("Application not found for this candidate", 404);
 
-    return jobsRepository.unmarkShortlisted(app.id);
+    const result = await jobsRepository.unmarkShortlisted(app.id);
+    return result;
   },
 };

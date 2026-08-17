@@ -379,6 +379,28 @@ const toCandidateInfo = (
   jobPostId?: string,
   jobPostTitle?: string
 ): CandidateInfo | null => {
+  // ─── DB is the source of truth ────────────────────────────────────────────
+  // When the backend authoritatively confirms a status, clear any stale
+  // localStorage overrides that were written during a previous session.
+  // Without this, "unreviewed/unshortlisted" override sets persist across
+  // reloads and shadow the real DB value.
+  const dbStatus = applicant.status?.toUpperCase();
+  const dbIsShortlisted = applicant.isShortlisted === true;
+  const dbIsReviewed = applicant.isReviewed === true;
+
+  if (dbIsShortlisted || dbStatus === "SHORTLISTED") {
+    // DB says shortlisted — remove any stale "explicitly unshortlisted/unreviewed" overrides
+    removeFromStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, applicant.id);
+    removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, applicant.id);
+  } else if (dbIsReviewed || dbStatus === "REVIEWED") {
+    // DB says reviewed — remove any stale "explicitly unreviewed" overrides
+    removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, applicant.id);
+  } else if (dbStatus === "PENDING") {
+    // DB says pending (was reset) — remove stale "reviewed/shortlisted" from storage
+    removeFromStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, applicant.id);
+    removeFromStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, applicant.id);
+  }
+
   const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, applicant.id);
   const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, applicant.id);
 
@@ -709,6 +731,23 @@ export async function getCandidateById(
     };
 
     const safeName = data.name?.trim() || "Candidate";
+
+    // ─── DB is the source of truth ─────────────────────────────────────────
+    // Clear any stale localStorage overrides that contradict what the DB says.
+    const dbStatus = appMatch?.status?.toUpperCase();
+    const dbIsShortlisted = appMatch?.isShortlisted === true;
+    const dbIsReviewed = appMatch?.isReviewed === true;
+
+    if (dbIsShortlisted || dbStatus === "SHORTLISTED") {
+      removeFromStorageSet(UNSHORTLISTED_STORAGE_PREFIX, jobPostId, data.id);
+      removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, data.id);
+    } else if (dbIsReviewed || dbStatus === "REVIEWED") {
+      removeFromStorageSet(UNREVIEWED_STORAGE_PREFIX, jobPostId, data.id);
+    } else if (dbStatus === "PENDING") {
+      removeFromStorageSet(REVIEWED_STORAGE_PREFIX, jobPostId, data.id);
+      removeFromStorageSet(SHORTLISTED_STORAGE_PREFIX, jobPostId, data.id);
+    }
+
     const isExplicitlyUnshortlisted = isCandidateUnshortlistedInStorage(jobPostId, data.id);
     const isExplicitlyUnreviewed = isCandidateUnreviewedInStorage(jobPostId, data.id);
 
