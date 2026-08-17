@@ -4,7 +4,7 @@
 
 import { prisma } from "../../../config/db";
 import { CreateJobPostInput, UpdateJobPostInput } from "./jobPosts.validation";
-import { JobType, PostStatus } from "@prisma/client";
+import { ApplicationStatus, JobType, PostStatus } from "@prisma/client";
 
 const toNullableString = (value: string | undefined): string | null => {
   if (value === undefined) return null;
@@ -551,7 +551,7 @@ export const jobsRepository = {
   async markReviewed(applicationId: string) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: { isReviewed: true, applicationStatus: "REVIEWED" },
+      data: { isReviewed: true, applicationStatus: ApplicationStatus.REVIEWED },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
@@ -560,7 +560,7 @@ export const jobsRepository = {
   async unmarkReviewed(applicationId: string) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: { isReviewed: false, applicationStatus: "PENDING" },
+      data: { isReviewed: false, applicationStatus: ApplicationStatus.PENDING },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
@@ -569,7 +569,7 @@ export const jobsRepository = {
   async markShortlisted(applicationId: string) {
     return prisma.application.update({
       where: { id: applicationId },
-      data: { isShortlisted: true, applicationStatus: "SHORTLISTED" },
+      data: { isShortlisted: true, applicationStatus: ApplicationStatus.SHORTLISTED },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
   },
@@ -581,7 +581,7 @@ export const jobsRepository = {
       data: {
         isShortlisted: false,
         isReviewed: true,
-        applicationStatus: "REVIEWED",
+        applicationStatus: ApplicationStatus.REVIEWED,
       },
       select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
     });
