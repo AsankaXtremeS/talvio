@@ -547,43 +547,67 @@ export const jobsRepository = {
     });
   },
 
-  // Set isReviewed = true on an application (independent of isShortlisted).
+  // Set isReviewed = true. Updates Application AND appends an ApplicationStatusHistory row.
   async markReviewed(applicationId: string) {
-    return prisma.application.update({
-      where: { id: applicationId },
-      data: { isReviewed: true, applicationStatus: ApplicationStatus.REVIEWED },
-      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.application.update({
+        where: { id: applicationId },
+        data: { isReviewed: true, applicationStatus: ApplicationStatus.REVIEWED },
+        select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+      }),
+      prisma.applicationStatusHistory.create({
+        data: { applicationId, status: ApplicationStatus.REVIEWED },
+      }),
+    ]);
+    return updated;
   },
 
-  // Set isReviewed = false on an application and revert status to PENDING.
+  // Set isReviewed = false, revert to PENDING. Updates Application AND appends history row.
   async unmarkReviewed(applicationId: string) {
-    return prisma.application.update({
-      where: { id: applicationId },
-      data: { isReviewed: false, applicationStatus: ApplicationStatus.PENDING },
-      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.application.update({
+        where: { id: applicationId },
+        data: { isReviewed: false, applicationStatus: ApplicationStatus.PENDING },
+        select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+      }),
+      prisma.applicationStatusHistory.create({
+        data: { applicationId, status: ApplicationStatus.PENDING },
+      }),
+    ]);
+    return updated;
   },
 
-  // Set isShortlisted = true on an application (independent of isReviewed).
+  // Set isShortlisted = true. Updates Application AND appends history row.
   async markShortlisted(applicationId: string) {
-    return prisma.application.update({
-      where: { id: applicationId },
-      data: { isShortlisted: true, applicationStatus: ApplicationStatus.SHORTLISTED },
-      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.application.update({
+        where: { id: applicationId },
+        data: { isShortlisted: true, applicationStatus: ApplicationStatus.SHORTLISTED },
+        select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+      }),
+      prisma.applicationStatusHistory.create({
+        data: { applicationId, status: ApplicationStatus.SHORTLISTED },
+      }),
+    ]);
+    return updated;
   },
 
-  // Set isShortlisted = false on an application and revert status to REVIEWED.
+  // Set isShortlisted = false, revert to REVIEWED. Updates Application AND appends history row.
   async unmarkShortlisted(applicationId: string) {
-    return prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        isShortlisted: false,
-        isReviewed: true,
-        applicationStatus: ApplicationStatus.REVIEWED,
-      },
-      select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.application.update({
+        where: { id: applicationId },
+        data: {
+          isShortlisted: false,
+          isReviewed: true,
+          applicationStatus: ApplicationStatus.REVIEWED,
+        },
+        select: { id: true, isReviewed: true, isShortlisted: true, applicationStatus: true },
+      }),
+      prisma.applicationStatusHistory.create({
+        data: { applicationId, status: ApplicationStatus.REVIEWED },
+      }),
+    ]);
+    return updated;
   },
 };
