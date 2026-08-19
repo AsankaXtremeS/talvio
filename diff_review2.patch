@@ -1,0 +1,663 @@
+﻿diff --git a/frontend/app/layout.tsx b/frontend/app/layout.tsx
+index 0fd6829..53d381d 100644
+--- a/frontend/app/layout.tsx
++++ b/frontend/app/layout.tsx
+@@ -5,6 +5,7 @@ import "./globals.css"
+ import PageTransition from "@/components/layout/PageTransition"
+ import GlobalRedirectToast from "@/components/layout/GlobalRedirectToast"
+ import { AuthProvider } from "@/context/AuthContext"
++import { QueryProvider } from "@/components/providers/QueryProvider"
+ 
+ const roboto = Roboto({
+   subsets: ["latin"],
+@@ -69,12 +70,14 @@ export default function RootLayout({
+   ensureMethod("getEntriesByName", function () { return []; });
+ })();`}
+         </Script>
+-        <AuthProvider>
+-          <GlobalRedirectToast />
+-          <PageTransition>
+-            {children}
+-          </PageTransition>
+-        </AuthProvider>
++        <QueryProvider>
++          <AuthProvider>
++            <GlobalRedirectToast />
++            <PageTransition>
++              {children}
++            </PageTransition>
++          </AuthProvider>
++        </QueryProvider>
+       </body>
+     </html>
+   )
+diff --git a/frontend/app/users/admin/candidates/page.tsx b/frontend/app/users/admin/candidates/page.tsx
+index 2e97e79..dcf1c2d 100644
+--- a/frontend/app/users/admin/candidates/page.tsx
++++ b/frontend/app/users/admin/candidates/page.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { useCallback, useEffect, useMemo, useState } from 'react';
++import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { Users } from 'lucide-react';
+ import CandidateStatsBar from '@/components/admin/candidates/CandidateStatsBar';
+ import CandidatesTable from '@/components/admin/candidates/CandidatesTable';
+@@ -26,15 +27,11 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
+ };
+ 
+ export default function CandidatesPage() {
++  const queryClient = useQueryClient();
+   const [search, setSearch] = useState('');
+   const [debouncedSearch, setDebouncedSearch] = useState('');
+   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
+   const [roleFilter, setRoleFilter] = useState<CandidateRoleFilter>('all');
+-  const [stats, setStats] = useState<CandidateStats>(defaultStats);
+-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [isStatsLoading, setIsStatsLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
+ 
+   useEffect(() => {
+     const timer = window.setTimeout(() => {
+@@ -48,44 +45,31 @@ export default function CandidatesPage() {
+ 
+   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
+ 
+-  const loadCandidates = useCallback(async () => {
+-    setIsLoading(true);
+-    setError(null);
++  const { data: statsData, isLoading: isStatsLoading } = useQuery({
++    queryKey: ['adminCandidatesStats'],
++    queryFn: async () => {
++      try {
++        return await candidatesService.getStats();
++      } catch {
++        return defaultStats;
++      }
++    },
++  });
+ 
+-    try {
+-      const nextCandidates = await candidatesService.getCandidates({
++  const { data: candidatesData, isLoading: isCandidatesLoading, error: candidatesError } = useQuery({
++    queryKey: ['adminCandidates', normalizedSearch, roleFilter],
++    queryFn: async () => {
++      return await candidatesService.getCandidates({
+         search: normalizedSearch || undefined,
+         role: roleFilter,
+       });
++    },
++  });
+ 
+-      setCandidates(nextCandidates);
+-    } catch (err: unknown) {
+-      setError(getErrorMessage(err, 'Failed to load candidates.'));
+-    } finally {
+-      setIsLoading(false);
+-    }
+-  }, [normalizedSearch, roleFilter]);
+-
+-  const loadStats = useCallback(async () => {
+-    setIsStatsLoading(true);
+-
+-    try {
+-      const nextStats = await candidatesService.getStats();
+-      setStats(nextStats);
+-    } catch {
+-      // Keep default stats if stats endpoint fails; list can still render.
+-    } finally {
+-      setIsStatsLoading(false);
+-    }
+-  }, []);
+-
+-  useEffect(() => {
+-    void loadStats();
+-  }, [loadStats]);
+-
+-  useEffect(() => {
+-    void loadCandidates();
+-  }, [loadCandidates]);
++  const stats = statsData ?? defaultStats;
++  const candidates = candidatesData ?? [];
++  const isLoading = isCandidatesLoading;
++  const error = candidatesError ? getErrorMessage(candidatesError, 'Failed to load candidates.') : null;
+ 
+   const filteredCandidates = useMemo(() => {
+     if (periodFilter === 'all-time') return candidates;
+@@ -124,41 +108,22 @@ export default function CandidatesPage() {
+     window.alert(`Candidate profile for ${candidate.name} will be available soon.`);
+   }, []);
+ 
+-  const handleRemove = useCallback(async (id: string) => {
++  const removeMutation = useMutation({
++    mutationFn: (id: string) => candidatesService.removeCandidate(id),
++    onSuccess: () => {
++      void queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
++      void queryClient.invalidateQueries({ queryKey: ['adminCandidatesStats'] });
++    },
++    onError: (err: unknown) => {
++      window.alert(getErrorMessage(err, 'Failed to remove candidate.'));
++    },
++  });
++
++  const handleRemove = useCallback((id: string) => {
+     const confirmed = window.confirm('Are you sure to remove this candidate?');
+     if (!confirmed) return;
+-
+-    try {
+-      await candidatesService.removeCandidate(id);
+-      setCandidates((prev) => prev.filter((candidate) => candidate.id !== id));
+-      setStats((prev) => {
+-        const removed = candidates.find((candidate) => candidate.id === id);
+-        if (!removed) return prev;
+-
+-        if (removed.type === 'Undergraduate') {
+-          const updatedInternships = Math.max(0, prev.lookingForInternships - 1);
+-          const total = updatedInternships + prev.lookingForJobs;
+-          return {
+-            ...prev,
+-            lookingForInternships: updatedInternships,
+-            internshipApplyingRate: total === 0 ? 0 : Math.round((updatedInternships / total) * 100),
+-            jobApplyingRate: total === 0 ? 0 : Math.round((prev.lookingForJobs / total) * 100),
+-          };
+-        }
+-
+-        const updatedJobs = Math.max(0, prev.lookingForJobs - 1);
+-        const total = prev.lookingForInternships + updatedJobs;
+-        return {
+-          ...prev,
+-          lookingForJobs: updatedJobs,
+-          internshipApplyingRate: total === 0 ? 0 : Math.round((prev.lookingForInternships / total) * 100),
+-          jobApplyingRate: total === 0 ? 0 : Math.round((updatedJobs / total) * 100),
+-        };
+-      });
+-    } catch (err: unknown) {
+-      window.alert(getErrorMessage(err, 'Failed to remove candidate.'));
+-    }
+-  }, [candidates]);
++    removeMutation.mutate(id);
++  }, [removeMutation]);
+ 
+   return (
+     <div className="flex h-full flex-col overflow-hidden">
+diff --git a/frontend/app/users/admin/companies/page.tsx b/frontend/app/users/admin/companies/page.tsx
+index 324c4e4..1f335f8 100644
+--- a/frontend/app/users/admin/companies/page.tsx
++++ b/frontend/app/users/admin/companies/page.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { useCallback, useEffect, useMemo, useState } from 'react';
++import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { Building2 } from 'lucide-react';
+ import CompaniesTable from '@/components/admin/companies/CompaniesTable';
+ import DashboardPeriodDropdown, { type PeriodFilter } from '@/components/admin/dashboard/DashboardPeriodDropdown';
+@@ -15,12 +16,10 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
+ };
+ 
+ export default function CompaniesPage() {
++  const queryClient = useQueryClient();
+   const [search, setSearch] = useState('');
+   const [debouncedSearch, setDebouncedSearch] = useState('');
+   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all-time');
+-  const [companies, setCompanies] = useState<Company[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
+ 
+   useEffect(() => {
+     const timer = window.setTimeout(() => {
+@@ -34,25 +33,17 @@ export default function CompaniesPage() {
+ 
+   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
+ 
+-  const loadCompanies = useCallback(async () => {
+-    setIsLoading(true);
+-    setError(null);
+-
+-    try {
+-      const data = await companiesService.getCompanies({
++  const { data: companiesData, isLoading, error: companiesError } = useQuery({
++    queryKey: ['adminCompanies', normalizedSearch],
++    queryFn: async () => {
++      return await companiesService.getCompanies({
+         search: normalizedSearch || undefined,
+       });
+-      setCompanies(data);
+-    } catch (err: unknown) {
+-      setError(getErrorMessage(err, 'Failed to load companies.'));
+-    } finally {
+-      setIsLoading(false);
+-    }
+-  }, [normalizedSearch]);
++    },
++  });
+ 
+-  useEffect(() => {
+-    void loadCompanies();
+-  }, [loadCompanies]);
++  const companies = companiesData ?? [];
++  const error = companiesError ? getErrorMessage(companiesError, 'Failed to load companies.') : null;
+ 
+   const filteredCompanies = useMemo(() => {
+     if (periodFilter === 'all-time') return companies;
+@@ -91,17 +82,21 @@ export default function CompaniesPage() {
+     window.alert(`Company profile for ${company.name} will be available after the company module is implemented.`);
+   }, []);
+ 
+-  const handleRemove = useCallback(async (id: string) => {
++  const removeMutation = useMutation({
++    mutationFn: (id: string) => companiesService.removeCompany(id),
++    onSuccess: () => {
++      void queryClient.invalidateQueries({ queryKey: ['adminCompanies'] });
++    },
++    onError: (err: unknown) => {
++      window.alert(getErrorMessage(err, 'Failed to remove company.'));
++    },
++  });
++
++  const handleRemove = useCallback((id: string) => {
+     const confirmed = window.confirm('Are you sure to remove this company?');
+     if (!confirmed) return;
+-
+-    try {
+-      await companiesService.removeCompany(id);
+-      setCompanies((prev) => prev.filter((company) => company.id !== id));
+-    } catch (err: unknown) {
+-      window.alert(getErrorMessage(err, 'Failed to remove company.'));
+-    }
+-  }, []);
++    removeMutation.mutate(id);
++  }, [removeMutation]);
+ 
+   return (
+     <div className="flex h-full flex-col overflow-hidden">
+diff --git a/frontend/app/users/admin/dashboard/page.tsx b/frontend/app/users/admin/dashboard/page.tsx
+index 2300763..dd989b1 100644
+--- a/frontend/app/users/admin/dashboard/page.tsx
++++ b/frontend/app/users/admin/dashboard/page.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useEffect, useState } from 'react';
++import { useQuery } from '@tanstack/react-query';
+ import { LayoutDashboard, CalendarDays, Users, Building2, GraduationCap, Briefcase, Clock3 } from 'lucide-react';
+ import AdminTopbar from '@/components/admin/layout/AdminTopbar';
+ import StatsCard from '@/components/admin/dashboard/StatsCard';
+@@ -34,30 +34,15 @@ const defaultOverview: DashboardOverview = {
+ };
+ 
+ export default function DashboardPage() {
+-  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
+-
+-  useEffect(() => {
+-    const loadDashboard = async () => {
+-      setIsLoading(true);
+-      try {
+-        const response = await dashboardService.getOverview();
+-        setOverview(response);
+-      } catch (err) {
+-        if (err instanceof Error) {
+-          setError(err.message);
+-          return;
+-        }
+-        setError('Failed to load dashboard data.');
+-      } finally {
+-        setIsLoading(false);
+-      }
+-    };
+-
+-    loadDashboard();
+-  }, []);
++  const { data: overview, isLoading, error } = useQuery({
++    queryKey: ['adminDashboardOverview'],
++    queryFn: async () => {
++      const response = await dashboardService.getOverview();
++      return response;
++    },
++  });
+ 
++  const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data.';
+   const data = overview ?? defaultOverview;
+   const { stats, userGrowth, candidatesCompaniesActivity, recentCandidates, applicationStats: appStats } = data;
+ 
+@@ -102,7 +87,7 @@ export default function DashboardPage() {
+             <AdminLoadingCard label="Loading dashboard insights..." />
+           ) : error ? (
+             <div className="rounded-2xl border border-red-100 bg-white p-6 text-sm text-red-500">
+-              {error}
++              {errorMessage}
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+diff --git a/frontend/app/users/admin/jobPosts/page.tsx b/frontend/app/users/admin/jobPosts/page.tsx
+index 14657cb..c690903 100644
+--- a/frontend/app/users/admin/jobPosts/page.tsx
++++ b/frontend/app/users/admin/jobPosts/page.tsx
+@@ -1,6 +1,7 @@
+ 'use client';
+ 
+ import { useCallback, useEffect, useMemo, useState } from 'react';
++import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { MessageSquare } from 'lucide-react';
+ import AdminTopbar from '@/components/admin/layout/AdminTopbar';
+ import AdminLoadingCard from '@/components/admin/layout/AdminLoadingCard';
+@@ -31,17 +32,15 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
+ };
+ 
+ export default function JobPostsPage() {
++  const queryClient = useQueryClient();
+   const [search, setSearch] = useState('');
+   const [debouncedSearch, setDebouncedSearch] = useState('');
+-  const [stats, setStats] = useState<CompanyStats>(emptyStats);
+-  const [posts, setPosts] = useState<JobPost[]>([]);
+-  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
++  const [page, setPage] = useState(1);
+ 
+   useEffect(() => {
+     const timer = window.setTimeout(() => {
+       setDebouncedSearch(search);
++      setPage(1); // Reset page on new search
+     }, 300);
+ 
+     return () => {
+@@ -51,64 +50,60 @@ export default function JobPostsPage() {
+ 
+   const normalizedSearch = useMemo(() => debouncedSearch.trim(), [debouncedSearch]);
+ 
+-  const loadData = useCallback(
+-    async (page: number) => {
+-      setIsLoading(true);
+-      setError(null);
+-
++  const { data: statsData } = useQuery({
++    queryKey: ['adminJobPostStats'],
++    queryFn: async () => {
+       try {
+-        const [statsData, postsResponse] = await Promise.all([
+-          companiesService.getJobPostStats(),
+-          companiesService.getJobPosts({
+-            search: normalizedSearch || undefined,
+-            page,
+-            limit: PAGE_LIMIT,
+-          }),
+-        ]);
+-
+-        setStats(statsData);
+-        setPosts(postsResponse.data);
+-        setPagination(postsResponse.pagination);
+-      } catch (err: unknown) {
+-        setError(getErrorMessage(err, 'Failed to load job posts.'));
+-      } finally {
+-        setIsLoading(false);
++        return await companiesService.getJobPostStats();
++      } catch {
++        return emptyStats;
+       }
+     },
+-    [normalizedSearch],
+-  );
++  });
++
++  const { data: postsData, isLoading: isPostsLoading, error: postsError } = useQuery({
++    queryKey: ['adminJobPosts', normalizedSearch, page],
++    queryFn: async () => {
++      return await companiesService.getJobPosts({
++        search: normalizedSearch || undefined,
++        page,
++        limit: PAGE_LIMIT,
++      });
++    },
++  });
+ 
+-  useEffect(() => {
+-    void loadData(1);
+-  }, [loadData]);
++  const stats = statsData ?? emptyStats;
++  const posts = postsData?.data ?? [];
++  const pagination = postsData?.pagination ?? { ...emptyPagination, page };
++  const isLoading = isPostsLoading;
++  const error = postsError ? getErrorMessage(postsError, 'Failed to load job posts.') : null;
+ 
+   const handlePrevious = useCallback(() => {
+-    if (pagination.page <= 1 || isLoading) return;
+-    void loadData(pagination.page - 1);
+-  }, [isLoading, loadData, pagination.page]);
++    if (page <= 1) return;
++    setPage((p) => p - 1);
++  }, [page]);
+ 
+   const handleNext = useCallback(() => {
+-    if (pagination.page >= pagination.totalPages || isLoading) return;
+-    void loadData(pagination.page + 1);
+-  }, [isLoading, loadData, pagination.page, pagination.totalPages]);
+-
+-  const handleRemove = useCallback(
+-    async (post: JobPost) => {
+-      const confirmed = window.confirm(`Are you sure to remove \"${post.jobTitle}\"?`);
+-      if (!confirmed) return;
+-
+-      try {
+-        await companiesService.removeJobPost(post.id);
+-
+-        const shouldLoadPreviousPage = posts.length === 1 && pagination.page > 1;
+-        const targetPage = shouldLoadPreviousPage ? pagination.page - 1 : pagination.page;
+-        await loadData(targetPage);
+-      } catch (err: unknown) {
+-        window.alert(getErrorMessage(err, 'Failed to remove job post.'));
+-      }
++    if (page >= pagination.totalPages) return;
++    setPage((p) => p + 1);
++  }, [page, pagination.totalPages]);
++
++  const removeMutation = useMutation({
++    mutationFn: (id: string) => companiesService.removeJobPost(id),
++    onSuccess: () => {
++      void queryClient.invalidateQueries({ queryKey: ['adminJobPosts'] });
++      void queryClient.invalidateQueries({ queryKey: ['adminJobPostStats'] });
+     },
+-    [loadData, pagination.page, posts.length],
+-  );
++    onError: (err: unknown) => {
++      window.alert(getErrorMessage(err, 'Failed to remove job post.'));
++    },
++  });
++
++  const handleRemove = useCallback((post: JobPost) => {
++    const confirmed = window.confirm(`Are you sure to remove "${post.jobTitle}"?`);
++    if (!confirmed) return;
++    removeMutation.mutate(post.id);
++  }, [removeMutation]);
+ 
+   return (
+     <div className="flex h-full flex-col overflow-hidden">
+diff --git a/frontend/app/users/admin/pending-approvals/page.tsx b/frontend/app/users/admin/pending-approvals/page.tsx
+index bfae73f..823b975 100644
+--- a/frontend/app/users/admin/pending-approvals/page.tsx
++++ b/frontend/app/users/admin/pending-approvals/page.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { useCallback, useEffect, useState } from "react";
++import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+ import { ClipboardCheck } from "lucide-react";
+ import PendingApprovalsTable from "@/components/admin/pending-approvals/PendingApprovalsTable";
+ import AdminLoadingCard from "@/components/admin/layout/AdminLoadingCard";
+@@ -50,60 +51,69 @@ function StatusFilterButtons({
+ // Page
+ // -------------------------------------------------
+ export default function PendingApprovalsPage() {
++  const queryClient = useQueryClient();
+   const [statusFilter, setStatusFilter] = useState<ApprovalStatus>("pending");
+-  const [approvals, setApprovals] = useState<PendingApproval[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
+-
+-  // ΓöÇΓöÇ Fetch by status filter ΓöÇΓöÇ
+-  useEffect(() => {
+-    const load = async () => {
+-      setError(null);
+-      setIsLoading(true);
+-      try {
+-        const employers = await authService.getEmployers(statusFilter);
+-        const data: PendingApproval[] = employers
+-          .map((employer) => ({
++
++  const { data: approvalsData, isLoading, error: approvalsError } = useQuery({
++    queryKey: ['adminPendingApprovals', statusFilter],
++    queryFn: async () => {
++      const employers = await authService.getEmployers(statusFilter);
++      const data: PendingApproval[] = employers
++        .map((employer) => ({
+           id: employer.id,
+           companyName: employer.employerProfile.companyName,
+           email: employer.email,
+           createdAt: employer.createdAt,
+           status: statusFilter,
+           companyLogoUrl: undefined,
+-            registrationFileUrl: employer.employerProfile.registrationFileUrl,
+-            rejectionReason: employer.employerProfile.rejectionReason ?? null,
+-          }))
+-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+-
+-        setApprovals(data);
+-      } catch (err: unknown) {
+-        setError(getErrorMessage(err, `Failed to load ${statusFilter} approvals.`));
+-      } finally {
+-        setIsLoading(false);
+-      }
+-    };
+-    load();
+-  }, [statusFilter]);
++          registrationFileUrl: employer.employerProfile.registrationFileUrl,
++          rejectionReason: employer.employerProfile.rejectionReason ?? null,
++        }))
++        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
++      return data;
++    },
++  });
++
++  const approvals: PendingApproval[] = approvalsData ?? [];
++  const error = approvalsError ? getErrorMessage(approvalsError, `Failed to load ${statusFilter} approvals.`) : null;
++
++  const approveMutation = useMutation({
++    mutationFn: (id: string) => authService.approveEmployer(id),
++    onSuccess: () => {
++      void queryClient.invalidateQueries({ queryKey: ['adminPendingApprovals'] });
++    },
++    onError: (err: unknown) => {
++      window.alert(getErrorMessage(err, 'Failed to approve employer.'));
++    },
++  });
++
++  const rejectMutation = useMutation({
++    mutationFn: ({ id, reason }: { id: string; reason?: string }) => authService.rejectEmployer(id, reason),
++    onSuccess: () => {
++      void queryClient.invalidateQueries({ queryKey: ['adminPendingApprovals'] });
++    },
++    onError: (err: unknown) => {
++      window.alert(getErrorMessage(err, 'Failed to reject employer.'));
++    },
++  });
+ 
+   // ΓöÇΓöÇ Approve ΓöÇΓöÇ
+   const handleApprove = useCallback(async (id: string) => {
+-    await authService.approveEmployer(id);
+-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+-  }, []);
++    await approveMutation.mutateAsync(id);
++  }, [approveMutation]);
+ 
+   // ΓöÇΓöÇ Reject ΓöÇΓöÇ
+   const handleReject = useCallback(async (id: string, reason?: string) => {
+-    await authService.rejectEmployer(id, reason);
+-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+-  }, []);
++    await rejectMutation.mutateAsync({ id, reason });
++  }, [rejectMutation]);
+ 
+   // ΓöÇΓöÇ View Business Registration ΓöÇΓöÇ
+-  const handleViewBR = useCallback(async (id: string) => {
++  const handleViewBR = useCallback((id: string) => {
+     const approval = approvals.find((entry) => entry.id === id);
+     const fileUrl = approval?.registrationFileUrl;
+ 
+     if (!fileUrl) {
+-      setError("Business registration document not found.");
++      window.alert("Business registration document not found.");
+       return;
+     }
+ 
+diff --git a/frontend/next-env.d.ts b/frontend/next-env.d.ts
+index c4b7818..9edff1c 100644
+--- a/frontend/next-env.d.ts
++++ b/frontend/next-env.d.ts
+@@ -1,6 +1,6 @@
+ /// <reference types="next" />
+ /// <reference types="next/image-types/global" />
+-import "./.next/dev/types/routes.d.ts";
++import "./.next/types/routes.d.ts";
+ 
+ // NOTE: This file should not be edited
+ // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+diff --git a/frontend/package-lock.json b/frontend/package-lock.json
+index 8e47f88..9520bee 100644
+--- a/frontend/package-lock.json
++++ b/frontend/package-lock.json
+@@ -9,6 +9,7 @@
+       "version": "0.1.0",
+       "dependencies": {
+         "@hookform/resolvers": "^5.2.2",
++        "@tanstack/react-query": "^5.96.2",
+         "autoprefixer": "^10.4.27",
+         "axios": "^1.13.6",
+         "date-fns": "^4.1.0",
+@@ -1631,6 +1632,32 @@
+         "tailwindcss": "4.2.1"
+       }
+     },
++    "node_modules/@tanstack/query-core": {
++      "version": "5.96.2",
++      "resolved": "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.96.2.tgz",
++      "integrity": "sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA==",
++      "license": "MIT",
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/tannerlinsley"
++      }
++    },
++    "node_modules/@tanstack/react-query": {
++      "version": "5.96.2",
++      "resolved": "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.96.2.tgz",
++      "integrity": "sha512-sYyzzJT4G0g02azzJ8o55VFFV31XvFpdUpG+unxS0vSaYsJnSPKGoI6WdPwUucJL1wpgGfwfmntNX/Ub1uOViA==",
++      "license": "MIT",
++      "dependencies": {
++        "@tanstack/query-core": "5.96.2"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/tannerlinsley"
++      },
++      "peerDependencies": {
++        "react": "^18 || ^19"
++      }
++    },
+     "node_modules/@tybys/wasm-util": {
+       "version": "0.10.1",
+       "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.1.tgz",
+diff --git a/frontend/package.json b/frontend/package.json
+index ffcab31..f16aee3 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -10,6 +10,7 @@
+   },
+   "dependencies": {
+     "@hookform/resolvers": "^5.2.2",
++    "@tanstack/react-query": "^5.96.2",
+     "autoprefixer": "^10.4.27",
+     "axios": "^1.13.6",
+     "date-fns": "^4.1.0",
