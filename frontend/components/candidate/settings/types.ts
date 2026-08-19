@@ -1,0 +1,29 @@
+export interface CandidateSettingsProfile {
+  fullName: string;
+  title: string;
+  location: string;
+  email: string;
+  phone: string;
+  bio: string;
+  skills: string[];
+  profilePictureUrl?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  education: {
+    degree: string;
+    field: string;
+    period: string;
+  };
+  project: {
+    company: string;
+    role: string;
+    period: string;
+    bullets: string[];
+  };
+  experience: {
+    company: string;
+    role: string;
+    period: string;
+  };
+}
